@@ -123,6 +123,25 @@ export interface Candidate {
   address?: string;
   cnic_normalized?: string;
   passport_normalized?: string;
+  
+  // CV Extraction Fields
+  nationality?: string;
+  position?: string;
+  experience_years?: number;
+  country_of_interest?: string;
+  skills?: string;
+  languages?: string;
+  education?: string;
+  certifications?: string;
+  previous_employment?: string;
+  passport_expiry?: string;
+  professional_summary?: string;
+  
+  // Extraction metadata
+  extraction_confidence?: Record<string, number>;
+  extraction_source?: string;
+  extracted_at?: string;
+  
   created_at: string;
   updated_at: string;
 }
@@ -137,6 +156,21 @@ export interface CreateCandidateData {
   address?: string;
   cnic?: string;
   passport?: string;
+  
+  // CV Extraction Fields
+  nationality?: string;
+  position?: string;
+  experience_years?: number;
+  country_of_interest?: string;
+  skills?: string;
+  languages?: string;
+  education?: string;
+  certifications?: string;
+  previous_employment?: string;
+  passport_expiry?: string;
+  professional_summary?: string;
+  extraction_confidence?: Record<string, number>;
+  extraction_source?: string;
 }
 
 export interface CandidateFilters {
@@ -460,6 +494,29 @@ class ApiClient {
     await this.request(`/job-orders/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  // CV Extraction API
+  async extractCandidateData(id: string, cvUrl: string): Promise<any> {
+    return this.request(`/candidates/${id}/extract`, {
+      method: 'POST',
+      body: JSON.stringify({ cvUrl }),
+    });
+  }
+
+  async updateExtraction(id: string, extractedData: any, approved: boolean, notes?: string): Promise<any> {
+    return this.request(`/candidates/${id}/extraction`, {
+      method: 'PUT',
+      body: JSON.stringify({ extractedData, approved, notes }),
+    });
+  }
+
+  async approveExtraction(id: string, extractedData: any, notes?: string): Promise<any> {
+    return this.updateExtraction(id, extractedData, true, notes);
+  }
+
+  async getExtractionHistory(id: string): Promise<{ history: any[] }> {
+    return this.request(`/candidates/${id}/extraction-history`);
   }
 }
 

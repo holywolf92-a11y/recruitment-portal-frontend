@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { X, Edit2, Save, Phone, Mail, MapPin, Briefcase, Calendar, FileText, Globe, CheckCircle, XCircle, Star, Video, MessageSquare, Upload, Download, Eye, Trash2, File, Image as ImageIcon, AlertCircle } from 'lucide-react';
+import { X, Edit2, Save, Phone, Mail, MapPin, Briefcase, Calendar, FileText, Globe, CheckCircle, XCircle, Star, Video, MessageSquare, Upload, Download, Eye, Trash2, File, Image as ImageIcon, AlertCircle, Sparkles, Loader } from 'lucide-react';
 import { Candidate } from '../lib/mockData';
+import { ExtractionReviewModal } from './ExtractionReviewModal';
+import { apiClient } from '../lib/apiClient';
 
 interface CandidateDetailsModalProps {
   candidate: Candidate;
@@ -114,6 +116,10 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
   const [editedCandidate, setEditedCandidate] = useState(candidate);
   const [documents, setDocuments] = useState<Document[]>(getMockDocuments(candidate.id));
   const [activeTab, setActiveTab] = useState<'details' | 'documents'>('details');
+  const [extractionInProgress, setExtractionInProgress] = useState(false);
+  const [showExtractionModal, setShowExtractionModal] = useState(false);
+  const [extractedData, setExtractedData] = useState<any>(null);
+  const [extractionError, setExtractionError] = useState<string | null>(null);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -164,6 +170,51 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
       case 'Passport': return <File className="w-4 h-4" />;
       case 'Photo': return <ImageIcon className="w-4 h-4" />;
       default: return <File className="w-4 h-4" />;
+    }
+  };
+
+  const handleExtractCV = async () => {
+    // Find CV document
+    const cvDocument = documents.find(doc => doc.category === 'CV');
+    if (!cvDocument) {
+      setExtractionError('No CV document found. Please upload a CV first.');
+      return;
+    }
+
+    setExtractionInProgress(true);
+    setExtractionError(null);
+
+    try {
+      // Call extraction API
+      const result = await apiClient.extractCandidateData(candidate.id, cvDocument.fileName);
+      
+      if (result.success) {
+        setExtractedData(result.data);
+        setShowExtractionModal(true);
+      } else {
+        setExtractionError(result.error || 'Failed to extract CV data');
+      }
+    } catch (error) {
+      setExtractionError(error instanceof Error ? error.message : 'An error occurred during extraction');
+    } finally {
+      setExtractionInProgress(false);
+    }
+  };
+
+  const handleApproveExtraction = async (approvedData: any) => {
+    try {
+      // Update candidate with approved extraction data
+      await apiClient.approveExtraction(candidate.id, approvedData);
+      setShowExtractionModal(false);
+      setExtractedData(null);
+      // Update local candidate state with new data
+      setEditedCandidate({
+        ...editedCandidate,
+        ...approvedData
+      });
+    } catch (error) {
+      console.error('Failed to approve extraction:', error);
+      setExtractionError('Failed to save extracted data');
     }
   };
 
@@ -471,19 +522,59 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
             </div>
           ) : (
             <div className="p-6 space-y-4">
+              {/* Error Message */}
+              {extractionError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-red-800">Extraction Error</p>
+                    <p className="text-sm text-red-700 mt-1">{extractionError}</p>
+                    <button
+                      onClick={() => setExtractionError(null)}
+                      className="text-xs text-red-600 hover:text-red-700 mt-2 underline"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Documents Header */}
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">Candidate Documents</h3>
                   <p className="text-sm text-gray-600 mt-1">{documents.length} files uploaded</p>
                 </div>
-                <button
-                  onClick={handleUploadDocument}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                >
-                  <Upload className="w-4 h-4" />
-                  Upload Document
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleExtractCV}
+                    disabled={extractionInProgress || documents.find(doc => doc.category === 'CV') === undefined}
+                    className={`${
+                      extractionInProgress || documents.find(doc => doc.category === 'CV') === undefined
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-purple-600 text-white hover:bg-purple-700'
+                    } px-4 py-2 rounded-lg transition-colors flex items-center gap-2`}
+                  >
+                    {extractionInProgress ? (
+                      <>
+                        <Loader className="w-4 h-4 animate-spin" />
+                        Extracting...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        Extract CV Data
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={handleUploadDocument}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Upload Document
+                  </button>
+                </div>
               </div>
 
               {/* Documents Grid */}
@@ -614,6 +705,19 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
           )}
         </div>
       </div>
+
+      {/* Extraction Modal */}
+      {showExtractionModal && extractedData && (
+        <ExtractionReviewModal
+          candidate={candidate}
+          extractedData={extractedData}
+          onApprove={handleApproveExtraction}
+          onReject={() => {
+            setShowExtractionModal(false);
+            setExtractedData(null);
+          }}
+        />
+      )}
     </div>
   );
 }

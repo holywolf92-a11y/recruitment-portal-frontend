@@ -50,6 +50,9 @@ interface ExtractedData {
     name: number;
     contact: number;
     experience: number;
+    skills: number;
+    education: number;
+    languages: number;
   };
 }
 
