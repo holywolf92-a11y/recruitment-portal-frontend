@@ -1,0 +1,6 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": "npm ci && npm run build",
+  "start": "npm start",
+  "root": "."
+}
