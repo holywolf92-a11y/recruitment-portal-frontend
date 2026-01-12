@@ -151,6 +151,8 @@ export function CVInbox() {
         file_name: file.name,
         mime_type: file.type || 'application/octet-stream',
         attachment_type: 'manual_upload',
+        storage_bucket: 'documents',
+        storage_path: `inbox/${file.name}`,
       });
 
       const newCv: IncomingCV = {
