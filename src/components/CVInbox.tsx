@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { Inbox, Upload, FileText, Mail, MessageSquare, Calendar, CheckCircle, Sparkles, Eye, Download, AlertTriangle, Play } from 'lucide-react';
 import { api, Attachment, InboxMessage } from '../lib/apiClient';
 
@@ -23,6 +23,8 @@ export function CVInbox() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     loadData().catch(() => {});
@@ -109,9 +111,60 @@ export function CVInbox() {
     }, 2000);
   }
 
-  const handleManualUpload = () => {
-    // Placeholder: real uploads should hit backend /api/cv-inbox/:id/attachments
-    alert('Manual upload uses backend API and is not wired here.');
+  const toBase64 = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve((reader.result as string).split(',').pop() || '');
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+
+  const handleManualUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleManualUploadFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const base64 = await toBase64(file);
+      const message = await api.createInboxMessage({
+        source: 'web',
+        status: 'received',
+        received_at: new Date().toISOString(),
+        payload: { sender_name: 'Manual Upload', sender_contact: 'web' },
+      });
+
+      const attachment = await api.uploadAttachment(message.id, {
+        file_base64: base64,
+        file_name: file.name,
+        mime_type: file.type || 'application/octet-stream',
+        attachment_type: 'manual_upload',
+      });
+
+      const newCv: IncomingCV = {
+        id: attachment.id,
+        messageId: message.id,
+        fileName: attachment.file_name || file.name,
+        source: 'Web Form',
+        senderName: 'Manual Upload',
+        senderContact: 'web',
+        receivedDate: new Date().toLocaleString(),
+        fileSize: `${(file.size / 1024).toFixed(1)} KB`,
+        status: 'queued',
+        candidateId: attachment.candidate_id || undefined,
+      };
+
+      setCvs((prev) => [newCv, ...prev]);
+      await handleProcess(attachment.id);
+    } catch (e: any) {
+      setError(e?.message || 'Manual upload failed');
+    } finally {
+      setUploading(false);
+      event.target.value = '';
+    }
   };
 
   const handleRetry = (cvId: string) => {
@@ -138,13 +191,23 @@ export function CVInbox() {
           <h1 className="text-3xl">CV Inbox</h1>
           <p className="text-gray-600 mt-1">Automatic AI extraction - CVs become candidates instantly</p>
         </div>
-        <button 
-          onClick={handleManualUpload}
-          className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-lg"
-        >
-          <Upload className="w-5 h-5" />
-          Upload CV Manually
-        </button>
+        <div className="flex items-center gap-3">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.doc,.docx,.txt,.rtf"
+            className="hidden"
+            onChange={handleManualUploadFile}
+          />
+          <button 
+            onClick={handleManualUploadClick}
+            disabled={uploading}
+            className={`bg-blue-600 text-white px-6 py-3 rounded-lg transition-colors flex items-center gap-2 shadow-lg ${uploading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-blue-700'}`}
+          >
+            <Upload className="w-5 h-5" />
+            {uploading ? 'Uploading...' : 'Upload CV Manually'}
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}

@@ -73,6 +73,31 @@ export const api = {
     return request<Attachment[]>(`/cv-inbox/${messageId}/attachments`);
   },
 
+  async createInboxMessage(data: { source?: string; status?: string; payload?: any; received_at?: string }) {
+    return request<InboxMessage>('/cv-inbox', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async uploadAttachment(
+    messageId: string,
+    data: {
+      file_base64: string;
+      file_name?: string;
+      mime_type?: string;
+      attachment_type?: string;
+      candidate_id?: string;
+      storage_bucket?: string;
+      storage_path?: string;
+    }
+  ) {
+    return request<Attachment>(`/cv-inbox/${messageId}/attachments`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
   async triggerParsing(attachmentId: string) {
     // Week 4 planned endpoint; backend may not have it yet
     return request<{ job_id: string; status: string }>(`/cv-inbox/attachments/${attachmentId}/process`, {
