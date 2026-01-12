@@ -26,6 +26,14 @@ export function CVInbox() {
   const [uploading, setUploading] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  const genExternalId = () => {
+    if (typeof crypto !== 'undefined' && (crypto as any).randomUUID) {
+      return (crypto as any).randomUUID();
+    }
+    // Fallback for older browsers
+    return `web-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  };
+
   useEffect(() => {
     loadData().catch(() => {});
   }, []);
@@ -134,6 +142,7 @@ export function CVInbox() {
         source: 'web',
         status: 'received',
         received_at: new Date().toISOString(),
+        external_message_id: genExternalId(),
         payload: { sender_name: 'Manual Upload', sender_contact: 'web' },
       });
 

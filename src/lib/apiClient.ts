@@ -73,7 +73,7 @@ export const api = {
     return request<Attachment[]>(`/cv-inbox/${messageId}/attachments`);
   },
 
-  async createInboxMessage(data: { source?: string; status?: string; payload?: any; received_at?: string }) {
+  async createInboxMessage(data: { source?: string; status?: string; payload?: any; received_at?: string; external_message_id?: string }) {
     return request<InboxMessage>('/cv-inbox', {
       method: 'POST',
       body: JSON.stringify(data),
