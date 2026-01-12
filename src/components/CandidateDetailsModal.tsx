@@ -174,9 +174,33 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
           setExtractionError(null);
           
           try {
+            // First, upload the document
+            const formData = new FormData();
+            formData.append('file', cvFiles[0]);
+            formData.append('candidate_id', candidate.id);
+            formData.append('doc_type', 'CV');
+            formData.append('is_primary', 'true');
+
+            const uploadResponse = await fetch('/api/documents', {
+              method: 'POST',
+              body: formData
+            });
+
+            if (!uploadResponse.ok) {
+              throw new Error('Failed to upload document');
+            }
+
+            const uploadData = await uploadResponse.json();
+            const documentPath = uploadData.document?.storage_path;
+
+            if (!documentPath) {
+              throw new Error('Failed to get document storage path');
+            }
+
+            // Now extract the CV using the storage path
             const result = await apiClient.extractCandidateData(
               candidate.id, 
-              cvFiles[0].name
+              documentPath
             );
             
             if (result.success) {
@@ -708,10 +732,15 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
       {/* Extraction Modal */}
       {showExtractionModal && extractedData && (
         <ExtractionReviewModal
-          candidate={candidate}
+          candidateId={candidate.id}
           extractedData={extractedData}
+          onClose={() => {
+            setShowExtractionModal(false);
+            setExtractedData(null);
+          }}
           onApprove={handleApproveExtraction}
-          onReject={() => {
+          onReject={(notes: string) => {
+            console.log('Extraction rejected:', notes);
             setShowExtractionModal(false);
             setExtractedData(null);
           }}
