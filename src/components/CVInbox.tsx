@@ -216,7 +216,7 @@ export function CVInbox() {
             className={`bg-blue-600 text-white px-6 py-3 rounded-lg transition-colors flex items-center gap-2 shadow-lg ${uploading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-blue-700'}`}
           >
             <Upload className="w-5 h-5" />
-            {uploading ? 'Uploading...' : 'Upload CV Manually'}
+            {uploading ? 'Uploading...' : 'Upload CV'}
           </button>
         </div>
       </div>
