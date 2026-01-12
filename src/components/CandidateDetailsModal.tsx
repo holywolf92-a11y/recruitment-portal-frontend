@@ -145,7 +145,7 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
     input.type = 'file';
     input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
     input.multiple = true;
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const files = (e.target as HTMLInputElement).files;
       if (files) {
         const newDocs: Document[] = Array.from(files).map(file => ({
@@ -158,7 +158,41 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
           fileSize: `${(file.size / 1024).toFixed(0)} KB`,
           status: 'pending'
         }));
+        
+        // Add documents to list
         setDocuments([...newDocs, ...documents]);
+        
+        // Auto-extract if CV is uploaded
+        const cvFiles = Array.from(files).filter(file => 
+          file.name.toLowerCase().endsWith('.pdf') || 
+          file.name.toLowerCase().endsWith('.docx')
+        );
+        
+        if (cvFiles.length > 0) {
+          // Automatically trigger extraction for first CV
+          setExtractionInProgress(true);
+          setExtractionError(null);
+          
+          try {
+            const result = await apiClient.extractCandidateData(
+              candidate.id, 
+              cvFiles[0].name
+            );
+            
+            if (result.success) {
+              setExtractedData(result.data);
+              setShowExtractionModal(true);
+            } else {
+              setExtractionError(result.error || 'Failed to extract CV data');
+            }
+          } catch (error) {
+            setExtractionError(
+              error instanceof Error ? error.message : 'An error occurred during extraction'
+            );
+          } finally {
+            setExtractionInProgress(false);
+          }
+        }
       }
     };
     input.click();
@@ -170,34 +204,6 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
       case 'Passport': return <File className="w-4 h-4" />;
       case 'Photo': return <ImageIcon className="w-4 h-4" />;
       default: return <File className="w-4 h-4" />;
-    }
-  };
-
-  const handleExtractCV = async () => {
-    // Find CV document
-    const cvDocument = documents.find(doc => doc.category === 'CV');
-    if (!cvDocument) {
-      setExtractionError('No CV document found. Please upload a CV first.');
-      return;
-    }
-
-    setExtractionInProgress(true);
-    setExtractionError(null);
-
-    try {
-      // Call extraction API
-      const result = await apiClient.extractCandidateData(candidate.id, cvDocument.fileName);
-      
-      if (result.success) {
-        setExtractedData(result.data);
-        setShowExtractionModal(true);
-      } else {
-        setExtractionError(result.error || 'Failed to extract CV data');
-      }
-    } catch (error) {
-      setExtractionError(error instanceof Error ? error.message : 'An error occurred during extraction');
-    } finally {
-      setExtractionInProgress(false);
     }
   };
 
@@ -522,6 +528,17 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
             </div>
           ) : (
             <div className="p-6 space-y-4">
+              {/* Auto-Extraction Status */}
+              {extractionInProgress && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+                  <Loader className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5 animate-spin" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-800">Extracting CV Data</p>
+                    <p className="text-sm text-blue-700 mt-1">Processing your CV with AI... This may take a moment.</p>
+                  </div>
+                </div>
+              )}
+
               {/* Error Message */}
               {extractionError && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
@@ -545,36 +562,18 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
                   <h3 className="text-lg font-semibold text-gray-900">Candidate Documents</h3>
                   <p className="text-sm text-gray-600 mt-1">{documents.length} files uploaded</p>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleExtractCV}
-                    disabled={extractionInProgress || documents.find(doc => doc.category === 'CV') === undefined}
-                    className={`${
-                      extractionInProgress || documents.find(doc => doc.category === 'CV') === undefined
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-purple-600 text-white hover:bg-purple-700'
-                    } px-4 py-2 rounded-lg transition-colors flex items-center gap-2`}
-                  >
-                    {extractionInProgress ? (
-                      <>
-                        <Loader className="w-4 h-4 animate-spin" />
-                        Extracting...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4" />
-                        Extract CV Data
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={handleUploadDocument}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                  >
-                    <Upload className="w-4 h-4" />
-                    Upload Document
-                  </button>
-                </div>
+                <button
+                  onClick={handleUploadDocument}
+                  disabled={extractionInProgress}
+                  className={`${
+                    extractionInProgress
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  } px-4 py-2 rounded-lg transition-colors flex items-center gap-2`}
+                >
+                  <Upload className="w-4 h-4" />
+                  {extractionInProgress ? 'Extracting...' : 'Upload Document'}
+                </button>
               </div>
 
               {/* Documents Grid */}
