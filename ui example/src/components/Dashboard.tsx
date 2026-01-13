@@ -49,56 +49,54 @@ export function Dashboard() {
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 shadow-lg text-white transform transition-all hover:scale-105">
+        <div className="bg-white rounded-lg p-6 border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm opacity-90">Total Candidates</p>
-              <p className="text-4xl font-bold mt-2">{totalCandidates}</p>
-              <p className="text-sm mt-2 bg-white bg-opacity-20 px-2 py-1 rounded inline-block">
-                +{newToday} today
-              </p>
+              <p className="text-sm text-gray-600">Total Candidates</p>
+              <p className="text-3xl mt-2">{totalCandidates}</p>
+              <p className="text-sm text-green-600 mt-1">+{newToday} today</p>
             </div>
-            <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-              <Users className="w-8 h-8" />
+            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+              <Users className="w-6 h-6 text-blue-600" />
             </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 shadow-lg text-white transform transition-all hover:scale-105">
+        <div className="bg-white rounded-lg p-6 border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm opacity-90">Open Job Orders</p>
-              <p className="text-4xl font-bold mt-2">{openJobs}</p>
-              <p className="text-sm mt-2 opacity-75">{mockJobOrders.length} total orders</p>
+              <p className="text-sm text-gray-600">Open Job Orders</p>
+              <p className="text-3xl mt-2">{openJobs}</p>
+              <p className="text-sm text-gray-500 mt-1">{mockJobOrders.length} total</p>
             </div>
-            <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-              <Briefcase className="w-8 h-8" />
+            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+              <Briefcase className="w-6 h-6 text-green-600" />
             </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 shadow-lg text-white transform transition-all hover:scale-105">
+        <div className="bg-white rounded-lg p-6 border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm opacity-90">Active Employers</p>
-              <p className="text-4xl font-bold mt-2">{totalEmployers}</p>
-              <p className="text-sm mt-2 opacity-75">Registered companies</p>
+              <p className="text-sm text-gray-600">Active Employers</p>
+              <p className="text-3xl mt-2">{totalEmployers}</p>
+              <p className="text-sm text-gray-500 mt-1">Registered companies</p>
             </div>
-            <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-              <Building2 className="w-8 h-8" />
+            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+              <Building2 className="w-6 h-6 text-purple-600" />
             </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-6 shadow-lg text-white transform transition-all hover:scale-105">
+        <div className="bg-white rounded-lg p-6 border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm opacity-90">Deployed</p>
-              <p className="text-4xl font-bold mt-2">{statusBreakdown.Deployed}</p>
-              <p className="text-sm mt-2 opacity-75">Successfully placed</p>
+              <p className="text-sm text-gray-600">Deployed</p>
+              <p className="text-3xl mt-2">{statusBreakdown.Deployed}</p>
+              <p className="text-sm text-green-600 mt-1">Successfully placed</p>
             </div>
-            <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-              <UserCheck className="w-8 h-8" />
+            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+              <UserCheck className="w-6 h-6 text-orange-600" />
             </div>
           </div>
         </div>
@@ -107,26 +105,26 @@ export function Dashboard() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Status Breakdown */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-          <h3 className="text-xl font-bold text-gray-900 mb-6">Status Breakdown</h3>
-          <div className="space-y-5">
+        <div className="bg-white rounded-lg p-6 border border-gray-200">
+          <h3 className="mb-4">Status Breakdown</h3>
+          <div className="space-y-4">
             {Object.entries(statusBreakdown).map(([status, count]) => {
               const percentage = (count / totalCandidates) * 100;
-              const colors: { [key: string]: { bg: string; bar: string; text: string } } = {
-                Applied: { bg: 'bg-blue-50', bar: 'bg-gradient-to-r from-blue-500 to-blue-600', text: 'text-blue-700' },
-                Pending: { bg: 'bg-yellow-50', bar: 'bg-gradient-to-r from-yellow-500 to-yellow-600', text: 'text-yellow-700' },
-                Deployed: { bg: 'bg-green-50', bar: 'bg-gradient-to-r from-green-500 to-green-600', text: 'text-green-700' },
-                Cancelled: { bg: 'bg-red-50', bar: 'bg-gradient-to-r from-red-500 to-red-600', text: 'text-red-700' },
+              const colors: { [key: string]: string } = {
+                Applied: 'bg-blue-500',
+                Pending: 'bg-yellow-500',
+                Deployed: 'bg-green-500',
+                Cancelled: 'bg-red-500',
               };
               return (
-                <div key={status} className={`p-3 rounded-lg ${colors[status].bg}`}>
-                  <div className="flex justify-between mb-2">
-                    <span className={`text-sm font-semibold ${colors[status].text}`}>{status}</span>
-                    <span className={`text-sm font-bold ${colors[status].text}`}>{count} ({percentage.toFixed(0)}%)</span>
+                <div key={status}>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-sm">{status}</span>
+                    <span className="text-sm">{count} ({percentage.toFixed(0)}%)</span>
                   </div>
-                  <div className="w-full bg-white rounded-full h-3 shadow-inner">
+                  <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
-                      className={`h-3 rounded-full ${colors[status].bar} shadow-sm transition-all duration-500`}
+                      className={`h-2 rounded-full ${colors[status]}`}
                       style={{ width: `${percentage}%` }}
                     />
                   </div>
@@ -137,26 +135,20 @@ export function Dashboard() {
         </div>
 
         {/* Source Breakdown */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-          <h3 className="text-xl font-bold text-gray-900 mb-6">Application Source</h3>
-          <div className="space-y-5">
+        <div className="bg-white rounded-lg p-6 border border-gray-200">
+          <h3 className="mb-4">Application Source</h3>
+          <div className="space-y-4">
             {Object.entries(sourceBreakdown).map(([source, count]) => {
               const percentage = (count / totalCandidates) * 100;
-              const colors: { [key: string]: { bg: string; bar: string } } = {
-                WhatsApp: { bg: 'bg-green-50', bar: 'bg-gradient-to-r from-green-500 to-emerald-600' },
-                Email: { bg: 'bg-blue-50', bar: 'bg-gradient-to-r from-blue-500 to-cyan-600' },
-                Form: { bg: 'bg-purple-50', bar: 'bg-gradient-to-r from-purple-500 to-pink-600' },
-                Manual: { bg: 'bg-gray-50', bar: 'bg-gradient-to-r from-gray-500 to-slate-600' },
-              };
               return (
-                <div key={source} className={`p-3 rounded-lg ${colors[source].bg}`}>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-sm font-semibold text-gray-700">{source}</span>
-                    <span className="text-sm font-bold text-gray-900">{count} ({percentage.toFixed(0)}%)</span>
+                <div key={source}>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-sm">{source}</span>
+                    <span className="text-sm">{count} ({percentage.toFixed(0)}%)</span>
                   </div>
-                  <div className="w-full bg-white rounded-full h-3 shadow-inner">
+                  <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
-                      className={`h-3 rounded-full ${colors[source].bar} shadow-sm transition-all duration-500`}
+                      className="h-2 rounded-full bg-indigo-500"
                       style={{ width: `${percentage}%` }}
                     />
                   </div>
@@ -170,25 +162,18 @@ export function Dashboard() {
       {/* Country & Position Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Country Breakdown */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <MapPin className="w-5 h-5 text-blue-600" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900">Country Distribution</h3>
+        <div className="bg-white rounded-lg p-6 border border-gray-200">
+          <div className="flex items-center gap-2 mb-4">
+            <MapPin className="w-5 h-5 text-blue-600" />
+            <h3>Country of Interest - Distribution</h3>
           </div>
           <div className="space-y-3">
             {Object.entries(countryBreakdown)
               .sort((a, b) => b[1] - a[1])
-              .map(([country, count], index) => (
-                <div key={country} className="flex justify-between items-center py-3 px-4 rounded-lg hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-0">
-                  <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold">
-                      {index + 1}
-                    </span>
-                    <span className="font-medium text-gray-900">{country}</span>
-                  </div>
-                  <span className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-sm">
+              .map(([country, count]) => (
+                <div key={country} className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span>{country}</span>
+                  <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
                     {count}
                   </span>
                 </div>
@@ -197,25 +182,18 @@ export function Dashboard() {
         </div>
 
         {/* Position Breakdown */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <Award className="w-5 h-5 text-green-600" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900">Position Distribution</h3>
+        <div className="bg-white rounded-lg p-6 border border-gray-200">
+          <div className="flex items-center gap-2 mb-4">
+            <Award className="w-5 h-5 text-green-600" />
+            <h3>Position-wise Distribution</h3>
           </div>
           <div className="space-y-3">
             {Object.entries(positionBreakdown)
               .sort((a, b) => b[1] - a[1])
-              .map(([position, count], index) => (
-                <div key={position} className="flex justify-between items-center py-3 px-4 rounded-lg hover:bg-green-50 transition-colors border-b border-gray-100 last:border-0">
-                  <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs font-bold">
-                      {index + 1}
-                    </span>
-                    <span className="font-medium text-gray-900">{position}</span>
-                  </div>
-                  <span className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-sm">
+              .map(([position, count]) => (
+                <div key={position} className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span>{position}</span>
+                  <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
                     {count}
                   </span>
                 </div>

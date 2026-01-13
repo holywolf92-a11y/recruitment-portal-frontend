@@ -1,8 +1,6 @@
 import { useState } from 'react';
-import { X, Edit2, Save, Phone, Mail, MapPin, Briefcase, Calendar, FileText, Globe, CheckCircle, XCircle, Star, Video, MessageSquare, Upload, Download, Eye, Trash2, File, Image as ImageIcon, AlertCircle, Sparkles, Loader } from 'lucide-react';
-import { Candidate } from '../lib/apiClient';
-import { ExtractionReviewModal } from './ExtractionReviewModal';
-import { apiClient } from '../lib/apiClient';
+import { X, Edit2, Save, Phone, Mail, MapPin, Briefcase, Calendar, FileText, Globe, CheckCircle, XCircle, Star, Video, MessageSquare, Upload, Download, Eye, Trash2, File, Image as ImageIcon, AlertCircle } from 'lucide-react';
+import { Candidate } from '../lib/mockData';
 
 interface CandidateDetailsModalProps {
   candidate: Candidate;
@@ -116,10 +114,6 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
   const [editedCandidate, setEditedCandidate] = useState(candidate);
   const [documents, setDocuments] = useState<Document[]>(getMockDocuments(candidate.id));
   const [activeTab, setActiveTab] = useState<'details' | 'documents'>('details');
-  const [extractionInProgress, setExtractionInProgress] = useState(false);
-  const [showExtractionModal, setShowExtractionModal] = useState(false);
-  const [extractedData, setExtractedData] = useState<any>(null);
-  const [extractionError, setExtractionError] = useState<string | null>(null);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -145,7 +139,7 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
     input.type = 'file';
     input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
     input.multiple = true;
-    input.onchange = async (e) => {
+    input.onchange = (e) => {
       const files = (e.target as HTMLInputElement).files;
       if (files) {
         const newDocs: Document[] = Array.from(files).map(file => ({
@@ -158,65 +152,7 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
           fileSize: `${(file.size / 1024).toFixed(0)} KB`,
           status: 'pending'
         }));
-        
-        // Add documents to list
         setDocuments([...newDocs, ...documents]);
-        
-        // Auto-extract if CV is uploaded
-        const cvFiles = Array.from(files).filter(file => 
-          file.name.toLowerCase().endsWith('.pdf') || 
-          file.name.toLowerCase().endsWith('.docx')
-        );
-        
-        if (cvFiles.length > 0) {
-          // Automatically trigger extraction for first CV
-          setExtractionInProgress(true);
-          setExtractionError(null);
-          
-          try {
-            // First, upload the document
-            const formData = new FormData();
-            formData.append('file', cvFiles[0]);
-            formData.append('candidate_id', candidate.id);
-            formData.append('doc_type', 'CV');
-            formData.append('is_primary', 'true');
-
-            const uploadResponse = await fetch('/api/documents', {
-              method: 'POST',
-              body: formData
-            });
-
-            if (!uploadResponse.ok) {
-              throw new Error('Failed to upload document');
-            }
-
-            const uploadData = await uploadResponse.json();
-            const documentPath = uploadData.document?.storage_path;
-
-            if (!documentPath) {
-              throw new Error('Failed to get document storage path');
-            }
-
-            // Now extract the CV using the storage path
-            const result = await apiClient.extractCandidateData(
-              candidate.id, 
-              documentPath
-            );
-            
-            if (result.success) {
-              setExtractedData(result.data);
-              setShowExtractionModal(true);
-            } else {
-              setExtractionError(result.error || 'Failed to extract CV data');
-            }
-          } catch (error) {
-            setExtractionError(
-              error instanceof Error ? error.message : 'An error occurred during extraction'
-            );
-          } finally {
-            setExtractionInProgress(false);
-          }
-        }
       }
     };
     input.click();
@@ -231,77 +167,36 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
     }
   };
 
-  const handleApproveExtraction = async (approvedData: any) => {
-    try {
-      // Update candidate with approved extraction data
-      await apiClient.approveExtraction(candidate.id, approvedData);
-      setShowExtractionModal(false);
-      setExtractedData(null);
-      // Update local candidate state with new data
-      setEditedCandidate({
-        ...editedCandidate,
-        ...approvedData
-      });
-    } catch (error) {
-      console.error('Failed to approve extraction:', error);
-      setExtractionError('Failed to save extracted data');
-    }
-  };
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 p-6 flex items-start justify-between flex-shrink-0">
-          <div className="flex items-start gap-4 flex-1">
-            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-              <span className="text-blue-600 font-bold text-lg">
-                {candidate.name.substring(0, 2).toUpperCase()}
-              </span>
+        <div className="bg-white border-b border-gray-200 p-6 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-2xl text-blue-600">
+              {candidate.name[0]}
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">{candidate.name || 'Unknown'}</h2>
-              <p className="text-sm text-gray-600 mt-0.5">
-                {candidate.position || 'Candidate'} • {candidate.email || 'No email'}
-              </p>
+              <h2>{candidate.name}</h2>
+              <p className="text-gray-600">{candidate.position} • {candidate.nationality}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {!isEditing && (
-              <button
-                onClick={handleEdit}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Edit2 className="w-4 h-4" />
-                Edit
-              </button>
-            )}
-            {isEditing && (
-              <button
-                onClick={handleSave}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
-              >
-                <Save className="w-4 h-4" />
-                Save
-              </button>
-            )}
-            <button
-              onClick={onClose}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Tabs */}
-        <div className="bg-white border-b border-gray-200 px-6 flex-shrink-0">
-          <div className="flex items-center gap-8">
+        <div className="border-b border-gray-200 px-6 flex-shrink-0">
+          <div className="flex gap-6">
             <button
               onClick={() => setActiveTab('details')}
-              className={`py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`py-4 px-2 border-b-2 transition-colors ${
                 activeTab === 'details'
-                  ? 'border-blue-600 text-blue-600'
+                  ? 'border-blue-600 text-blue-600 font-medium'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -309,19 +204,17 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
             </button>
             <button
               onClick={() => setActiveTab('documents')}
-              className={`py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+              className={`py-4 px-2 border-b-2 transition-colors flex items-center gap-2 ${
                 activeTab === 'documents'
-                  ? 'border-blue-600 text-blue-600'
+                  ? 'border-blue-600 text-blue-600 font-medium'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
               <FileText className="w-4 h-4" />
               Documents
-              {documents.length > 0 && (
-                <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full text-xs font-medium">
-                  {documents.length}
-                </span>
-              )}
+              <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-xs">
+                {documents.length}
+              </span>
             </button>
           </div>
         </div>
@@ -345,7 +238,7 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <p className="text-sm text-gray-600 mb-2">AI Matching Score</p>
-                  <p className="text-2xl">{candidate.ai_score || 0}/10</p>
+                  <p className="text-2xl">{candidate.aiScore}/10</p>
                 </div>
               </div>
 
@@ -360,7 +253,7 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
                       <input
                         type="email"
                         name="email"
-                        value={editedCandidate.email || ''}
+                        value={editedCandidate.email}
                         onChange={handleChange}
                         className={`text-sm ${isEditing ? 'border border-gray-300' : 'bg-gray-100'} p-1 rounded`}
                         readOnly={!isEditing}
@@ -374,7 +267,7 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
                       <input
                         type="tel"
                         name="phone"
-                        value={editedCandidate.phone || ''}
+                        value={editedCandidate.phone}
                         onChange={handleChange}
                         className={`text-sm ${isEditing ? 'border border-gray-300' : 'bg-gray-100'} p-1 rounded`}
                         readOnly={!isEditing}
@@ -387,8 +280,8 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
                       <p className="text-sm text-gray-600">Country of Interest</p>
                       <input
                         type="text"
-                        name="country_of_interest"
-                        value={editedCandidate.country_of_interest || ''}
+                        name="country"
+                        value={editedCandidate.country}
                         onChange={handleChange}
                         className={`text-sm ${isEditing ? 'border border-gray-300' : 'bg-gray-100'} p-1 rounded`}
                         readOnly={!isEditing}
@@ -402,7 +295,7 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
                       <input
                         type="text"
                         name="nationality"
-                        value={editedCandidate.nationality || ''}
+                        value={editedCandidate.nationality}
                         onChange={handleChange}
                         className={`text-sm ${isEditing ? 'border border-gray-300' : 'bg-gray-100'} p-1 rounded`}
                         readOnly={!isEditing}
@@ -423,7 +316,7 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
                       <input
                         type="text"
                         name="position"
-                        value={editedCandidate.position || ''}
+                        value={editedCandidate.position}
                         onChange={handleChange}
                         className={`text-sm ${isEditing ? 'border border-gray-300' : 'bg-gray-100'} p-1 rounded`}
                         readOnly={!isEditing}
@@ -436,8 +329,8 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
                       <p className="text-sm text-gray-600">Applied Date</p>
                       <input
                         type="date"
-                        name="created_at"
-                        value={editedCandidate.created_at?.split('T')[0] || ''}
+                        name="appliedDate"
+                        value={editedCandidate.appliedDate}
                         onChange={handleChange}
                         className={`text-sm ${isEditing ? 'border border-gray-300' : 'bg-gray-100'} p-1 rounded`}
                         readOnly={!isEditing}
@@ -445,35 +338,33 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    {candidate.passport_received ? (
+                    {candidate.passportAvailable ? (
                       <CheckCircle className="w-5 h-5 text-green-500 mt-1" />
                     ) : (
                       <XCircle className="w-5 h-5 text-red-500 mt-1" />
                     )}
                     <div>
                       <p className="text-sm text-gray-600">Passport Status</p>
-                      <p className="text-sm">{candidate.passport_received ? 'Received' : 'Not Received'}</p>
+                      <p className="text-sm">{candidate.passportAvailable ? 'Available' : 'Not Available'}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Skills */}
-              {candidate.skills && candidate.skills.length > 0 && (
-                <div>
-                  <h3 className="mb-4">Skills & Competencies</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {candidate.skills.map((skill, index) => (
-                      <span
-                        key={index}
-                        className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
+              <div>
+                <h3 className="mb-4">Skills & Competencies</h3>
+                <div className="flex flex-wrap gap-2">
+                  {candidate.skills.map((skill, index) => (
+                    <span
+                      key={index}
+                      className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm"
+                    >
+                      {skill}
+                    </span>
+                  ))}
                 </div>
-              )}
+              </div>
 
               {/* Languages */}
               {candidate.languages && candidate.languages.length > 0 && (
@@ -580,34 +471,6 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
             </div>
           ) : (
             <div className="p-6 space-y-4">
-              {/* Auto-Extraction Status */}
-              {extractionInProgress && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
-                  <Loader className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5 animate-spin" />
-                  <div>
-                    <p className="text-sm font-medium text-blue-800">Extracting CV Data</p>
-                    <p className="text-sm text-blue-700 mt-1">Processing your CV with AI... This may take a moment.</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Error Message */}
-              {extractionError && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-red-800">Extraction Error</p>
-                    <p className="text-sm text-red-700 mt-1">{extractionError}</p>
-                    <button
-                      onClick={() => setExtractionError(null)}
-                      className="text-xs text-red-600 hover:text-red-700 mt-2 underline"
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                </div>
-              )}
-
               {/* Documents Header */}
               <div className="flex items-center justify-between">
                 <div>
@@ -616,15 +479,10 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
                 </div>
                 <button
                   onClick={handleUploadDocument}
-                  disabled={extractionInProgress}
-                  className={`${
-                    extractionInProgress
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                  } px-4 py-2 rounded-lg transition-colors flex items-center gap-2`}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
                 >
                   <Upload className="w-4 h-4" />
-                  {extractionInProgress ? 'Extracting...' : 'Upload Document'}
+                  Upload Document
                 </button>
               </div>
 
@@ -756,24 +614,6 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
           )}
         </div>
       </div>
-
-      {/* Extraction Modal */}
-      {showExtractionModal && extractedData && (
-        <ExtractionReviewModal
-          candidateId={candidate.id}
-          extractedData={extractedData}
-          onClose={() => {
-            setShowExtractionModal(false);
-            setExtractedData(null);
-          }}
-          onApprove={handleApproveExtraction}
-          onReject={(notes: string) => {
-            console.log('Extraction rejected:', notes);
-            setShowExtractionModal(false);
-            setExtractedData(null);
-          }}
-        />
-      )}
     </div>
   );
 }

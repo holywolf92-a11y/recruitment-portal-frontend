@@ -223,86 +223,94 @@ export function CVInbox() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <div className="bg-white rounded-lg p-6 border-2 border-gray-200">
+        <div className="bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl p-6 shadow-lg text-white transform transition-all hover:scale-105">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">Total CVs</span>
-            <Inbox className="w-5 h-5 text-gray-400" />
+            <span className="text-sm opacity-90">Total CVs</span>
+            <Inbox className="w-6 h-6 opacity-80" />
           </div>
-          <div className="text-2xl font-semibold">{stats.total}</div>
-          <div className="text-xs text-gray-500 mt-1">All time</div>
+          <div className="text-3xl font-bold">{stats.total}</div>
+          <div className="text-xs opacity-75 mt-2">All time</div>
         </div>
         
-        <div className="bg-blue-50 rounded-lg p-6 border-2 border-blue-200">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 shadow-lg text-white transform transition-all hover:scale-105">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-blue-700">Processing</span>
-            <Sparkles className="w-5 h-5 text-blue-600 animate-pulse" />
+            <span className="text-sm opacity-90">Processing</span>
+            <Sparkles className="w-6 h-6 opacity-80 animate-pulse" />
           </div>
-          <div className="text-2xl font-semibold text-blue-900">{stats.processing}</div>
-          <div className="text-xs text-blue-600 mt-1">AI extracting now...</div>
+          <div className="text-3xl font-bold">{stats.processing}</div>
+          <div className="text-xs opacity-75 mt-2">AI extracting now...</div>
         </div>
         
-        <div className="bg-green-50 rounded-lg p-6 border-2 border-green-200">
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 shadow-lg text-white transform transition-all hover:scale-105">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-green-700">Extracted</span>
-            <CheckCircle className="w-5 h-5 text-green-600" />
+            <span className="text-sm opacity-90">Extracted</span>
+            <CheckCircle className="w-6 h-6 opacity-80" />
           </div>
-          <div className="text-2xl font-semibold text-green-900">{stats.extracted}</div>
-          <div className="text-xs text-green-600 mt-1">Now candidates</div>
+          <div className="text-3xl font-bold">{stats.extracted}</div>
+          <div className="text-xs opacity-75 mt-2">Now candidates</div>
         </div>
         
-        <div className="bg-yellow-50 rounded-lg p-6 border-2 border-yellow-200">
+        <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl p-6 shadow-lg text-white transform transition-all hover:scale-105">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-yellow-700">Needs Review</span>
-            <AlertTriangle className="w-5 h-5 text-yellow-600" />
+            <span className="text-sm opacity-90">Needs Review</span>
+            <AlertTriangle className="w-6 h-6 opacity-80" />
           </div>
-          <div className="text-2xl font-semibold text-yellow-900">{stats.needsReview}</div>
-          <div className="text-xs text-yellow-600 mt-1">Low confidence</div>
+          <div className="text-3xl font-bold">{stats.needsReview}</div>
+          <div className="text-xs opacity-75 mt-2">Low confidence</div>
         </div>
         
-        <div className="bg-red-50 rounded-lg p-6 border-2 border-red-200">
+        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-6 shadow-lg text-white transform transition-all hover:scale-105">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-red-700">Errors</span>
-            <AlertTriangle className="w-5 h-5 text-red-600" />
+            <span className="text-sm opacity-90">Errors</span>
+            <AlertTriangle className="w-6 h-6 opacity-80" />
           </div>
-          <div className="text-2xl font-semibold text-red-900">{stats.errors}</div>
-          <div className="text-xs text-red-600 mt-1">Need manual fix</div>
+          <div className="text-3xl font-bold">{stats.errors}</div>
+          <div className="text-xs opacity-75 mt-2">Need manual fix</div>
         </div>
       </div>
 
       {/* Filter Tabs */}
-      <div className="bg-white rounded-lg p-4 border border-gray-200">
-        <div className="flex items-center gap-2">
+      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setFilterStatus('all')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              filterStatus === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            className={`px-5 py-2.5 rounded-lg transition-all font-medium ${
+              filterStatus === 'all' 
+                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            All ({stats.total})
+            All <span className="ml-1 opacity-75">({stats.total})</span>
           </button>
           <button
             onClick={() => setFilterStatus('processing')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              filterStatus === 'processing' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            className={`px-5 py-2.5 rounded-lg transition-all font-medium ${
+              filterStatus === 'processing' 
+                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            Processing ({stats.processing})
+            Processing <span className="ml-1 opacity-75">({stats.processing})</span>
           </button>
           <button
             onClick={() => setFilterStatus('extracted')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              filterStatus === 'extracted' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            className={`px-5 py-2.5 rounded-lg transition-all font-medium ${
+              filterStatus === 'extracted' 
+                ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            Extracted ({stats.extracted})
+            Extracted <span className="ml-1 opacity-75">({stats.extracted})</span>
           </button>
           <button
             onClick={() => setFilterStatus('error')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              filterStatus === 'error' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            className={`px-5 py-2.5 rounded-lg transition-all font-medium ${
+              filterStatus === 'error' 
+                ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            Errors ({stats.errors})
+            Errors <span className="ml-1 opacity-75">({stats.errors})</span>
           </button>
         </div>
       </div>

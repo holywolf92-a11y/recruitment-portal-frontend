@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Dashboard } from './components/Dashboard';
-import { CandidateManagement } from './components/CandidateManagement_ENHANCED';
+import { CandidateManagement } from './components/CandidateManagement';
 import { CandidateBrowserEnhanced } from './components/CandidateBrowserEnhanced';
 import { EmployerManagement } from './components/EmployerManagement';
 import { JobOrderManagement } from './components/JobOrderManagement';
@@ -12,58 +12,48 @@ import { CVInbox } from './components/CVInbox';
 import { CommunicationTemplates } from './components/CommunicationTemplates';
 import { UserManagement } from './components/UserManagement';
 import { Login } from './components/Login';
-import { InboxUI } from './components/InboxUI';
-import { useAuth, AuthProvider } from './lib/authContext';
+import { AuthProvider, useAuth } from './lib/authContext';
 import { hasPermission } from './lib/authData';
-import { apiClient } from './lib/apiClient';
-import { Users, Briefcase, Building2, FileText, Settings as SettingsIcon, LayoutDashboard, Link2, Inbox, MessageSquare, FolderTree, ArrowLeft, LogOut, Shield, ChevronDown, Mail } from 'lucide-react';
+import { mockCandidates } from './lib/mockData';
+import { Users, Briefcase, Building2, FileText, Settings as SettingsIcon, LayoutDashboard, Link2, Inbox, MessageSquare, FolderTree, ArrowLeft, LogOut, Shield, ChevronDown } from 'lucide-react';
 
-const AppContent = () => {
-  const { session, signOut, loading } = useAuth();
+function AppContent() {
+  const { user, logout, isAuthenticated, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showPublicForm, setShowPublicForm] = useState(false);
   const [selectedProfession, setSelectedProfession] = useState<string>('all');
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  // Mock user data - in production, this would come from user metadata in Supabase
-  const user = session ? {
-    name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-    email: session.user.email || '',
-    role: (session.user.user_metadata?.role || 'viewer').charAt(0).toUpperCase() + (session.user.user_metadata?.role || 'viewer').slice(1),
-    lastActive: 'Today'
-  } : {
-    name: 'Guest',
-    email: '',
-    role: 'Viewer',
-    lastActive: 'Today'
-  };
+  // Get unique professions from candidates
+  const professions = Array.from(new Set(mockCandidates.map(c => c.position))).sort();
+  const professionCounts = professions.reduce((acc, profession) => {
+    acc[profession] = mockCandidates.filter(c => c.position === profession).length;
+    return acc;
+  }, {} as Record<string, number>);
 
-  // Build profession filters from live candidates
-  const [professions, setProfessions] = useState<string[]>(['all']);
-  const [professionCounts, setProfessionCounts] = useState<Record<string, number>>({ all: 0 });
+  // Check if we should show the public form based on URL
+  if (typeof window !== 'undefined' && window.location.pathname === '/apply') {
+    return <PublicApplicationForm />;
+  }
 
-  useEffect(() => {
-    let isMounted = true;
-    (async () => {
-      try {
-        const data = await apiClient.getCandidates();
-        if (!isMounted) return;
-        const positions = Array.from(new Set(data.map((c) => c.position).filter(Boolean) as string[])).sort();
-        setProfessions(['all', ...positions]);
-        const counts: Record<string, number> = { all: data.length };
-        positions.forEach((p) => {
-          counts[p] = data.filter((c) => c.position === p).length;
-        });
-        setProfessionCounts(counts);
-      } catch (e) {
-        // ignore for now; UI will still render with default filters
-      }
-    })();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  // Show loading spinner while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
+  // Show login if not authenticated
+  if (!isAuthenticated || !user) {
+    return <Login />;
+  }
+
+  // Check if we're in browser view
   const isBrowserView = activeTab === 'candidate-browser';
 
   const renderContent = () => {
@@ -72,8 +62,6 @@ const AppContent = () => {
         return <Dashboard />;
       case 'cv-inbox':
         return <CVInbox />;
-      case 'inbox-ui':
-        return <InboxUI apiBaseUrl="http://localhost:1000/api" />;
       case 'candidates':
         return <CandidateManagement initialProfessionFilter={selectedProfession} />;
       case 'candidate-browser':
@@ -96,28 +84,6 @@ const AppContent = () => {
         return <Dashboard />;
     }
   };
-
-  // Check if we should show the public form based on URL
-  if (typeof window !== 'undefined' && window.location.pathname === '/apply') {
-    return <PublicApplicationForm />;
-  }
-
-  // Show loading spinner while checking auth
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show login if not authenticated
-  if (!session) {
-    return <Login />;
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -176,7 +142,7 @@ const AppContent = () => {
                   <div className="border-t border-gray-200 mt-2 pt-2">
                     <button
                       onClick={() => {
-                        signOut();
+                        logout();
                         setShowUserMenu(false);
                       }}
                       className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
@@ -226,18 +192,6 @@ const AppContent = () => {
                   <span className="flex-1 text-left">CV Inbox</span>
                   <span className="bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded text-xs">5 New</span>
                 </button>
-
-                <button
-                  onClick={() => setActiveTab('inbox-ui')}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
-                    activeTab === 'inbox-ui'
-                      ? 'bg-blue-50 text-blue-600 font-medium'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <Mail className="w-4 h-4" />
-                  <span className="flex-1 text-left">Inbox Manager</span>
-                </button>
                 
                 <button
                   onClick={() => {
@@ -252,7 +206,7 @@ const AppContent = () => {
                 >
                   <Users className="w-4 h-4" />
                   <span className="flex-1 text-left">Candidates</span>
-                  <span className="text-xs text-gray-500">{professionCounts['all'] ?? 0}</span>
+                  <span className="text-xs text-gray-500">{mockCandidates.length}</span>
                 </button>
 
                 {/* Profession Sub-items */}
@@ -413,7 +367,7 @@ const AppContent = () => {
       </div>
     </div>
   );
-};
+}
 
 export default function App() {
   return (
