@@ -15,8 +15,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
     let isMounted = true;
     (async () => {
       try {
-        const data = await apiClient.getCandidates();
-        if (isMounted) setCandidates(data);
+        const response = await apiClient.getCandidates();
+        if (isMounted) setCandidates(response.candidates || []);
       } catch (e: any) {
         if (isMounted) setError(e?.message || 'Failed to load candidates');
       } finally {
@@ -67,14 +67,100 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
             <p className="text-gray-600">Try adding a candidate from the backend API.</p>
           </div>
         ) : (
-          <ul className="bg-white rounded-lg border border-gray-200 divide-y">
+          <div className="space-y-4">
             {candidates.map((c) => (
-              <li key={c.id} className="px-4 py-3">
-                <div className="font-medium text-gray-900">{c.name}</div>
-                <div className="text-sm text-gray-600">{c.email || 'No email'}</div>
-              </li>
+              <div key={c.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-900">{c.name}</h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Code: <span className="font-mono text-gray-800">{c.candidate_code}</span>
+                    </p>
+                  </div>
+                  {c.extraction_source && (
+                    <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                      {c.extraction_source === 'cv_parser' ? 'From CV' : 'Manual'}
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                  {c.email && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase">Email</p>
+                      <p className="text-sm text-gray-900">{c.email}</p>
+                    </div>
+                  )}
+                  {c.phone && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase">Phone</p>
+                      <p className="text-sm text-gray-900">{c.phone}</p>
+                    </div>
+                  )}
+                  {c.address && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase">Location</p>
+                      <p className="text-sm text-gray-900">{c.address}</p>
+                    </div>
+                  )}
+                  {c.nationality && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase">Nationality</p>
+                      <p className="text-sm text-gray-900">{c.nationality}</p>
+                    </div>
+                  )}
+                  {c.experience_years && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase">Experience</p>
+                      <p className="text-sm text-gray-900">{c.experience_years} years</p>
+                    </div>
+                  )}
+                  {c.position && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase">Position</p>
+                      <p className="text-sm text-gray-900">{c.position}</p>
+                    </div>
+                  )}
+                </div>
+
+                {c.professional_summary && (
+                  <div className="mb-4">
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Summary</p>
+                    <p className="text-sm text-gray-700 line-clamp-2">{c.professional_summary}</p>
+                  </div>
+                )}
+
+                {c.skills && (
+                  <div className="mb-4">
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Skills</p>
+                    <div className="flex flex-wrap gap-2">
+                      {(() => {
+                        try {
+                          const skills = typeof c.skills === 'string' ? JSON.parse(c.skills) : c.skills;
+                          return Array.isArray(skills) ? skills.slice(0, 5).map((skill, i) => (
+                            <span key={i} className="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                              {skill}
+                            </span>
+                          )) : null;
+                        } catch {
+                          return null;
+                        }
+                      })()}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+                  <p className="text-xs text-gray-500">
+                    {c.extracted_at ? `Extracted: ${new Date(c.extracted_at).toLocaleDateString()}` : ''}
+                  </p>
+                  <button className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
+                    View Details
+                  </button>
+                </div>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </div>
     </div>
