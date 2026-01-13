@@ -5,7 +5,7 @@ $BackendURL = "https://exquisite-surprise-production.up.railway.app"
 $RedisURL = "redis://default:sBtnDrpJrbASwbGejzqByuCroCidLUVI@redis.railway.internal:6379"
 $SupabaseURL = "https://hncvsextwmvjydcukdwx.supabase.co"
 $SupabaseAnonKey = "sb_publishable_5qD27qPFc04oqSmS61s1tw_lgt8FhBV"
-$SupabaseServiceRoleKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuY3ZzZXh0d212anlkY3VrZHd4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczMDY5NDY4OCwiZXhwIjoxODg4NDYwNjg4fQ.BxC5Vxlf8VxPYI5ViBQz2J9f1j9s0s0s0s0s0s0s0s0"
+$SupabaseServiceRoleKey = "" # ⚠️ NEVER commit secrets! Set via Railway environment or secure vault
 $PythonHmacSecret = "Itbfr/p8ky/dRMAHLdi/DIiQRLEJtm2SqyNfwuXa3r0="
 $PythonCVParserURL = "https://cv-parser-production.railway.app"
 $JWTSecret = "your-jwt-secret-key-min-32-characters-long"
