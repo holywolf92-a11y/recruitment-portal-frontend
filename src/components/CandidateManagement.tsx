@@ -193,36 +193,36 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          <div className="rounded-2xl p-5 text-white bg-gradient-to-br from-blue-600 to-blue-400 shadow-sm">
-            <p className="text-white/80 text-sm font-medium">Total Candidates</p>
+          <div className="rounded-lg p-5 text-white bg-blue-600 shadow-sm">
+            <p className="text-white/90 text-sm font-medium">Total Candidates</p>
             <p className="text-4xl font-bold mt-2">{stats.totalCandidates}</p>
           </div>
-          <div className="rounded-2xl p-5 text-white bg-gradient-to-br from-orange-600 to-orange-400 shadow-sm">
-            <p className="text-white/80 text-sm font-medium">Total Professions</p>
+          <div className="rounded-lg p-5 text-white bg-orange-600 shadow-sm">
+            <p className="text-white/90 text-sm font-medium">Total Professions</p>
             <p className="text-4xl font-bold mt-2">{stats.totalProfessions}</p>
           </div>
-          <div className="rounded-2xl p-5 text-white bg-gradient-to-br from-amber-600 to-amber-400 shadow-sm">
-            <p className="text-white/80 text-sm font-medium">Pending Review</p>
+          <div className="rounded-lg p-5 text-white bg-yellow-500 shadow-sm">
+            <p className="text-white/90 text-sm font-medium">Pending Review</p>
             <p className="text-4xl font-bold mt-2">{stats.pendingReview}</p>
           </div>
-          <div className="rounded-2xl p-5 text-white bg-gradient-to-br from-green-600 to-green-400 shadow-sm">
-            <p className="text-white/80 text-sm font-medium">Deployed</p>
+          <div className="rounded-lg p-5 text-white bg-green-600 shadow-sm">
+            <p className="text-white/90 text-sm font-medium">Deployed</p>
             <p className="text-4xl font-bold mt-2">{stats.deployed}</p>
           </div>
-          <div className="rounded-2xl p-5 text-white bg-gradient-to-br from-purple-600 to-purple-400 shadow-sm">
-            <p className="text-white/80 text-sm font-medium">New This Week</p>
+          <div className="rounded-lg p-5 text-white bg-purple-600 shadow-sm">
+            <p className="text-white/90 text-sm font-medium">New This Week</p>
             <p className="text-4xl font-bold mt-2">{stats.newThisWeek}</p>
           </div>
         </div>
 
         {/* Filters / Search / View Toggle */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-6 shadow-sm">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
             <div className="flex flex-col sm:flex-row gap-3 flex-1">
               <select
                 value={filters.country}
                 onChange={(e) => setFilters({ ...filters, country: e.target.value })}
-                className="h-11 px-4 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="h-10 px-4 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">All Countries</option>
                 {countries.map((c) => (
@@ -233,7 +233,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
               <select
                 value={filters.status}
                 onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                className="h-11 px-4 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="h-10 px-4 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">All Status</option>
                 {statuses.map((s) => (
@@ -242,40 +242,38 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
               </select>
 
               <div className="relative flex-1">
-                <Search className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Search candidates by name, position, email..."
                   value={filters.search}
                   onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                  className="h-11 w-full pl-12 pr-4 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="h-10 w-full pl-10 pr-4 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-end">
-              <div className="bg-gray-100 rounded-xl p-1 flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('card')}
-                  className={`h-10 px-4 rounded-lg text-sm font-semibold inline-flex items-center gap-2 transition-colors ${
-                    viewMode === 'card' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  <Grid3x3 className="w-4 h-4" />
-                  Cards
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('table')}
-                  className={`h-10 px-4 rounded-lg text-sm font-semibold inline-flex items-center gap-2 transition-colors ${
-                    viewMode === 'table' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  <List className="w-4 h-4" />
-                  Table
-                </button>
-              </div>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setViewMode('card')}
+                className={`h-10 px-4 rounded-lg text-sm font-semibold inline-flex items-center gap-2 transition-colors ${
+                  viewMode === 'card' ? 'bg-blue-600 text-white' : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <Grid3x3 className="w-4 h-4" />
+                Cards
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={`h-10 px-4 rounded-lg text-sm font-semibold inline-flex items-center gap-2 transition-colors ${
+                  viewMode === 'table' ? 'bg-blue-600 text-white' : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <List className="w-4 h-4" />
+                Table
+              </button>
             </div>
           </div>
 
@@ -285,16 +283,9 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
               <span className="font-semibold text-gray-900">{candidates.length}</span> candidates
             </span>
 
-            {(filters.search || filters.country !== 'all' || filters.status !== 'all') && (
-              <button
-                type="button"
-                onClick={() => setFilters({ search: '', position: filters.position, country: 'all', status: 'all' })}
-                className="inline-flex items-center gap-1 text-blue-600 font-semibold hover:text-blue-700"
-              >
-                <X className="w-4 h-4" />
-                Clear
-              </button>
-            )}
+            <button type="button" className="text-blue-600 font-semibold hover:text-blue-700">
+              Select All
+            </button>
           </div>
         </div>
 
