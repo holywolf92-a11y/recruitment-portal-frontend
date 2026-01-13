@@ -423,6 +423,29 @@ class ApiClient {
     return response.signedUrl;
   }
 
+  async getCandidateCVDownload(candidateId: string): Promise<{ download_url: string; filename: string }> {
+    return await this.request<{ download_url: string; filename: string }>(`/candidates/${candidateId}/documents/cv/download`);
+  }
+
+  async uploadCandidatePhoto(candidateId: string, file: File): Promise<{ message: string; photo_url: string; photo_path: string }> {
+    const formData = new FormData();
+    formData.append('photo', file);
+
+    const url = `${API_BASE_URL}/candidates/${candidateId}/photo`;
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+      // Don't set Content-Type - browser sets it with boundary
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`API Error: ${response.status} ${error}`);
+    }
+
+    return await response.json();
+  }
+
   async deleteDocument(id: string): Promise<void> {
     await this.request(`/documents/${id}`, {
       method: 'DELETE',
