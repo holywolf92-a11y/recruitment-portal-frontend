@@ -18,8 +18,9 @@ const BACKEND_URL =
 // Serve static files from build directory
 app.use(express.static(path.join(__dirname, 'build')));
 
-// Parse JSON
-app.use(express.json());
+// Parse requests with increased limits
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Proxy API requests to backend
 app.use('/api', async (req, res) => {
