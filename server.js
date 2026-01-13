@@ -33,13 +33,25 @@ app.use('/api', async (req, res) => {
         ...req.headers,
         'host': new URL(BACKEND_URL).host,
       },
+      validateStatus: function (status) {
+        // Accept any status code (including 304) as valid
+        return status >= 200 && status < 600;
+      },
     });
     res.status(response.status).send(response.data);
   } catch (error) {
-    console.error('Proxy error:', error.message);
-    res.status(error.response?.status || 500).json({ 
-      error: error.message 
-    });
+    // Only log actual errors, not valid HTTP responses
+    if (error.response) {
+      console.error('Proxy error:', error.response.status, error.message);
+      res.status(error.response.status).json({ 
+        error: error.message 
+      });
+    } else {
+      console.error('Proxy error:', error.message);
+      res.status(500).json({ 
+        error: error.message 
+      });
+    }
   }
 });
 
