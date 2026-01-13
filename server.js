@@ -8,7 +8,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Backend URL from environment or default
-const BACKEND_URL = process.env.BACKEND_URL || 'https://gleaming-healing-production-601c.up.railway.app';
+// Prefer explicit env vars, but fall back to the known live API service.
+// NOTE: The previously used gleaming-healing URL is a Redis service and will 404 for API routes.
+const BACKEND_URL =
+  process.env.BACKEND_URL ||
+  process.env.API_BASE_URL ||
+  'https://recruitment-portal-backend-production-d1f7.up.railway.app';
 
 // Serve static files from build directory
 app.use(express.static(path.join(__dirname, 'build')));
