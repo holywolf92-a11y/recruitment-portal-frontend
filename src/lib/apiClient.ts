@@ -115,14 +115,22 @@ export interface Candidate {
   id: string;
   candidate_code: string;
   name: string;
+  father_name?: string;
   email?: string;
   phone?: string;
   date_of_birth?: string;
   gender?: string;
   marital_status?: string;
   address?: string;
-  cnic_normalized?: string;
-  passport_normalized?: string;
+  cnic?: string;
+  passport?: string;
+  
+  // Document Checklist Status
+  passport_received?: boolean;
+  cnic_received?: boolean;
+  degree_received?: boolean;
+  medical_received?: boolean;
+  visa_received?: boolean;
   
   // CV Extraction Fields
   nationality?: string;
