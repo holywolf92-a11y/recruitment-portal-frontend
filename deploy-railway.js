@@ -11,7 +11,7 @@ const https = require('https');
 const querystring = require('querystring');
 
 const config = {
-  token: '3a57bff9-1ceb-4922-baf4-7ed5d2a2a4a9',
+  token: '46f5f85f-ba9b-4c7d-80aa-1f75441d6040',
   projectId: '585a6314-92d3-4312-8476-0cf8d388488b',
   projectName: 'gleaming-healing',
   apiEndpoint: 'https://backboard.railway.com/graphql/v2'
