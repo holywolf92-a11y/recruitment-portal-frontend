@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  Award,
   Briefcase,
   Calendar,
   Download,
   Eye,
+  File,
+  FileText,
   Grid3x3,
+  Image,
   List,
   Mail,
   MapPin,
@@ -68,6 +72,9 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkStatus, setBulkStatus] = useState<'Applied' | 'Pending' | 'Deployed' | 'Cancelled'>('Pending');
+  const [bulkUpdating, setBulkUpdating] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     position: initialProfessionFilter || 'all',
@@ -91,14 +98,14 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
           setPositions(uniquePositions);
 
           const uniqueCountries = Array.from(
-            new Set((response.candidates || []).map((c) => c.nationality).filter(Boolean))
+            new Set((response.candidates || []).map((c) => c.country_of_interest).filter(Boolean))
           ).sort() as string[];
           setCountries(uniqueCountries);
 
           const uniqueStatuses = Array.from(
-            new Set((response.candidates || []).map((c) => c.status).filter(Boolean))
+            new Set((response.candidates || []).map((c) => (c.status || 'Applied')).filter(Boolean))
           ).sort() as string[];
-          setStatuses(uniqueStatuses);
+          setStatuses(uniqueStatuses.length ? uniqueStatuses : ['Applied', 'Pending', 'Deployed', 'Cancelled']);
         }
       } catch (e: any) {
         if (isMounted) setError(e?.message || 'Failed to load candidates');
@@ -118,8 +125,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
         c.phone?.toLowerCase().includes(searchLower) ||
         c.candidate_code?.toLowerCase().includes(searchLower);
       const matchesPosition = filters.position === 'all' || c.position === filters.position;
-      const matchesCountry = filters.country === 'all' || c.nationality === filters.country;
-      const matchesStatus = filters.status === 'all' || (c.status || '—') === filters.status;
+      const matchesCountry = filters.country === 'all' || (c.country_of_interest || '—') === filters.country;
+      const matchesStatus = filters.status === 'all' || (c.status || 'Applied') === filters.status;
       return matchesSearch && matchesPosition && matchesCountry && matchesStatus;
     });
   }, [candidates, filters]);
@@ -127,8 +134,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
   const stats = useMemo(() => {
     const totalCandidates = candidates.length;
     const totalProfessions = positions.length;
-    const pendingReview = candidates.filter((c) => (c.status || '').toLowerCase().includes('review')).length;
-    const deployed = candidates.filter((c) => (c.status || '').toLowerCase().includes('deployed')).length;
+    const pendingReview = candidates.filter((c) => !!c.needs_review).length;
+    const deployed = candidates.filter((c) => (c.status || 'Applied') === 'Deployed').length;
     const now = Date.now();
     const weekMs = 7 * 24 * 60 * 60 * 1000;
     const newThisWeek = candidates.filter((c) => {
@@ -137,6 +144,57 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
     }).length;
     return { totalCandidates, totalProfessions, pendingReview, deployed, newThisWeek };
   }, [candidates, positions.length]);
+
+  const positionCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const c of candidates) {
+      const key = (c.position || '').trim();
+      if (!key) continue;
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+    return counts;
+  }, [candidates]);
+
+  const allFilteredSelected = useMemo(() => {
+    if (filteredCandidates.length === 0) return false;
+    return filteredCandidates.every((c) => selectedIds.has(c.id));
+  }, [filteredCandidates, selectedIds]);
+
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function selectAllFiltered() {
+    setSelectedIds(new Set(filteredCandidates.map((c) => c.id)));
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
+
+  async function applyBulkStatusUpdate() {
+    if (selectedIds.size === 0) return;
+    try {
+      setBulkUpdating(true);
+      const ids = Array.from(selectedIds);
+      const result = await apiClient.bulkUpdateCandidateStatus(ids, bulkStatus);
+      const updatedIds = new Set((result.candidates || []).map((c) => c.id));
+
+      setCandidates((prev) =>
+        prev.map((c) => (updatedIds.has(c.id) ? { ...c, status: bulkStatus } : c))
+      );
+      clearSelection();
+    } catch (e: any) {
+      alert(e?.message || 'Failed to bulk update status');
+    } finally {
+      setBulkUpdating(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -215,81 +273,126 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
           </div>
         </div>
 
-        {/* Filters / Search / View Toggle */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-            <div className="flex flex-col sm:flex-row gap-3 flex-1">
-              <select
-                value={filters.country}
-                onChange={(e) => setFilters({ ...filters, country: e.target.value })}
-                className="h-10 px-4 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">All Countries</option>
-                {countries.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
+        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6">
+          {/* Profession Sidebar */}
+          <aside className="hidden lg:block">
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <p className="text-sm font-semibold text-gray-900">Professions</p>
+              <div className="mt-3 space-y-1">
+                <button
+                  type="button"
+                  onClick={() => setFilters((prev) => ({ ...prev, position: 'all' }))}
+                  className={`w-full h-10 px-3 rounded-lg border text-sm font-semibold flex items-center justify-between transition-colors ${
+                    filters.position === 'all'
+                      ? 'bg-blue-50 border-blue-200 text-blue-800'
+                      : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="truncate">All Candidates</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">{candidates.length}</span>
+                </button>
 
-              <select
-                value={filters.status}
-                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                className="h-10 px-4 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">All Status</option>
-                {statuses.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
+                <div className="pt-1 max-h-[calc(100vh-360px)] overflow-auto pr-1">
+                  {positions.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setFilters((prev) => ({ ...prev, position: p }))}
+                      className={`w-full h-10 px-3 rounded-lg border text-sm font-semibold flex items-center justify-between transition-colors ${
+                        filters.position === p
+                          ? 'bg-blue-50 border-blue-200 text-blue-800'
+                          : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="truncate">{p}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">{positionCounts.get(p) || 0}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </aside>
 
-              <div className="relative flex-1">
-                <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search candidates by name, position, email..."
-                  value={filters.search}
-                  onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                  className="h-10 w-full pl-10 pr-4 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+          <div>
+            {/* Filters / Search / View Toggle */}
+            <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                <div className="flex flex-col sm:flex-row gap-3 flex-1">
+                  <select
+                    value={filters.country}
+                    onChange={(e) => setFilters({ ...filters, country: e.target.value })}
+                    className="h-10 px-4 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">All Countries</option>
+                    {countries.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={filters.status}
+                    onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                    className="h-10 px-4 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">All Status</option>
+                    {statuses.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+
+                  <div className="relative flex-1">
+                    <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Search candidates by name, position, email..."
+                      value={filters.search}
+                      onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                      className="h-10 w-full pl-10 pr-4 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('card')}
+                    className={`h-10 px-4 rounded-lg text-sm font-semibold inline-flex items-center gap-2 transition-colors ${
+                      viewMode === 'card' ? 'bg-blue-600 text-white' : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Grid3x3 className="w-4 h-4" />
+                    Cards
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('table')}
+                    className={`h-10 px-4 rounded-lg text-sm font-semibold inline-flex items-center gap-2 transition-colors ${
+                      viewMode === 'table' ? 'bg-blue-600 text-white' : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <List className="w-4 h-4" />
+                    Table
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between mt-3 text-sm text-gray-600">
+                <span>
+                  Showing <span className="font-semibold text-gray-900">{filteredCandidates.length}</span> of{' '}
+                  <span className="font-semibold text-gray-900">{candidates.length}</span> candidates
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => (allFilteredSelected ? clearSelection() : selectAllFiltered())}
+                  className="text-blue-600 font-semibold hover:text-blue-700"
+                >
+                  {allFilteredSelected ? 'Clear Selection' : 'Select All'}
+                </button>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setViewMode('card')}
-                className={`h-10 px-4 rounded-lg text-sm font-semibold inline-flex items-center gap-2 transition-colors ${
-                  viewMode === 'card' ? 'bg-blue-600 text-white' : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <Grid3x3 className="w-4 h-4" />
-                Cards
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('table')}
-                className={`h-10 px-4 rounded-lg text-sm font-semibold inline-flex items-center gap-2 transition-colors ${
-                  viewMode === 'table' ? 'bg-blue-600 text-white' : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <List className="w-4 h-4" />
-                Table
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between mt-3 text-sm text-gray-600">
-            <span>
-              Showing <span className="font-semibold text-gray-900">{filteredCandidates.length}</span> of{' '}
-              <span className="font-semibold text-gray-900">{candidates.length}</span> candidates
-            </span>
-
-            <button type="button" className="text-blue-600 font-semibold hover:text-blue-700">
-              Select All
-            </button>
-          </div>
-        </div>
-
-        {filteredCandidates.length === 0 ? (
+            {filteredCandidates.length === 0 ? (
           <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Search className="w-8 h-8 text-gray-400" />
@@ -301,24 +404,34 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                 : 'Try adding a candidate from the CV inbox or backend API.'}
             </p>
           </div>
-        ) : viewMode === 'card' ? (
+            ) : viewMode === 'card' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredCandidates.map((c) => {
               const skills = safeJsonArray(c.skills);
-              const score = confidenceScore10(c.extraction_confidence);
+              const confidenceScore = confidenceScore10(c.extraction_confidence);
+              const score = typeof c.ai_score === 'number' && isFinite(c.ai_score) ? Math.round(c.ai_score * 10) / 10 : confidenceScore;
               const statusLabel = (c.status || 'Applied').toString();
-              const isAuto = (c.extraction_source || '').toLowerCase() === 'cv_parser';
+              const badge = c.needs_review
+                ? { label: 'Review', cls: 'bg-yellow-100 text-yellow-800' }
+                : c.auto_extracted
+                  ? { label: 'Auto', cls: 'bg-green-100 text-green-800' }
+                  : { label: 'Manual', cls: 'bg-gray-100 text-gray-700' };
 
+              const cvOk = !!c.cv_received;
               const passportOk = !!c.passport_received;
-              const cnicOk = !!c.cnic_received;
-              const degreeOk = !!c.degree_received;
+              const certificateOk = !!c.certificate_received || !!c.degree_received;
+              const photoOk = !!c.photo_received;
               const medicalOk = !!c.medical_received;
-              const visaOk = !!c.visa_received;
+              const docCount = [cvOk, passportOk, certificateOk, photoOk, medicalOk].filter(Boolean).length;
+              const allDocsOk = docCount === 5;
+              const selected = selectedIds.has(c.id);
 
               return (
                 <div
                   key={c.id}
-                  className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                  className={`bg-white rounded-2xl border overflow-hidden shadow-sm hover:shadow-md transition-shadow ${
+                    selected ? 'border-blue-300 ring-2 ring-blue-100 bg-blue-50/20' : 'border-gray-200'
+                  }`}
                 >
                   <div className="h-24 bg-gradient-to-r from-blue-500 via-purple-500 to-fuchsia-500" />
 
@@ -333,10 +446,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                         <div className="pt-10">
                           <div className="flex items-center gap-2">
                             <h3 className="text-lg font-bold text-gray-900 leading-tight">{c.name}</h3>
-                            <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
-                              isAuto ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                            }`}>
-                              {isAuto ? 'Auto' : 'Manual'}
+                            <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${badge.cls}`}>
+                              {badge.label}
                             </span>
                           </div>
                           <p className="text-sm text-gray-600 flex items-center gap-2 mt-1">
@@ -355,7 +466,12 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                       </div>
 
                       <div className="pt-3">
-                        <input type="checkbox" className="w-5 h-5 rounded border-gray-300" />
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => toggleSelected(c.id)}
+                          className="w-5 h-5 rounded border-gray-300"
+                        />
                       </div>
                     </div>
 
@@ -432,31 +548,40 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                     <div className="mt-5">
                       <div className="flex items-center justify-between mb-2">
                         <p className="text-sm font-semibold text-gray-900">Documents</p>
-                        <button type="button" className="text-xs font-semibold text-blue-600 hover:text-blue-700">View All →</button>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${
+                          docCount === 0
+                            ? 'bg-red-50 text-red-700 border-red-200'
+                            : allDocsOk
+                              ? 'bg-green-50 text-green-700 border-green-200'
+                              : 'bg-yellow-50 text-yellow-800 border-yellow-200'
+                        }`}>
+                          {docCount} files
+                        </span>
                       </div>
                       <div className="grid grid-cols-5 gap-2">
                         {[
-                          { label: 'CV', ok: !!c.extracted_at || !!c.extraction_source },
-                          { label: 'Passport', ok: passportOk },
-                          { label: 'CNIC', ok: cnicOk },
-                          { label: 'Degree', ok: degreeOk },
-                          { label: 'Medical', ok: medicalOk || visaOk },
+                          { label: 'CV', ok: cvOk, Icon: FileText },
+                          { label: 'Passport', ok: passportOk, Icon: File },
+                          { label: 'Certificate', ok: certificateOk, Icon: Award },
+                          { label: 'Photo', ok: photoOk, Icon: Image },
+                          { label: 'Medical', ok: medicalOk, Icon: Plus },
                         ].map((d) => (
                           <div
                             key={`${c.id}-${d.label}`}
-                            className={`h-12 rounded-xl border flex items-center justify-center text-[11px] font-semibold ${
+                            className={`h-14 rounded-xl border flex flex-col items-center justify-center gap-1 text-[10px] font-semibold ${
                               d.ok ? 'bg-green-50 border-green-200 text-green-800' : 'bg-gray-50 border-gray-200 text-gray-600'
                             }`}
                             title={d.ok ? 'Available' : 'Missing'}
                           >
+                            <d.Icon className="w-4 h-4" />
                             {d.label}
                           </div>
                         ))}
                       </div>
                       <div className={`mt-3 rounded-xl px-4 py-2 text-xs font-semibold ${
-                        passportOk && cnicOk && degreeOk && medicalOk ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-amber-50 text-amber-800 border border-amber-200'
+                        allDocsOk ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-amber-50 text-amber-800 border border-amber-200'
                       }`}>
-                        {passportOk && cnicOk && degreeOk && medicalOk ? 'All documents are valid' : 'Some documents are missing'}
+                        {allDocsOk ? 'All documents are valid' : 'Some documents are missing'}
                       </div>
                     </div>
 
@@ -500,7 +625,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
               );
             })}
           </div>
-        ) : (
+            ) : (
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
@@ -557,6 +682,50 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                 ))}
               </tbody>
             </table>
+          </div>
+            )}
+          </div>
+        </div>
+
+        {selectedIds.size > 0 && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[min(920px,calc(100%-3rem))]">
+            <div className="bg-white rounded-lg border border-gray-200 shadow-lg px-4 py-3 flex items-center justify-between gap-3">
+              <div className="text-sm text-gray-700">
+                <span className="font-semibold text-gray-900">{selectedIds.size}</span> selected
+              </div>
+
+              <div className="flex items-center gap-2">
+                <select
+                  value={bulkStatus}
+                  onChange={(e) => setBulkStatus(e.target.value as any)}
+                  className="h-10 px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={bulkUpdating}
+                >
+                  <option value="Applied">Applied</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Deployed">Deployed</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
+
+                <button
+                  type="button"
+                  onClick={applyBulkStatusUpdate}
+                  disabled={bulkUpdating}
+                  className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60"
+                >
+                  {bulkUpdating ? 'Updating…' : 'Update Status'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={clearSelection}
+                  disabled={bulkUpdating}
+                  className="h-10 px-4 rounded-lg border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50 disabled:opacity-60"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

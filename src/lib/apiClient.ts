@@ -116,7 +116,11 @@ export interface Candidate {
   candidate_code: string;
   name: string;
   father_name?: string;
-  status?: string;
+  status?: 'Applied' | 'Pending' | 'Deployed' | 'Cancelled' | string;
+  source?: 'WhatsApp' | 'Email' | 'Form' | 'Manual' | string;
+  ai_score?: number;
+  auto_extracted?: boolean;
+  needs_review?: boolean;
   email?: string;
   phone?: string;
   date_of_birth?: string;
@@ -137,6 +141,14 @@ export interface Candidate {
   medical_received_at?: string;
   visa_received?: boolean;
   visa_received_at?: string;
+
+  // Candidate card doc flags (migration 012)
+  cv_received?: boolean;
+  cv_received_at?: string;
+  photo_received?: boolean;
+  photo_received_at?: string;
+  certificate_received?: boolean;
+  certificate_received_at?: string;
   
   // CV Extraction Fields
   nationality?: string;
@@ -197,6 +209,10 @@ export interface CreateCandidateData {
 
 export interface CandidateFilters {
   search?: string;
+  status?: string;
+  position?: string;
+  country_of_interest?: string;
+  documents?: 'complete' | 'missing' | string;
   limit?: number;
   offset?: number;
 }
@@ -323,11 +339,22 @@ class ApiClient {
   async getCandidates(filters: CandidateFilters = {}): Promise<CandidatesResponse> {
     const params = new URLSearchParams();
     if (filters.search) params.append('search', filters.search);
+    if (filters.status && filters.status !== 'all') params.append('status', filters.status);
+    if (filters.position && filters.position !== 'all') params.append('position', filters.position);
+    if (filters.country_of_interest && filters.country_of_interest !== 'all') params.append('country_of_interest', filters.country_of_interest);
+    if (filters.documents && filters.documents !== 'all') params.append('documents', filters.documents);
     if (filters.limit) params.append('limit', filters.limit.toString());
     if (filters.offset) params.append('offset', filters.offset.toString());
 
     const query = params.toString();
     return this.request<CandidatesResponse>(`/candidates${query ? `?${query}` : ''}`);
+  }
+
+  async bulkUpdateCandidateStatus(candidateIds: string[], status: string): Promise<{ updated: number; candidates: Array<{ id: string; status: string }> }> {
+    return this.request(`/candidates/bulk/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ candidateIds, status }),
+    });
   }
 
   async getCandidate(id: string): Promise<Candidate> {
