@@ -22,6 +22,10 @@ PYTHON_HMAC_SECRET=your-generated-secret-key-min-32-chars
 # Worker process
 RUN_WORKER=true
 
+# Gmail polling worker (optional)
+# Default behavior in code is disabled unless explicitly set to true.
+RUN_GMAIL_POLLING=false
+
 # ===== AUTHENTICATION & EXTERNAL SERVICES =====
 # Google OAuth
 GOOGLE_OAUTH_CLIENT_ID=xxxxx.apps.googleusercontent.com
