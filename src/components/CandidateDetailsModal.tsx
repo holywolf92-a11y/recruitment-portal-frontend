@@ -250,34 +250,58 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 p-6 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-2xl text-blue-600">
-              {candidate.name[0]}
+        <div className="bg-white border-b border-gray-200 p-6 flex items-start justify-between flex-shrink-0">
+          <div className="flex items-start gap-4 flex-1">
+            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <span className="text-blue-600 font-bold text-lg">
+                {candidate.name.substring(0, 2).toUpperCase()}
+              </span>
             </div>
             <div>
-              <h2>{candidate.name}</h2>
-              <p className="text-gray-600">{candidate.position} • {candidate.nationality}</p>
+              <h2 className="text-2xl font-bold text-gray-900">{candidate.name}</h2>
+              <p className="text-sm text-gray-600 mt-0.5">
+                {candidate.position ? candidate.position : 'Candidate'} • {candidate.email}
+              </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {!isEditing && (
+              <button
+                onClick={handleEdit}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Edit2 className="w-4 h-4" />
+                Edit
+              </button>
+            )}
+            {isEditing && (
+              <button
+                onClick={handleSave}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <Save className="w-4 h-4" />
+                Save
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-gray-200 px-6 flex-shrink-0">
-          <div className="flex gap-6">
+        <div className="bg-white border-b border-gray-200 px-6 flex-shrink-0">
+          <div className="flex items-center gap-8">
             <button
               onClick={() => setActiveTab('details')}
-              className={`py-4 px-2 border-b-2 transition-colors ${
+              className={`py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'details'
-                  ? 'border-blue-600 text-blue-600 font-medium'
+                  ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -285,17 +309,19 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
             </button>
             <button
               onClick={() => setActiveTab('documents')}
-              className={`py-4 px-2 border-b-2 transition-colors flex items-center gap-2 ${
+              className={`py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
                 activeTab === 'documents'
-                  ? 'border-blue-600 text-blue-600 font-medium'
+                  ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
               <FileText className="w-4 h-4" />
               Documents
-              <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-xs">
-                {documents.length}
-              </span>
+              {documents.length > 0 && (
+                <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                  {documents.length}
+                </span>
+              )}
             </button>
           </div>
         </div>
