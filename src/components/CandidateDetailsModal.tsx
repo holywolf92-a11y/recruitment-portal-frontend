@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, Edit2, Save, Phone, Mail, MapPin, Briefcase, Calendar, FileText, Globe, CheckCircle, XCircle, Star, Video, MessageSquare, Upload, Download, Eye, Trash2, File, Image as ImageIcon, AlertCircle, Sparkles, Loader } from 'lucide-react';
-import { Candidate } from '../lib/mockData';
+import { Candidate } from '../lib/apiClient';
 import { ExtractionReviewModal } from './ExtractionReviewModal';
 import { apiClient } from '../lib/apiClient';
 
