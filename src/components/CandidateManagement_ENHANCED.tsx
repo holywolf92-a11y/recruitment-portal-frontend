@@ -258,7 +258,10 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
 
       try {
         setUploadingPhoto(candidateId);
-        await apiClient.uploadCandidatePhoto(candidateId, file);
+        console.log('Uploading photo for candidate:', candidateId, 'File:', file.name, file.size, 'bytes');
+        
+        const result = await apiClient.uploadCandidatePhoto(candidateId, file);
+        console.log('Photo upload result:', result);
         
         // Refresh candidate data
         const response = await apiClient.getCandidates(filters);
@@ -266,7 +269,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
         
         alert('Photo uploaded successfully!');
       } catch (error: any) {
-        alert(error?.message || 'Failed to upload photo');
+        console.error('Photo upload error:', error);
+        alert(`Failed to upload photo: ${error?.message || 'Unknown error'}`);
       } finally {
         setUploadingPhoto(null);
       }
