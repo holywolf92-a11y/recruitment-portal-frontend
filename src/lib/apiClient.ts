@@ -116,6 +116,7 @@ export interface Candidate {
   candidate_code: string;
   name: string;
   father_name?: string;
+  status?: string;
   email?: string;
   phone?: string;
   date_of_birth?: string;
@@ -127,10 +128,15 @@ export interface Candidate {
   
   // Document Checklist Status
   passport_received?: boolean;
+  passport_received_at?: string;
   cnic_received?: boolean;
+  cnic_received_at?: string;
   degree_received?: boolean;
+  degree_received_at?: string;
   medical_received?: boolean;
+  medical_received_at?: string;
   visa_received?: boolean;
+  visa_received_at?: string;
   
   // CV Extraction Fields
   nationality?: string;
@@ -156,6 +162,7 @@ export interface Candidate {
 
 export interface CreateCandidateData {
   name: string;
+  father_name?: string;
   email?: string;
   phone?: string;
   date_of_birth?: string;
@@ -164,6 +171,13 @@ export interface CreateCandidateData {
   address?: string;
   cnic?: string;
   passport?: string;
+
+  // Document checklist (optional)
+  passport_received?: boolean;
+  cnic_received?: boolean;
+  degree_received?: boolean;
+  medical_received?: boolean;
+  visa_received?: boolean;
   
   // CV Extraction Fields
   nationality?: string;
