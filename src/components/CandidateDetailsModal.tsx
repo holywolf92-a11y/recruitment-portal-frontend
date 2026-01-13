@@ -111,6 +111,21 @@ const getMockDocuments = (candidateId: string): Document[] => {
   return allDocs[candidateId] || [];
 };
 
+// Helper to safely parse JSON array from backend
+function safeJsonArray(value: unknown): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter((v) => typeof v === 'string') as string[];
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? (parsed.filter((v) => typeof v === 'string') as string[]) : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
 export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsModalProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedCandidate, setEditedCandidate] = useState(candidate);
@@ -459,47 +474,55 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
               </div>
 
               {/* Skills */}
-              {candidate.skills && candidate.skills.length > 0 && (
-                <div>
-                  <h3 className="mb-4">Skills & Competencies</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {candidate.skills.map((skill, index) => (
-                      <span
-                        key={index}
-                        className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm"
-                      >
-                        {skill}
-                      </span>
-                    ))}
+              {(() => {
+                const skills = safeJsonArray(candidate.skills);
+                return skills.length > 0 && (
+                  <div>
+                    <h3 className="mb-4">Skills & Competencies</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {skills.map((skill, index) => (
+                        <span
+                          key={index}
+                          className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Languages */}
-              {candidate.languages && candidate.languages.length > 0 && (
+              {(() => {
+                const languages = safeJsonArray(candidate.languages);
+                return languages.length > 0 && (
+                  <div>
+                    <h3 className="mb-4">Languages</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {languages.map((language, index) => (
+                        <span
+                          key={index}
+                          className="px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm"
+                        >
+                          {language}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Application Source */}
+              {candidate.source && (
                 <div>
-                  <h3 className="mb-4">Languages</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {candidate.languages.map((language, index) => (
-                      <span
-                        key={index}
-                        className="px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm"
-                      >
-                        {language}
-                      </span>
-                    ))}
+                  <h3 className="mb-4">Application Details</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600 mb-1">Application Source</p>
+                    <p className="text-sm">{candidate.source}</p>
                   </div>
                 </div>
               )}
-
-              {/* Application Source */}
-              <div>
-                <h3 className="mb-4">Application Details</h3>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-1">Application Source</p>
-                  <p className="text-sm">{candidate.source}</p>
-                </div>
-              </div>
 
               {/* Video Link */}
               {candidate.videoLink && (
@@ -528,22 +551,35 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
               )}
 
               {/* AI Insights */}
-              <div>
-                <h3 className="mb-4">AI Analysis</h3>
-                <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 p-4 rounded-lg space-y-2">
-                  <p className="text-sm">
-                    <strong>Strengths:</strong> {candidate.experience} years of experience in {candidate.position}. 
-                    Strong skill set including {candidate.skills.slice(0, 3).join(', ')}.
-                  </p>
-                  <p className="text-sm">
-                    <strong>Recommendation:</strong> Highly suitable for {candidate.country} market. 
-                    {candidate.passportAvailable ? ' Passport ready - can deploy quickly.' : ' Passport needed - estimated 2-3 weeks.'}
-                  </p>
-                  <p className="text-sm">
-                    <strong>Match Score:</strong> {candidate.aiScore}/10 based on experience, skills, and market demand.
-                  </p>
+              {(candidate.experience_years || candidate.position || candidate.ai_score) && (
+                <div>
+                  <h3 className="mb-4">AI Analysis</h3>
+                  <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 p-4 rounded-lg space-y-2">
+                    {(candidate.experience_years || candidate.position) && (
+                      <p className="text-sm">
+                        <strong>Strengths:</strong>
+                        {candidate.experience_years ? ` ${candidate.experience_years} years of experience` : ''}
+                        {candidate.position ? ` in ${candidate.position}` : ''}.
+                        {(() => {
+                          const skills = safeJsonArray(candidate.skills);
+                          return skills.length > 0 ? ` Strong skill set including ${skills.slice(0, 3).join(', ')}.` : '';
+                        })()}
+                      </p>
+                    )}
+                    {candidate.country_of_interest && (
+                      <p className="text-sm">
+                        <strong>Recommendation:</strong> Highly suitable for {candidate.country_of_interest} market.
+                        {candidate.passport_received ? ' Passport ready - can deploy quickly.' : ' Passport needed - estimated 2-3 weeks.'}
+                      </p>
+                    )}
+                    {candidate.ai_score && (
+                      <p className="text-sm">
+                        <strong>Match Score:</strong> {candidate.ai_score}/10 based on experience, skills, and market demand.
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex gap-3 pt-4 border-t border-gray-200">
