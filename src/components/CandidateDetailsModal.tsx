@@ -271,7 +271,7 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
           <div className="flex items-start gap-4 flex-1">
             <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
               <span className="text-blue-600 font-bold text-lg">
-                {(candidate.name || 'UK').substring(0, 2).toUpperCase()}
+                {((candidate.name || 'UK').trim() || 'UK').substring(0, 2).toUpperCase()}
               </span>
             </div>
             <div>
