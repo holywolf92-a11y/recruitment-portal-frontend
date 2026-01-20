@@ -16,7 +16,8 @@ import { InboxUI } from './components/InboxUI';
 import { useAuth, AuthProvider } from './lib/authContext';
 import { hasPermission } from './lib/authData';
 import { apiClient } from './lib/apiClient';
-import { Users, Briefcase, Building2, FileText, Settings as SettingsIcon, LayoutDashboard, Link2, Inbox, MessageSquare, FolderTree, ArrowLeft, LogOut, Shield, ChevronDown, Mail } from 'lucide-react';
+import { APP_CONFIG } from './lib/constants';
+import { Users, Briefcase, Building2, FileText, Settings as SettingsIcon, LayoutDashboard, Link2, Inbox, MessageSquare, FolderTree, ArrowLeft, LogOut, Shield, ChevronDown, Mail, Phone } from 'lucide-react';
 
 const AppContent = () => {
   const { session, signOut, loading } = useAuth();
@@ -125,9 +126,27 @@ const AppContent = () => {
       <header className="bg-white border-b border-gray-200">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-blue-600">Falisha Manpower</h1>
-              <p className="text-gray-600 text-sm">Recruitment Automation Portal</p>
+            <div className="flex items-center gap-4">
+              {/* Logo */}
+              <img
+                src={APP_CONFIG.company.logo}
+                alt={APP_CONFIG.company.name}
+                className="h-12 w-12 object-contain"
+              />
+              <div>
+                <h1 className="text-blue-600 font-bold text-lg">{APP_CONFIG.company.name}</h1>
+                <p className="text-gray-600 text-xs flex gap-2">
+                  <span className="flex items-center gap-1">
+                    <Phone className="w-3 h-3" />
+                    {APP_CONFIG.contact.phone}
+                  </span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1">
+                    <Mail className="w-3 h-3" />
+                    {APP_CONFIG.contact.email}
+                  </span>
+                </p>
+              </div>
             </div>
             <div className="relative">
               <button
