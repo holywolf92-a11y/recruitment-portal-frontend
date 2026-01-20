@@ -98,6 +98,12 @@ export const api = {
     });
   },
 
+  async deleteAttachment(attachmentId: string) {
+    return request<Attachment>(`/cv-inbox/attachments/${attachmentId}`, {
+      method: 'DELETE',
+    });
+  },
+
   async triggerParsing(attachmentId: string) {
     // Week 4 planned endpoint; backend may not have it yet
     return request<{ job_id: string; status: string }>(`/cv-inbox/attachments/${attachmentId}/process`, {

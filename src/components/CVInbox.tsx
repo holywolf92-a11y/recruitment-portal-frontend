@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
-import { Inbox, Upload, FileText, Mail, MessageSquare, Calendar, CheckCircle, Sparkles, Eye, Download, AlertTriangle, Play } from 'lucide-react';
+import { Inbox, Upload, FileText, Mail, MessageSquare, Calendar, CheckCircle, Sparkles, Eye, Download, AlertTriangle, Play, Trash } from 'lucide-react';
 import { api, Attachment, InboxMessage } from '../lib/apiClient';
 
 interface IncomingCV {
@@ -175,6 +175,22 @@ export function CVInbox() {
     } finally {
       setUploading(false);
       event.target.value = '';
+    }
+  };
+
+  const handleDelete = async (attachmentId: string) => {
+    const confirmed = window.confirm('Delete this CV from inbox?');
+    if (!confirmed) return;
+
+    setError(null);
+    const previous = cvs;
+    setCvs((prev) => prev.filter((cv) => cv.id !== attachmentId));
+
+    try {
+      await api.deleteAttachment(attachmentId);
+    } catch (e: any) {
+      setError(e?.message || 'Failed to delete CV');
+      setCvs(previous);
     }
   };
 
@@ -465,8 +481,15 @@ export function CVInbox() {
                           Process CV
                         </button>
                       )}
-                      <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                      <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" title="Download">
                         <Download className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(cv.id)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete CV"
+                      >
+                        <Trash className="w-4 h-4" />
                       </button>
                     </div>
                   </td>
