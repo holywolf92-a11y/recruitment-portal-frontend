@@ -138,6 +138,43 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
   const [extractedData, setExtractedData] = useState<any>(null);
   const [extractionError, setExtractionError] = useState<string | null>(null);
 
+  const handleGenerateEmployerCV = () => {
+    const skills = safeJsonArray(candidate.skills);
+    const strengths = candidate.professional_summary || candidate.ai_analysis_summary || 'Experienced candidate';
+    const phone = candidate.phone || 'N/A';
+    const email = candidate.email || 'N/A';
+    const location = candidate.location || candidate.country || 'N/A';
+    const position = candidate.position || 'Not specified';
+    const exp = candidate.experience_years ? `${candidate.experience_years} years` : 'Not specified';
+
+    const sections = [
+      `Employer CV - ${candidate.name || 'Candidate'}`,
+      '',
+      `Role: ${position}`,
+      `Experience: ${exp}`,
+      `Location: ${location}`,
+      `Email: ${email}`,
+      `Phone: ${phone}`,
+      '',
+      'Professional Summary:',
+      strengths,
+      '',
+      skills.length ? `Key Skills: ${skills.join(', ')}` : 'Key Skills: Not provided',
+    ];
+
+    const content = sections.join('\n');
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().split('T')[0];
+    a.href = url;
+    a.download = `EmployerCV_${candidate.name || 'candidate'}_${date}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const handleEdit = () => {
     setIsEditing(true);
   };
@@ -659,7 +696,10 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
                     Edit Details
                   </button>
                 )}
-                <button className="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                <button
+                  onClick={handleGenerateEmployerCV}
+                  className="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                >
                   <FileText className="w-4 h-4" />
                   Generate Employer CV
                 </button>
