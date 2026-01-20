@@ -96,6 +96,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
   // Modal states
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [detailsInitialTab, setDetailsInitialTab] = useState<'details' | 'documents'>('details');
   const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
   const [documentAction, setDocumentAction] = useState<{ candidateId: string; docType: string } | null>(null);
 
@@ -218,6 +219,13 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
   // Handler functions for interactive elements
   function handleViewProfile(candidate: Candidate) {
     setSelectedCandidate(candidate);
+    setDetailsInitialTab('details');
+    setShowDetailsModal(true);
+  }
+
+  function handleViewAllDocuments(candidate: Candidate) {
+    setSelectedCandidate(candidate);
+    setDetailsInitialTab('documents');
     setShowDetailsModal(true);
   }
 
@@ -723,6 +731,12 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                             {docCount} files
                           </span>
                         </div>
+                        <button
+                          onClick={() => handleViewAllDocuments(c)}
+                          className="text-xs text-blue-600 hover:text-blue-700"
+                        >
+                          View All →
+                        </button>
                       </div>
 
                       {docCount > 0 ? (
@@ -911,6 +925,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
       {showDetailsModal && selectedCandidate && (
         <CandidateDetailsModal 
           candidate={selectedCandidate} 
+          initialTab={detailsInitialTab}
           onClose={() => {
             setShowDetailsModal(false);
             setSelectedCandidate(null);

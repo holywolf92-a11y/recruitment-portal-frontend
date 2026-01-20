@@ -7,6 +7,7 @@ import { apiClient } from '../lib/apiClient';
 interface CandidateDetailsModalProps {
   candidate: Candidate;
   onClose: () => void;
+  initialTab?: 'details' | 'documents';
 }
 
 interface Document {
@@ -128,11 +129,11 @@ function safeJsonArray(value: unknown): string[] {
   return [];
 }
 
-export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsModalProps) {
+export function CandidateDetailsModal({ candidate, onClose, initialTab = 'details' }: CandidateDetailsModalProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedCandidate, setEditedCandidate] = useState(candidate);
   const [documents, setDocuments] = useState<Document[]>(getMockDocuments(candidate.id));
-  const [activeTab, setActiveTab] = useState<'details' | 'documents'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'documents'>(initialTab);
   const [extractionInProgress, setExtractionInProgress] = useState(false);
   const [showExtractionModal, setShowExtractionModal] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
