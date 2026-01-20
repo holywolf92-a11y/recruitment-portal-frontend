@@ -1030,6 +1030,36 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
                   </p>
                 </div>
 
+                {/* Work Experience */}
+                {candidate.experience && (
+                  <div className="mb-6">
+                    <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
+                      <Briefcase className="w-5 h-5 text-blue-600" />
+                      Work Experience
+                    </h2>
+                    <div className="space-y-2">
+                      {safeJsonArray(candidate.experience).map((exp: any, index: number) => (
+                        <div key={index} className="bg-gray-50 p-3 rounded border-l-4 border-blue-500">
+                          <p className="font-semibold text-gray-900 text-sm">{exp.position || exp.title}</p>
+                          {exp.company && (
+                            <p className="text-xs text-gray-600">
+                              {exp.company}
+                              {(exp.start_date || exp.end_date) && (
+                                <span className="ml-2">
+                                  ({exp.start_date || 'N/A'} - {exp.end_date || 'Present'})
+                                </span>
+                              )}
+                            </p>
+                          )}
+                          {exp.description && (
+                            <p className="text-xs text-gray-700 mt-1">{exp.description}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Core Skills */}
                 {safeJsonArray(candidate.skills).length > 0 && (
                   <div className="mb-6">
@@ -1044,6 +1074,54 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
                           className="px-3 py-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded border border-blue-200 text-gray-800 font-medium text-center text-sm"
                         >
                           {skill}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Education */}
+                {candidate.education && safeJsonArray(candidate.education).length > 0 && (
+                  <div className="mb-6">
+                    <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-blue-600" />
+                      Education
+                    </h2>
+                    <div className="space-y-2">
+                      {safeJsonArray(candidate.education).map((edu: any, index: number) => (
+                        <div key={index} className="bg-gray-50 p-3 rounded border-l-4 border-purple-500">
+                          <p className="font-semibold text-gray-900 text-sm">{edu.degree || edu.qualification}</p>
+                          {edu.institution && (
+                            <p className="text-xs text-gray-600">{edu.institution}</p>
+                          )}
+                          {(edu.year || edu.graduation_year) && (
+                            <p className="text-xs text-gray-500">{edu.year || edu.graduation_year}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Certifications */}
+                {candidate.certifications && safeJsonArray(candidate.certifications).length > 0 && (
+                  <div className="mb-6">
+                    <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-blue-600" />
+                      Certifications
+                    </h2>
+                    <div className="space-y-2">
+                      {safeJsonArray(candidate.certifications).map((cert: any, index: number) => (
+                        <div key={index} className="bg-green-50 p-3 rounded border-l-4 border-green-500">
+                          <p className="font-semibold text-gray-900 text-sm">
+                            {typeof cert === 'string' ? cert : (cert.name || cert.title)}
+                          </p>
+                          {typeof cert === 'object' && cert.issuer && (
+                            <p className="text-xs text-gray-600">{cert.issuer}</p>
+                          )}
+                          {typeof cert === 'object' && cert.year && (
+                            <p className="text-xs text-gray-500">{cert.year}</p>
+                          )}
                         </div>
                       ))}
                     </div>
