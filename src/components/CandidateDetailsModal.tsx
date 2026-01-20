@@ -116,11 +116,13 @@ function safeJsonArray(value: unknown): string[] {
   if (!value) return [];
   if (Array.isArray(value)) return value.filter((v) => typeof v === 'string') as string[];
   if (typeof value === 'string') {
+    // Try parsing as JSON array first
     try {
       const parsed = JSON.parse(value);
       return Array.isArray(parsed) ? (parsed.filter((v) => typeof v === 'string') as string[]) : [];
     } catch {
-      return [];
+      // If not JSON, treat as comma-separated string
+      return value.split(',').map(s => s.trim()).filter(s => s.length > 0);
     }
   }
   return [];
@@ -512,6 +514,46 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
                   </div>
                 );
               })()}
+
+              {/* Education */}
+              {candidate.education && (
+                <div>
+                  <h3 className="mb-4">Education</h3>
+                  <div className="bg-purple-50 border border-purple-200 p-4 rounded-lg">
+                    <p className="text-sm whitespace-pre-line">{candidate.education}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Certifications */}
+              {candidate.certifications && (
+                <div>
+                  <h3 className="mb-4">Certifications</h3>
+                  <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
+                    <p className="text-sm whitespace-pre-line">{candidate.certifications}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Previous Employment */}
+              {candidate.previous_employment && (
+                <div>
+                  <h3 className="mb-4">Work Experience</h3>
+                  <div className="bg-indigo-50 border border-indigo-200 p-4 rounded-lg">
+                    <p className="text-sm whitespace-pre-line">{candidate.previous_employment}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Professional Summary */}
+              {candidate.professional_summary && (
+                <div>
+                  <h3 className="mb-4">Professional Summary</h3>
+                  <div className="bg-teal-50 border border-teal-200 p-4 rounded-lg">
+                    <p className="text-sm whitespace-pre-line">{candidate.professional_summary}</p>
+                  </div>
+                </div>
+              )}
 
               {/* Application Source */}
               {candidate.source && (
