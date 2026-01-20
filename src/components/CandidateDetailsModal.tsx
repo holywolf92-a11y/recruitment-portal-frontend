@@ -1150,50 +1150,96 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
               body {
                 print-color-adjust: exact;
                 -webkit-print-color-adjust: exact;
+                margin: 0;
+                padding: 0;
               }
               
-              /* Hide modal overlay and non-printable elements */
-              .print\\:hidden {
+              /* Hide everything */
+              * {
                 display: none !important;
+                visibility: hidden !important;
               }
               
               /* Show only the printable CV */
-              body * {
-                visibility: hidden;
-              }
-              
-              #printable-cv,
-              #printable-cv * {
-                visibility: visible;
-              }
-              
               #printable-cv {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                max-width: 100%;
-                margin: 0;
-                padding: 20px;
-              }
-              
-              /* Prevent page breaks in sections */
-              #printable-cv > div {
+                display: block !important;
+                visibility: visible !important;
+                position: relative !important;
+                width: 100% !important;
+                height: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                page-break-after: auto;
                 page-break-inside: avoid;
               }
               
-              /* Compact spacing for print */
-              #printable-cv h1 { font-size: 24px !important; margin-bottom: 8px !important; }
-              #printable-cv h2 { font-size: 16px !important; margin-bottom: 12px !important; }
-              #printable-cv h3 { font-size: 14px !important; }
-              #printable-cv p { font-size: 11px !important; line-height: 1.4 !important; }
-              #printable-cv .text-sm, #printable-cv .text-xs { font-size: 10px !important; }
+              #printable-cv * {
+                display: block !important;
+                visibility: visible !important;
+                margin-bottom: 0.5rem !important;
+                page-break-inside: avoid !important;
+              }
               
-              /* Reduce margins */
-              #printable-cv .mb-6 { margin-bottom: 12px !important; }
-              #printable-cv .mb-3 { margin-bottom: 8px !important; }
-              #printable-cv .p-4 { padding: 8px !important; }
-              #printable-cv .p-3 { padding: 6px !important; }
+              /* Typography */
+              #printable-cv h1 { 
+                font-size: 20px !important; 
+                font-weight: bold !important;
+                margin-bottom: 6px !important; 
+              }
+              #printable-cv h2 { 
+                font-size: 14px !important; 
+                font-weight: bold !important;
+                margin-bottom: 8px !important; 
+              }
+              #printable-cv p { 
+                font-size: 10px !important; 
+                line-height: 1.3 !important;
+                margin-bottom: 4px !important;
+              }
+              #printable-cv img {
+                max-width: 100% !important;
+                height: auto !important;
+                margin-bottom: 8px !important;
+              }
+              
+              /* Reduce all spacing */
+              #printable-cv .mb-6 { margin-bottom: 8px !important; }
+              #printable-cv .mb-4 { margin-bottom: 6px !important; }
+              #printable-cv .mb-3 { margin-bottom: 4px !important; }
+              #printable-cv .mb-2 { margin-bottom: 2px !important; }
+              #printable-cv .mb-1 { margin-bottom: 1px !important; }
+              
+              #printable-cv .pb-2 { padding-bottom: 4px !important; }
+              #printable-cv .pb-4 { padding-bottom: 6px !important; }
+              #printable-cv .pb-6 { padding-bottom: 8px !important; }
+              
+              #printable-cv .p-6 { padding: 6px !important; }
+              #printable-cv .p-4 { padding: 4px !important; }
+              #printable-cv .p-3 { padding: 3px !important; }
+              
+              #printable-cv .gap-2 { gap: 2px !important; }
+              #printable-cv .gap-3 { gap: 3px !important; }
+              #printable-cv .gap-4 { gap: 4px !important; }
+              
+              /* Grid and flexbox */
+              #printable-cv .grid,
+              #printable-cv .flex {
+                display: flex !important;
+              }
+              
+              #printable-cv .grid-cols-2,
+              #printable-cv .grid-cols-3 {
+                flex-direction: row !important;
+                flex-wrap: wrap !important;
+              }
+              
+              #printable-cv .grid-cols-2 > * {
+                flex: 0 0 48% !important;
+              }
+              
+              #printable-cv .grid-cols-3 > * {
+                flex: 0 0 31% !important;
+              }
               
               /* Keep colors for branding */
               #printable-cv .bg-blue-50,
@@ -1201,9 +1247,23 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
               #printable-cv .bg-yellow-50,
               #printable-cv .bg-gray-50,
               #printable-cv .bg-green-50 {
-                print-color-adjust: exact;
-                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact !important;
+                -webkit-print-color-adjust: exact !important;
               }
+              
+              #printable-cv .border,
+              #printable-cv .border-b-2,
+              #printable-cv .border-l-4 {
+                border-color: inherit !important;
+                print-color-adjust: exact !important;
+                -webkit-print-color-adjust: exact !important;
+              }
+              
+              #printable-cv .text-sm { font-size: 9px !important; }
+              #printable-cv .text-xs { font-size: 8px !important; }
+              #printable-cv .text-xl { font-size: 12px !important; }
+              #printable-cv .text-2xl { font-size: 14px !important; }
+              #printable-cv .text-3xl { font-size: 16px !important; }
             }
           `}</style>
         </div>
