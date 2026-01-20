@@ -723,8 +723,10 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                           </span>
                         </div>
                       </div>
-                      
-                      <div className="grid grid-cols-5 gap-2">
+
+                      {docCount > 0 ? (
+                        <>
+                          <div className="grid grid-cols-5 gap-2">
                         {/* CV */}
                         <div 
                           onClick={() => handleDocumentClick(c.id, 'cv', cvOk)}
@@ -849,25 +851,26 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                             )}
                           </div>
                         </div>
-                      </div>
+                          </div>
 
-                      {/* Document Status Message */}
-                      {docCount === 0 && (
+                          {/* Document Status Message */}
+                          {!allDocsOk && (
+                            <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-700 flex items-center gap-2">
+                              <AlertTriangle className="w-3 h-3" />
+                              Some documents are missing
+                            </div>
+                          )}
+                          {allDocsOk && (
+                            <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded text-xs text-green-700 flex items-center gap-2">
+                              <CheckCircle className="w-3 h-3" />
+                              All documents are valid
+                            </div>
+                          )}
+                        </>
+                      ) : (
                         <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 flex items-center gap-2">
-                          <AlertTriangle className="w-3 h-3" />
+                          <AlertCircle className="w-4 h-4" />
                           No documents uploaded yet
-                        </div>
-                      )}
-                      {docCount > 0 && !allDocsOk && (
-                        <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-700 flex items-center gap-2">
-                          <AlertTriangle className="w-3 h-3" />
-                          Some documents are missing
-                        </div>
-                      )}
-                      {allDocsOk && (
-                        <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded text-xs text-green-700 flex items-center gap-2">
-                          <CheckCircle className="w-3 h-3" />
-                          All documents are valid
                         </div>
                       )}
                     </div>
