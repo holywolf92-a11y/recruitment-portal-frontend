@@ -347,6 +347,23 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
         <div className="flex-1 overflow-y-auto">
           {activeTab === 'details' ? (
             <div className="p-6 space-y-6">
+              {/* Profile Photo */}
+              {candidate.profile_photo_url && (
+                <div className="flex justify-center">
+                  <div className="relative">
+                    <img
+                      src={candidate.profile_photo_url}
+                      alt={candidate.name}
+                      className="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-lg"
+                      onError={(e) => {
+                        // Fallback if image fails to load
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Status & Score */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-50 p-4 rounded-lg">

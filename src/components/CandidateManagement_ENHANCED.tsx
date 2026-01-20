@@ -545,9 +545,25 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                     <div className="absolute -bottom-16 left-6">
                       <div className="relative">
                         <div className="w-32 h-32 bg-white rounded-full p-2 shadow-xl">
-                          <div className="w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center text-4xl font-bold text-blue-600">
-                            {getInitials(c.name)}
-                          </div>
+                          {c.profile_photo_url ? (
+                            <img
+                              src={c.profile_photo_url}
+                              alt={c.name}
+                              className="w-full h-full rounded-full object-cover"
+                              onError={(e) => {
+                                // Fallback to initials if photo fails to load
+                                e.currentTarget.style.display = 'none';
+                                const parent = e.currentTarget.parentElement;
+                                if (parent) {
+                                  parent.innerHTML = `<div class="w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center text-4xl font-bold text-blue-600">${getInitials(c.name)}</div>`;
+                                }
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center text-4xl font-bold text-blue-600">
+                              {getInitials(c.name)}
+                            </div>
+                          )}
                         </div>
                         <button className="absolute bottom-0 right-0 w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white hover:bg-blue-700 transition-colors shadow-lg"
                           onClick={(e) => {
