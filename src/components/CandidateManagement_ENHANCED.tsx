@@ -722,7 +722,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <FileText className="w-4 h-4 text-gray-600" />
-                          <span className="text-sm font-semibold text-gray-700">Documents</span>
+                          <span className="text-sm font-semibold text-gray-700">Document List</span>
                           <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                             docCount === 0 ? 'bg-red-100 text-red-700' :
                             allDocsOk ? 'bg-green-100 text-green-700' :
