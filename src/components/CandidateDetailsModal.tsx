@@ -608,7 +608,7 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
                         })()}
                       </p>
                     )}
-                    {candidate.country_of_interest && (
+                    {candidate.country_of_interest && candidate.country_of_interest !== 'missing' && (
                       <p className="text-sm">
                         <strong>Recommendation:</strong> Highly suitable for {candidate.country_of_interest} market.
                         {candidate.passport_received ? ' Passport ready - can deploy quickly.' : ' Passport needed - estimated 2-3 weeks.'}
