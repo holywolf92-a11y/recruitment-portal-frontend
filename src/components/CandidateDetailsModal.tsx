@@ -1152,24 +1152,29 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
                 -webkit-print-color-adjust: exact;
               }
               
-              /* Hide everything except the CV content */
-              body > *:not(#printable-cv) {
-                display: none !important;
-              }
-              
+              /* Hide modal overlay and non-printable elements */
               .print\\:hidden {
                 display: none !important;
               }
               
-              /* Ensure CV content is visible and properly positioned */
+              /* Show only the printable CV */
+              body * {
+                visibility: hidden;
+              }
+              
+              #printable-cv,
+              #printable-cv * {
+                visibility: visible;
+              }
+              
               #printable-cv {
-                display: block !important;
-                position: static !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                page-break-after: avoid;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                max-width: 100%;
+                margin: 0;
+                padding: 20px;
               }
               
               /* Prevent page breaks in sections */
@@ -1194,7 +1199,8 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
               #printable-cv .bg-blue-50,
               #printable-cv .bg-purple-50,
               #printable-cv .bg-yellow-50,
-              #printable-cv .bg-gray-50 {
+              #printable-cv .bg-gray-50,
+              #printable-cv .bg-green-50 {
                 print-color-adjust: exact;
                 -webkit-print-color-adjust: exact;
               }
