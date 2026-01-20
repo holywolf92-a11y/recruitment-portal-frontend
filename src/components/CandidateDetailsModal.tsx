@@ -959,15 +959,21 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
             </div>
 
             {/* CV Content - Scrollable */}
-            <div className="flex-1 overflow-y-auto p-8 print:p-0">
-              <div className="max-w-4xl mx-auto bg-white">
+            <div className="flex-1 overflow-y-auto p-8 print:p-8">
+              <div id="printable-cv" className="max-w-4xl mx-auto bg-white">
+                {/* Logo and Header Section */}
+                <div className="text-center mb-6">
+                  <img 
+                    src="/ChatGPT Image Jan 20, 2026, 05_24_22 PM.png" 
+                    alt="Falisha Manpower" 
+                    className="h-16 mx-auto mb-4"
+                  />
+                </div>
+                
                 {/* Header Section */}
-                <div className="text-center mb-8 pb-6 border-b-4 border-blue-600">
-                  <div className="w-32 h-32 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white shadow-xl">
-                    <span className="text-5xl">{candidate.name?.[0] || '?'}</span>
-                  </div>
-                  <h1 className="text-4xl mb-2">{candidate.name || 'Candidate'}</h1>
-                  <p className="text-xl text-gray-600 mb-2">{candidate.position || 'Professional'}</p>
+                <div className="text-center mb-6 pb-4 border-b-2 border-blue-600">
+                  <h1 className="text-3xl font-bold mb-2">{candidate.name || 'Candidate'}</h1>
+                  <p className="text-lg text-gray-600 mb-2">{candidate.position || 'Professional'}</p>
                   <div className="flex items-center justify-center gap-4 text-gray-600">
                     <div className="flex items-center gap-2">
                       <Globe className="w-5 h-5 text-blue-600" />
@@ -981,63 +987,61 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
                 </div>
 
                 {/* Contact Information - HIDDEN FOR EMPLOYERS */}
-                <div className="mb-8 p-6 bg-yellow-50 border-2 border-yellow-200 rounded-lg">
-                  <div className="flex items-start gap-3">
-                    <Shield className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-1" />
+                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded">
+                  <div className="flex items-start gap-2">
+                    <Shield className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <h3 className="font-bold text-yellow-900 mb-1">Contact Information Protected</h3>
-                      <p className="text-sm text-yellow-800">
-                        For privacy and security, direct contact details have been removed from this CV.
-                        To connect with this candidate, please contact Falisha Manpower recruitment team.
+                      <h3 className="font-bold text-yellow-900 text-sm mb-1">Contact Information Protected</h3>
+                      <p className="text-xs text-yellow-800 mb-2">
+                        For privacy, direct contact details have been removed. Contact Falisha Manpower to reach this candidate.
                       </p>
-                      <div className="mt-3 p-3 bg-white rounded border border-yellow-300">
-                        <p className="text-sm font-semibold text-gray-900">📧 Contact via Recruitment Agency:</p>
-                        <p className="text-sm text-gray-700 mt-1">Email: falishamanpower4035@gmail.com</p>
-                        <p className="text-sm text-gray-700">Phone: +92330 3333335</p>
+                      <div className="text-xs text-gray-700">
+                        <p>📧 falishamanpower4035@gmail.com</p>
+                        <p>📱 +92330 3333335</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Professional Summary */}
-                <div className="mb-8">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
-                    <Briefcase className="w-6 h-6 text-blue-600" />
+                <div className="mb-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
+                    <Briefcase className="w-5 h-5 text-blue-600" />
                     Professional Summary
                   </h2>
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Calendar className="w-5 h-5 text-blue-600" />
-                        <span className="font-semibold text-gray-900">Experience</span>
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div className="bg-blue-50 p-3 rounded">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Calendar className="w-4 h-4 text-blue-600" />
+                        <span className="font-semibold text-gray-900 text-sm">Experience</span>
                       </div>
-                      <p className="text-2xl font-bold text-blue-600">{candidate.experience_years || 0} Years</p>
+                      <p className="text-xl font-bold text-blue-600">{candidate.experience_years || 0} Years</p>
                     </div>
-                    <div className="bg-purple-50 p-4 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Star className="w-5 h-5 text-purple-600" />
-                        <span className="font-semibold text-gray-900">AI Match Score</span>
+                    <div className="bg-purple-50 p-3 rounded">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Star className="w-4 h-4 text-purple-600" />
+                        <span className="font-semibold text-gray-900 text-sm">AI Match Score</span>
                       </div>
-                      <p className="text-2xl font-bold text-purple-600">{candidate.ai_score?.toFixed(1) || 'N/A'}/10</p>
+                      <p className="text-xl font-bold text-purple-600">{candidate.ai_score?.toFixed(1) || 'N/A'}/10</p>
                     </div>
                   </div>
-                  <p className="text-gray-700 leading-relaxed">
+                  <p className="text-gray-700 text-sm leading-relaxed">
                     {candidate.professional_summary || `Highly skilled ${candidate.position || 'professional'} with ${candidate.experience_years || 0} years of professional experience. Seeking opportunities in ${candidate.country || 'various markets'} to contribute technical expertise and drive operational excellence.`}
                   </p>
                 </div>
 
                 {/* Core Skills */}
                 {safeJsonArray(candidate.skills).length > 0 && (
-                  <div className="mb-8">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
-                      <Star className="w-6 h-6 text-blue-600" />
+                  <div className="mb-6">
+                    <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
+                      <Star className="w-5 h-5 text-blue-600" />
                       Core Skills & Competencies
                     </h2>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-3 gap-2">
                       {safeJsonArray(candidate.skills).map((skill, index) => (
                         <div
                           key={index}
-                          className="px-4 py-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200 text-gray-800 font-medium text-center"
+                          className="px-3 py-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded border border-blue-200 text-gray-800 font-medium text-center text-sm"
                         >
                           {skill}
                         </div>
@@ -1047,52 +1051,50 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
                 )}
 
                 {/* Additional Information */}
-                <div className="mb-8">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
-                    <FileText className="w-6 h-6 text-blue-600" />
+                <div className="mb-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-blue-600" />
                     Additional Information
                   </h2>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Globe className="w-5 h-5 text-gray-600" />
-                        <span className="font-semibold text-gray-900">Nationality</span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-gray-50 p-3 rounded">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Globe className="w-4 h-4 text-gray-600" />
+                        <span className="font-semibold text-gray-900 text-sm">Nationality</span>
                       </div>
-                      <p className="text-gray-700">{candidate.nationality || 'Not specified'}</p>
+                      <p className="text-gray-700 text-sm">{candidate.nationality || 'Not specified'}</p>
                     </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <MapPin className="w-5 h-5 text-gray-600" />
-                        <span className="font-semibold text-gray-900">Preferred Location</span>
+                    <div className="bg-gray-50 p-3 rounded">
+                      <div className="flex items-center gap-2 mb-1">
+                        <MapPin className="w-4 h-4 text-gray-600" />
+                        <span className="font-semibold text-gray-900 text-sm">Preferred Location</span>
                       </div>
-                      <p className="text-gray-700">{candidate.country || 'Not specified'}</p>
+                      <p className="text-gray-700 text-sm">{candidate.country || 'Not specified'}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Footer Notice */}
-                <div className="mt-12 pt-6 border-t-2 border-gray-300">
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-lg border-2 border-blue-200">
-                    <div className="flex items-start gap-3">
-                      <Shield className="w-8 h-8 text-blue-600 flex-shrink-0" />
+                <div className="mt-6 pt-4 border-t border-gray-300">
+                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded border border-blue-200">
+                    <div className="flex items-start gap-2">
+                      <Shield className="w-6 h-6 text-blue-600 flex-shrink-0" />
                       <div>
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">Protected by Falisha Manpower</h3>
-                        <p className="text-sm text-gray-700 mb-3">
-                          This is an employer-safe CV generated by Falisha Manpower recruitment system. Contact information has been protected to prevent unauthorized direct contact and ensure proper recruitment procedures are followed.
+                        <h3 className="font-bold text-gray-900 mb-1 text-sm">Protected by Falisha Manpower</h3>
+                        <p className="text-xs text-gray-700 mb-2">
+                          This employer-safe CV protects candidate privacy. Contact information has been secured.
                         </p>
-                        <div className="mt-3 text-sm text-gray-600">
-                          <p><strong>For more information or to arrange interviews:</strong></p>
-                          <p>Contact Falisha Manpower at falishamanpower4035@gmail.com or +92330 3333335</p>
-                        </div>
+                        <p className="text-xs text-gray-600">
+                          <strong>For interviews:</strong> falishamanpower4035@gmail.com | +92330 3333335
+                        </p>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Watermark */}
-                <div className="mt-6 text-center text-xs text-gray-400">
-                  <p>Generated by Falisha Manpower AI Recruitment System</p>
-                  <p>Candidate ID: {candidate.id} | Generated: {new Date().toLocaleDateString()}</p>
+                <div className="mt-4 text-center text-xs text-gray-400">
+                  <p>Falisha Manpower AI Recruitment System | Candidate ID: {candidate.id}</p>
                 </div>
               </div>
             </div>
@@ -1101,21 +1103,61 @@ export function CandidateDetailsModal({ candidate, onClose }: CandidateDetailsMo
           {/* Print Styles */}
           <style>{`
             @media print {
-              body * {
-                visibility: hidden;
+              @page {
+                size: A4;
+                margin: 0.5in;
               }
-              .print\\:p-0, .print\\:p-0 * {
-                visibility: visible;
+              
+              body {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
               }
+              
+              /* Hide everything except the CV content */
+              body > *:not(#printable-cv) {
+                display: none !important;
+              }
+              
               .print\\:hidden {
                 display: none !important;
               }
-              .print\\:p-0 {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                padding: 20px;
+              
+              /* Ensure CV content is visible and properly positioned */
+              #printable-cv {
+                display: block !important;
+                position: static !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                page-break-after: avoid;
+              }
+              
+              /* Prevent page breaks in sections */
+              #printable-cv > div {
+                page-break-inside: avoid;
+              }
+              
+              /* Compact spacing for print */
+              #printable-cv h1 { font-size: 24px !important; margin-bottom: 8px !important; }
+              #printable-cv h2 { font-size: 16px !important; margin-bottom: 12px !important; }
+              #printable-cv h3 { font-size: 14px !important; }
+              #printable-cv p { font-size: 11px !important; line-height: 1.4 !important; }
+              #printable-cv .text-sm, #printable-cv .text-xs { font-size: 10px !important; }
+              
+              /* Reduce margins */
+              #printable-cv .mb-6 { margin-bottom: 12px !important; }
+              #printable-cv .mb-3 { margin-bottom: 8px !important; }
+              #printable-cv .p-4 { padding: 8px !important; }
+              #printable-cv .p-3 { padding: 6px !important; }
+              
+              /* Keep colors for branding */
+              #printable-cv .bg-blue-50,
+              #printable-cv .bg-purple-50,
+              #printable-cv .bg-yellow-50,
+              #printable-cv .bg-gray-50 {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
               }
             }
           `}</style>
