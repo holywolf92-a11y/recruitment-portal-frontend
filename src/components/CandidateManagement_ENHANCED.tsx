@@ -55,11 +55,17 @@ function safeJsonArray(value: unknown): string[] {
   if (!value) return [];
   if (Array.isArray(value)) return value.filter((v) => typeof v === 'string') as string[];
   if (typeof value === 'string') {
+    // First try JSON parsing
     try {
       const parsed = JSON.parse(value);
       return Array.isArray(parsed) ? (parsed.filter((v) => typeof v === 'string') as string[]) : [];
     } catch {
-      return [];
+      // If JSON parsing fails, try CSV splitting
+      if (value.includes(',')) {
+        return value.split(',').map(s => s.trim()).filter(s => s.length > 0);
+      }
+      // Single value
+      return value.trim() ? [value.trim()] : [];
     }
   }
   return [];
