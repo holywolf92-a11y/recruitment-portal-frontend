@@ -251,7 +251,25 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
               await apiClient.uploadCandidateDocument(file, candidate.id, 'Manual Upload');
             } catch (error) {
               console.error('Error uploading document:', error);
-              setExtractionError(`Failed to upload ${file.name}`);
+              const errorMessage = error instanceof Error 
+                ? error.message 
+                : 'Unknown error occurred';
+              
+              // Check for common error types
+              let userFriendlyMessage = `Failed to upload ${file.name}`;
+              if (errorMessage.includes('File exceeds') || errorMessage.includes('size limit')) {
+                userFriendlyMessage = `${file.name}: File is too large (max 10MB)`;
+              } else if (errorMessage.includes('Unsupported file type') || errorMessage.includes('file type')) {
+                userFriendlyMessage = `${file.name}: Unsupported file type. Allowed: PDF, DOC, DOCX, JPG, PNG`;
+              } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+                userFriendlyMessage = `${file.name}: Network error. Please check your connection and try again.`;
+              } else if (errorMessage.includes('Candidate not found')) {
+                userFriendlyMessage = `${file.name}: Candidate not found. Please refresh the page.`;
+              } else if (errorMessage) {
+                userFriendlyMessage = `${file.name}: ${errorMessage}`;
+              }
+              
+              setExtractionError(userFriendlyMessage);
             }
           }
           
