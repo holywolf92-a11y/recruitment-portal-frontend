@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { X, Edit2, Save, Phone, Mail, MapPin, Briefcase, Calendar, FileText, Globe, CheckCircle, XCircle, Star, Video, MessageSquare, Upload, Download, Eye, Trash2, File, Image as ImageIcon, AlertCircle, Sparkles, Loader, Shield, Check, Link2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Edit2, Save, Phone, Mail, MapPin, Briefcase, Calendar, FileText, Globe, CheckCircle, XCircle, Star, Video, MessageSquare, Upload, Download, Eye, Trash2, File, Image as ImageIcon, AlertCircle, Sparkles, Loader, Shield, Check, Link2, RefreshCw } from 'lucide-react';
 import { Candidate } from '../lib/apiClient';
 import { ExtractionReviewModal } from './ExtractionReviewModal';
 import { apiClient } from '../lib/apiClient';
@@ -132,7 +132,8 @@ function safeJsonArray(value: unknown): string[] {
 export function CandidateDetailsModal({ candidate, onClose, initialTab = 'details' }: CandidateDetailsModalProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedCandidate, setEditedCandidate] = useState(candidate);
-  const [documents, setDocuments] = useState<Document[]>(getMockDocuments(candidate.id));
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [documentsLoading, setDocumentsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'details' | 'documents'>(initialTab);
   const [extractionInProgress, setExtractionInProgress] = useState(false);
   const [showExtractionModal, setShowExtractionModal] = useState(false);
@@ -140,6 +141,59 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
   const [extractionError, setExtractionError] = useState<string | null>(null);
   const [showEmployerCV, setShowEmployerCV] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+
+  // Fetch real documents from API
+  const fetchDocuments = async () => {
+    try {
+      setDocumentsLoading(true);
+      const apiDocs = await apiClient.listCandidateDocumentsNew(candidate.id);
+      
+      // Map API documents to display format
+      const mappedDocs: Document[] = apiDocs.map((doc: any) => {
+        // Map category from API format (cv_resume) to display format (CV)
+        let category: Document['category'] = 'Other';
+        if (doc.category === 'cv_resume') category = 'CV';
+        else if (doc.category === 'passport') category = 'Passport';
+        else if (doc.category === 'certificates') category = 'Certificate';
+        else if (doc.category === 'contracts') category = 'Contract';
+        else if (doc.category === 'medical_reports') category = 'Medical';
+        else if (doc.category === 'photos') category = 'Photo';
+        
+        // Map verification status
+        let status: Document['status'] = 'pending';
+        if (doc.verification_status === 'verified') status = 'verified';
+        else if (doc.verification_status === 'needs_review' || doc.verification_status === 'pending_ai') status = 'pending';
+        else if (doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed') status = 'expired';
+        
+        return {
+          id: doc.id,
+          fileName: doc.file_name || 'Unknown',
+          fileType: doc.mime_type?.split('/')[1]?.toUpperCase() || 'PDF',
+          category,
+          uploadedBy: doc.uploaded_by_user_id || 'System',
+          uploadedDate: doc.created_at ? new Date(doc.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          fileSize: doc.file_size ? `${(doc.file_size / 1024).toFixed(0)} KB` : '0 KB',
+          status,
+          expiryDate: doc.expiry_date,
+        };
+      });
+      
+      setDocuments(mappedDocs);
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+      // Fallback to mock documents on error
+      setDocuments(getMockDocuments(candidate.id));
+    } finally {
+      setDocumentsLoading(false);
+    }
+  };
+
+  // Fetch documents when modal opens or candidate changes
+  useEffect(() => {
+    if (activeTab === 'documents') {
+      fetchDocuments();
+    }
+  }, [candidate.id, activeTab]);
 
   const handleShowEmployerCV = () => {
     setShowEmployerCV(true);
@@ -179,7 +233,7 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
     });
   };
 
-  const handleUploadDocument = () => {
+  const handleUploadDocument = async () => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
@@ -187,19 +241,8 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
     input.onchange = async (e) => {
       const files = (e.target as HTMLInputElement).files;
       if (files) {
-        const newDocs: Document[] = Array.from(files).map(file => ({
-          id: `doc-${Date.now()}-${Math.random()}`,
-          fileName: file.name,
-          fileType: file.name.split('.').pop()?.toUpperCase() || 'UNKNOWN',
-          category: 'Other',
-          uploadedBy: 'Current User',
-          uploadedDate: new Date().toISOString().split('T')[0],
-          fileSize: `${(file.size / 1024).toFixed(0)} KB`,
-          status: 'pending'
-        }));
-        
-        // Add documents to list
-        setDocuments([...newDocs, ...documents]);
+        // Refresh documents after upload
+        await fetchDocuments();
         
         // Auto-extract if CV is uploaded
         const cvFiles = Array.from(files).filter(file => 
@@ -732,24 +775,42 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">Candidate Documents</h3>
-                  <p className="text-sm text-gray-600 mt-1">{documents.length} files uploaded</p>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {documentsLoading ? 'Loading...' : `${documents.length} files uploaded`}
+                  </p>
                 </div>
-                <button
-                  onClick={handleUploadDocument}
-                  disabled={extractionInProgress}
-                  className={`${
-                    extractionInProgress
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                  } px-4 py-2 rounded-lg transition-colors flex items-center gap-2`}
-                >
-                  <Upload className="w-4 h-4" />
-                  {extractionInProgress ? 'Extracting...' : 'Upload Document'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={fetchDocuments}
+                    disabled={documentsLoading}
+                    className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
+                    title="Refresh documents"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${documentsLoading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </button>
+                  <button
+                    onClick={handleUploadDocument}
+                    disabled={extractionInProgress}
+                    className={`${
+                      extractionInProgress
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                    } px-4 py-2 rounded-lg transition-colors flex items-center gap-2`}
+                  >
+                    <Upload className="w-4 h-4" />
+                    {extractionInProgress ? 'Extracting...' : 'Upload Document'}
+                  </button>
+                </div>
               </div>
 
               {/* Documents Grid */}
-              {documents.length > 0 ? (
+              {documentsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader className="w-6 h-6 animate-spin text-blue-600" />
+                  <span className="ml-2 text-gray-600">Loading documents...</span>
+                </div>
+              ) : documents.length > 0 ? (
                 <div className="grid grid-cols-1 gap-3">
                   {documents.map(doc => (
                     <div
