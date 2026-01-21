@@ -518,6 +518,9 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
       await apiClient.deleteCandidateDocument(doc.id);
       console.log('[DeleteDocument] Document deleted successfully');
       
+      // Wait a moment for backend to finish updating flags
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Refresh documents after deletion
       await fetchDocuments();
       console.log('[DeleteDocument] Documents refreshed');
@@ -525,7 +528,10 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
       // Notify parent component to refresh candidate list (to update flags on card)
       if (onDocumentChange) {
         console.log('[DeleteDocument] Calling onDocumentChange callback');
-        onDocumentChange();
+        // Add a small delay to ensure backend has updated flags
+        setTimeout(() => {
+          onDocumentChange();
+        }, 300);
       } else {
         console.warn('[DeleteDocument] onDocumentChange callback not provided');
       }
