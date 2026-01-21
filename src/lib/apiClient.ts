@@ -556,6 +556,12 @@ class ApiClient {
     return response;
   }
 
+  async deleteCandidateDocument(id: string): Promise<void> {
+    await this.request(`/documents/candidate-documents/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   async listCandidateDocumentsNew(candidateId: string): Promise<any[]> {
     const response = await this.request<{ documents: any[] }>(`/documents/candidates/${candidateId}/documents`);
     return response.documents || [];

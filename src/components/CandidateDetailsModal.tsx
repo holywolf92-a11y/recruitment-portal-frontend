@@ -479,6 +479,49 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
     await fetchDocuments();
   };
 
+  // Handle document view
+  const handleViewDocument = async (doc: Document) => {
+    try {
+      const response = await apiClient.getCandidateDocumentDownload(doc.id);
+      window.open(response.download_url, '_blank');
+    } catch (error: any) {
+      console.error('Error viewing document:', error);
+      alert(error?.message || 'Failed to view document');
+    }
+  };
+
+  // Handle document download
+  const handleDownloadDocument = async (doc: Document) => {
+    try {
+      const response = await apiClient.getCandidateDocumentDownload(doc.id);
+      const link = document.createElement('a');
+      link.href = response.download_url;
+      link.download = doc.fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error: any) {
+      console.error('Error downloading document:', error);
+      alert(error?.message || 'Failed to download document');
+    }
+  };
+
+  // Handle document delete
+  const handleDeleteDocument = async (doc: Document) => {
+    if (!confirm(`Are you sure you want to delete "${doc.fileName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await apiClient.deleteCandidateDocument(doc.id);
+      // Refresh documents after deletion
+      await fetchDocuments();
+    } catch (error: any) {
+      console.error('Error deleting document:', error);
+      alert(error?.message || 'Failed to delete document');
+    }
+  };
+
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'CV': return <FileText className="w-4 h-4" />;
@@ -1071,15 +1114,24 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
 
                           {/* Action Buttons */}
                           <div className="flex items-center gap-2">
-                            <button className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1.5 text-sm">
+                            <button 
+                              onClick={() => handleViewDocument(doc)}
+                              className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1.5 text-sm"
+                            >
                               <Eye className="w-3.5 h-3.5" />
                               View
                             </button>
-                            <button className="px-3 py-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors flex items-center gap-1.5 text-sm">
+                            <button 
+                              onClick={() => handleDownloadDocument(doc)}
+                              className="px-3 py-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors flex items-center gap-1.5 text-sm"
+                            >
                               <Download className="w-3.5 h-3.5" />
                               Download
                             </button>
-                            <button className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-1.5 text-sm">
+                            <button 
+                              onClick={() => handleDeleteDocument(doc)}
+                              className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-1.5 text-sm"
+                            >
                               <Trash2 className="w-3.5 h-3.5" />
                               Delete
                             </button>
