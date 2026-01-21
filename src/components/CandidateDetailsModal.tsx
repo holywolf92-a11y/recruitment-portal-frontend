@@ -241,14 +241,17 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
     input.onchange = async (e) => {
       const files = (e.target as HTMLInputElement).files;
       if (files) {
-        setExtractionInProgress(true);
         setExtractionError(null);
         
         try {
           // Upload all files using the new API
+          const uploadedDocumentIds: string[] = [];
           for (const file of Array.from(files)) {
             try {
-              await apiClient.uploadCandidateDocument(file, candidate.id, 'Manual Upload');
+              const response = await apiClient.uploadCandidateDocument(file, candidate.id, 'Manual Upload');
+              if (response.document?.id) {
+                uploadedDocumentIds.push(response.document.id);
+              }
             } catch (error) {
               console.error('Error uploading document:', error);
               const errorMessage = error instanceof Error 
@@ -276,67 +279,89 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
           // Automatically refresh documents after upload
           await fetchDocuments();
           
-          // Auto-extract if CV is uploaded
-          const cvFiles = Array.from(files).filter(file => 
-            file.name.toLowerCase().endsWith('.pdf') || 
-            file.name.toLowerCase().endsWith('.docx') ||
-            file.name.toLowerCase().endsWith('.doc')
-          );
-          
-          if (cvFiles.length > 0) {
-            // Get the uploaded document to extract
-            const uploadedDocs = await apiClient.listCandidateDocumentsNew(candidate.id);
-            const latestCV = uploadedDocs
-              .filter((doc: any) => doc.category === 'cv_resume')
-              .sort((a: any, b: any) => 
-                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-              )[0];
+          // Wait for AI categorization to complete, then check if any uploaded document is a CV
+          // Only trigger extraction if the document is actually categorized as a CV
+          if (uploadedDocumentIds.length > 0) {
+            // Poll for categorization completion (max 30 seconds)
+            const maxAttempts = 15; // 15 attempts * 2 seconds = 30 seconds max
+            let attempts = 0;
+            let cvFound = false;
             
-            if (latestCV?.storage_path) {
+            while (attempts < maxAttempts && !cvFound) {
+              await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+              
               try {
-                // Add timeout to extraction call (30 seconds)
-                const extractionPromise = apiClient.extractCandidateData(
-                  candidate.id, 
-                  latestCV.storage_path
-                );
+                const uploadedDocs = await apiClient.listCandidateDocumentsNew(candidate.id);
                 
-                const timeoutPromise = new Promise((_, reject) => 
-                  setTimeout(() => reject(new Error('Extraction timeout: The process took too long. Please try again.')), 30000)
-                );
+                // Check if any of the uploaded documents is now categorized as CV
+                const latestCV = uploadedDocs
+                  .filter((doc: any) => 
+                    uploadedDocumentIds.includes(doc.id) && 
+                    doc.category === 'cv_resume' &&
+                    doc.verification_status !== 'pending_ai' // Wait for categorization to complete
+                  )
+                  .sort((a: any, b: any) => 
+                    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                  )[0];
                 
-                const result = await Promise.race([extractionPromise, timeoutPromise]) as any;
-                
-                if (result && result.success) {
-                  setExtractedData(result.data);
-                  setShowExtractionModal(true);
-                  setExtractionInProgress(false); // Reset immediately on success
-                } else {
-                  setExtractionError(result?.error || 'Failed to extract CV data');
-                  setExtractionInProgress(false); // Reset on failure
+                if (latestCV?.storage_path) {
+                  cvFound = true;
+                  
+                  // Now trigger extraction - this is a CV
+                  setExtractionInProgress(true);
+                  
+                  try {
+                    // Add timeout to extraction call (30 seconds)
+                    const extractionPromise = apiClient.extractCandidateData(
+                      candidate.id, 
+                      latestCV.storage_path
+                    );
+                    
+                    const timeoutPromise = new Promise((_, reject) => 
+                      setTimeout(() => reject(new Error('Extraction timeout: The process took too long. Please try again.')), 30000)
+                    );
+                    
+                    const result = await Promise.race([extractionPromise, timeoutPromise]) as any;
+                    
+                    if (result && result.success) {
+                      setExtractedData(result.data);
+                      setShowExtractionModal(true);
+                      setExtractionInProgress(false); // Reset immediately on success
+                    } else {
+                      setExtractionError(result?.error || 'Failed to extract CV data');
+                      setExtractionInProgress(false); // Reset on failure
+                    }
+                  } catch (error) {
+                    console.error('Extraction error:', error);
+                    setExtractionError(
+                      error instanceof Error 
+                        ? error.message 
+                        : 'CV extraction failed. The document may still be processing. Please refresh the page.'
+                    );
+                    setExtractionInProgress(false); // Always reset on error
+                  }
+                  break; // Exit the polling loop
                 }
               } catch (error) {
-                console.error('Extraction error:', error);
-                setExtractionError(
-                  error instanceof Error 
-                    ? error.message 
-                    : 'CV extraction failed. The document may still be processing. Please refresh the page.'
-                );
-                setExtractionInProgress(false); // Always reset on error
+                console.error('Error checking document status:', error);
+                // Continue polling
               }
-            } else {
-              // No CV found, reset extraction state
-              setExtractionInProgress(false);
+              
+              attempts++;
             }
-          } else {
-            // No CV files, reset extraction state
-            setExtractionInProgress(false);
+            
+            // If we didn't find a CV after polling, it means the uploaded documents are not CVs
+            // This is normal for passports, certificates, etc. - no extraction needed
+            if (!cvFound) {
+              // Documents uploaded successfully, but they're not CVs
+              // No extraction needed - this is expected behavior
+              console.log('Uploaded documents are not CVs - no extraction needed');
+            }
           }
         } catch (error) {
           setExtractionError(
             error instanceof Error ? error.message : 'An error occurred during upload'
           );
-        } finally {
-          setExtractionInProgress(false);
         }
       }
     };
