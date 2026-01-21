@@ -241,67 +241,74 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
     input.onchange = async (e) => {
       const files = (e.target as HTMLInputElement).files;
       if (files) {
-        // Refresh documents after upload
-        await fetchDocuments();
+        setExtractionInProgress(true);
+        setExtractionError(null);
         
-        // Auto-extract if CV is uploaded
-        const cvFiles = Array.from(files).filter(file => 
-          file.name.toLowerCase().endsWith('.pdf') || 
-          file.name.toLowerCase().endsWith('.docx')
-        );
-        
-        if (cvFiles.length > 0) {
-          // Automatically trigger extraction for first CV
-          setExtractionInProgress(true);
-          setExtractionError(null);
-          
-          try {
-            // First, upload the document
-            const formData = new FormData();
-            formData.append('file', cvFiles[0]);
-            formData.append('candidate_id', candidate.id);
-            formData.append('doc_type', 'CV');
-            formData.append('is_primary', 'true');
-
-            const uploadResponse = await fetch('/api/documents', {
-              method: 'POST',
-              body: formData
-            });
-
-            if (!uploadResponse.ok) {
-              throw new Error('Failed to upload document');
+        try {
+          // Upload all files using the new API
+          for (const file of Array.from(files)) {
+            try {
+              await apiClient.uploadCandidateDocument(file, candidate.id, 'Manual Upload');
+            } catch (error) {
+              console.error('Error uploading document:', error);
+              setExtractionError(`Failed to upload ${file.name}`);
             }
-
-            const uploadData = await uploadResponse.json();
-            const documentPath = uploadData.document?.storage_path;
-
-            if (!documentPath) {
-              throw new Error('Failed to get document storage path');
-            }
-
-            // Now extract the CV using the storage path
-            const result = await apiClient.extractCandidateData(
-              candidate.id, 
-              documentPath
-            );
-            
-            if (result.success) {
-              setExtractedData(result.data);
-              setShowExtractionModal(true);
-            } else {
-              setExtractionError(result.error || 'Failed to extract CV data');
-            }
-          } catch (error) {
-            setExtractionError(
-              error instanceof Error ? error.message : 'An error occurred during extraction'
-            );
-          } finally {
-            setExtractionInProgress(false);
           }
+          
+          // Automatically refresh documents after upload
+          await fetchDocuments();
+          
+          // Auto-extract if CV is uploaded
+          const cvFiles = Array.from(files).filter(file => 
+            file.name.toLowerCase().endsWith('.pdf') || 
+            file.name.toLowerCase().endsWith('.docx') ||
+            file.name.toLowerCase().endsWith('.doc')
+          );
+          
+          if (cvFiles.length > 0) {
+            // Get the uploaded document to extract
+            const uploadedDocs = await apiClient.listCandidateDocumentsNew(candidate.id);
+            const latestCV = uploadedDocs
+              .filter((doc: any) => doc.category === 'cv_resume')
+              .sort((a: any, b: any) => 
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+              )[0];
+            
+            if (latestCV?.storage_path) {
+              try {
+                const result = await apiClient.extractCandidateData(
+                  candidate.id, 
+                  latestCV.storage_path
+                );
+                
+                if (result.success) {
+                  setExtractedData(result.data);
+                  setShowExtractionModal(true);
+                } else {
+                  setExtractionError(result.error || 'Failed to extract CV data');
+                }
+              } catch (error) {
+                console.error('Extraction error:', error);
+                // Don't show error for extraction, just continue
+              }
+            }
+          }
+        } catch (error) {
+          setExtractionError(
+            error instanceof Error ? error.message : 'An error occurred during upload'
+          );
+        } finally {
+          setExtractionInProgress(false);
         }
       }
     };
     input.click();
+  };
+
+  // Handle document upload completion callback
+  const handleDocumentUploadComplete = async (document: any) => {
+    // Automatically refresh documents when upload completes
+    await fetchDocuments();
   };
 
   const getCategoryIcon = (category: string) => {
