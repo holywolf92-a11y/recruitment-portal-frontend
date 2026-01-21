@@ -295,13 +295,40 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
     input.click();
   }
 
-  function handleDocumentClick(candidateId: string, docType: string, hasDocument: boolean) {
+  async function handleDocumentClick(candidateId: string, docType: string, hasDocument: boolean) {
     if (hasDocument) {
       // View/download document
-      viewDocument(candidateId, docType);
+      if (docType === 'cv') {
+        // Use the CV download handler which checks both candidate_documents and inbox_attachments
+        handleDownloadCV(candidates.find(c => c.id === candidateId)!);
+      } else {
+        viewDocument(candidateId, docType);
+      }
     } else {
-      // Upload document
-      uploadDocument(candidateId, docType);
+      // For CV, try to link existing CV from inbox first
+      if (docType === 'cv') {
+        try {
+          const response = await apiClient.linkCandidateCV(candidateId);
+          alert('CV linked successfully from inbox!');
+          // Refresh candidate data
+          await fetchCandidates();
+        } catch (error: any) {
+          // If no CV in inbox, offer to upload
+          if (error?.message?.includes('404') || error?.message?.includes('not found')) {
+            if (confirm('No CV found in inbox. Would you like to upload a new CV?')) {
+              uploadDocument(candidateId, docType);
+            }
+          } else {
+            alert(error?.message || 'Failed to link CV. Would you like to upload a new one?');
+            if (confirm('Upload a new CV?')) {
+              uploadDocument(candidateId, docType);
+            }
+          }
+        }
+      } else {
+        // Upload document for other types
+        uploadDocument(candidateId, docType);
+      }
     }
   }
 

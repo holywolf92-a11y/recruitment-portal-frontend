@@ -463,6 +463,12 @@ class ApiClient {
     return await this.request<{ download_url: string; filename: string }>(`/candidates/${candidateId}/documents/cv/download`);
   }
 
+  async linkCandidateCV(candidateId: string): Promise<{ document: any; message: string }> {
+    return await this.request<{ document: any; message: string }>(`/candidates/${candidateId}/link-cv`, {
+      method: 'POST',
+    });
+  }
+
   async uploadCandidatePhoto(candidateId: string, file: File): Promise<{ message: string; photo_url: string; photo_path: string }> {
     const formData = new FormData();
     formData.append('photo', file);
