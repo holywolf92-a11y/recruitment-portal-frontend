@@ -114,13 +114,13 @@ export default function DocumentUploadVerification({ candidateId, onUploadComple
         // Add to uploaded documents
         setUploadedDocuments(prev => [...prev, response.document]);
 
-        // Call callback
+        // Call callback to notify parent component
         if (onUploadComplete) {
-          onUploadComplete(response.data.document);
+          onUploadComplete(response.document);
         }
 
         // Start polling for verification status
-        pollVerificationStatus(response.data.document.id);
+        pollVerificationStatus(response.document.id);
 
       } catch (err: any) {
         console.error('Upload error:', err);
