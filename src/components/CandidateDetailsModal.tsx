@@ -140,6 +140,19 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
   const [showExtractionModal, setShowExtractionModal] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [extractionError, setExtractionError] = useState<string | null>(null);
+
+  // Safety: Reset uploading state if it's been stuck for too long
+  useEffect(() => {
+    if (uploading) {
+      const timeout = setTimeout(() => {
+        console.warn('[Upload] Safety timeout: Uploading state stuck, resetting');
+        setUploading(false);
+        setExtractionError('Upload timed out. Please try again.');
+      }, 180000); // 3 minutes (should be less than the 5-minute safety timeout in handleUploadDocument)
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [uploading]);
   const [showEmployerCV, setShowEmployerCV] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
