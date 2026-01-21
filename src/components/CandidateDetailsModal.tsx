@@ -250,7 +250,13 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
           const uploadedDocumentIds: string[] = [];
           for (const file of Array.from(files)) {
             try {
-              const response = await apiClient.uploadCandidateDocument(file, candidate.id, 'Manual Upload');
+              // Add timeout to upload (60 seconds)
+              const uploadPromise = apiClient.uploadCandidateDocument(file, candidate.id, 'Manual Upload');
+              const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Upload timeout: The upload took too long. Please try again.')), 60000)
+              );
+              
+              const response = await Promise.race([uploadPromise, timeoutPromise]) as any;
               if (response.document?.id) {
                 uploadedDocumentIds.push(response.document.id);
               }
@@ -262,7 +268,9 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
               
               // Check for common error types
               let userFriendlyMessage = `Failed to upload ${file.name}`;
-              if (errorMessage.includes('File exceeds') || errorMessage.includes('size limit')) {
+              if (errorMessage.includes('timeout') || errorMessage.includes('aborted')) {
+                userFriendlyMessage = `${file.name}: Upload timeout. Please check your connection and try again.`;
+              } else if (errorMessage.includes('File exceeds') || errorMessage.includes('size limit')) {
                 userFriendlyMessage = `${file.name}: File is too large (max 10MB)`;
               } else if (errorMessage.includes('Unsupported file type') || errorMessage.includes('file type')) {
                 userFriendlyMessage = `${file.name}: Unsupported file type. Allowed: PDF, DOC, DOCX, JPG, PNG`;
@@ -278,8 +286,16 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
             }
           }
           
-          // Automatically refresh documents after upload
-          await fetchDocuments();
+          // Upload is complete - reset uploading state immediately
+          setUploading(false);
+          
+          // Automatically refresh documents after upload (with error handling)
+          try {
+            await fetchDocuments();
+          } catch (fetchError) {
+            console.error('Error fetching documents after upload:', fetchError);
+            // Don't show error to user, just log it
+          }
           
           // Wait for AI categorization to complete, then check if any uploaded document is a CV
           // Only trigger extraction if the document is actually categorized as a CV
@@ -352,20 +368,32 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
               attempts++;
             }
             
+            // Refresh documents after categorization completes (whether CV found or not)
+            // This ensures the UI shows the updated category and status
+            await fetchDocuments();
+            
             // If we didn't find a CV after polling, it means the uploaded documents are not CVs
             // This is normal for passports, certificates, etc. - no extraction needed
             if (!cvFound) {
               // Documents uploaded successfully, but they're not CVs
               // No extraction needed - this is expected behavior
               console.log('Uploaded documents are not CVs - no extraction needed');
+              
+              // Refresh documents to show updated status/category after categorization
+              await fetchDocuments();
             }
+          } else {
+            // No documents uploaded, but refresh anyway to ensure UI is up to date
+            await fetchDocuments();
           }
         } catch (error) {
+          console.error('Upload error:', error);
           setExtractionError(
             error instanceof Error ? error.message : 'An error occurred during upload'
           );
         } finally {
-          setUploading(false); // Always reset uploading state
+          // Always reset uploading state, even if there's an error
+          setUploading(false);
         }
       }
     };
