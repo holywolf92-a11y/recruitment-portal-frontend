@@ -237,16 +237,33 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
   const handleUploadDocument = () => {
     console.log('[Upload] Button clicked - opening file picker'); // Debug log
     
+    // Reset any previous error state
+    setExtractionError(null);
+    
     try {
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
       input.multiple = true;
       
+      // Handle file picker cancellation
+      input.oncancel = () => {
+        console.log('[Upload] File picker cancelled by user');
+        setUploading(false);
+      };
+      
       input.onchange = async (e) => {
         console.log('[Upload] File selected:', (e.target as HTMLInputElement).files?.length || 0, 'files'); // Debug log
-      const files = (e.target as HTMLInputElement).files;
-      if (files) {
+        const files = (e.target as HTMLInputElement).files;
+        
+        // If no files selected, reset state and return
+        if (!files || files.length === 0) {
+          console.log('[Upload] No files selected - resetting state');
+          setUploading(false);
+          return;
+        }
+        
+        if (files) {
         setExtractionError(null);
         setUploading(true); // Show loading during upload
         
