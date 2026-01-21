@@ -57,18 +57,24 @@ export default function VerificationLogsViewer({
         return;
       }
 
-      const response = await apiClient.get(endpoint);
-      setLogs(response.data.logs || []);
+      let logs: any[] = [];
+      if (documentId) {
+        const response = await apiClient.getVerificationLogsByDocument(documentId);
+        logs = response.logs || [];
+      } else if (candidateId) {
+        const response = await apiClient.getVerificationLogsByCandidate(candidateId);
+        logs = response.logs || [];
+      }
+      setLogs(logs);
       
       // Also fetch timeline view
       if (candidateId || documentId) {
-        const timelineParams = new URLSearchParams();
-        if (candidateId) timelineParams.append('candidateId', candidateId);
-        if (documentId) timelineParams.append('documentId', documentId);
-        timelineParams.append('limit', '50');
-        
-        const timelineResponse = await apiClient.get(`/verification-logs/timeline?${timelineParams}`);
-        setTimeline(timelineResponse.data.timeline || []);
+        const timelineResponse = await apiClient.getVerificationTimeline({
+          candidateId,
+          documentId,
+          limit: 50,
+        });
+        setTimeline(timelineResponse.logs || []);
       }
     } catch (err) {
       console.error('Error fetching verification logs:', err);

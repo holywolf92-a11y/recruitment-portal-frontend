@@ -458,6 +458,72 @@ class ApiClient {
     });
   }
 
+  // Candidate Documents API (AI Verification System)
+  async uploadCandidateDocument(file: File, candidateId: string, source: string = 'Manual Upload'): Promise<{ document: any; request_id: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('candidate_id', candidateId);
+    formData.append('source', source);
+
+    const url = `${API_BASE_URL}/documents/candidate-documents`;
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+      // Don't set Content-Type header - browser will set it with boundary
+    });
+
+    if (!response.ok) {
+      const error = await response.text().catch(() => '');
+      throw new Error(`API Error: ${response.status} ${error}`);
+    }
+
+    return await response.json();
+  }
+
+  async getCandidateDocument(id: string): Promise<{ document: any }> {
+    const response = await this.request<{ document: any }>(`/documents/candidate-documents/${id}`);
+    return response;
+  }
+
+  async updateCandidateDocument(id: string, data: { verification_status?: string; verification_reason_code?: string }): Promise<{ document: any }> {
+    const response = await this.request<{ document: any }>(`/documents/candidate-documents/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    return response;
+  }
+
+  async getCandidateDocumentDownload(id: string): Promise<{ download_url: string }> {
+    const response = await this.request<{ download_url: string }>(`/documents/candidate-documents/${id}/download`);
+    return response;
+  }
+
+  async listCandidateDocumentsNew(candidateId: string): Promise<any[]> {
+    const response = await this.request<{ documents: any[] }>(`/documents/candidates/${candidateId}/documents`);
+    return response.documents || [];
+  }
+
+  // Verification Logs API
+  async getVerificationLogsByDocument(documentId: string): Promise<{ logs: any[] }> {
+    const response = await this.request<{ logs: any[] }>(`/verification-logs/document/${documentId}`);
+    return response;
+  }
+
+  async getVerificationLogsByCandidate(candidateId: string): Promise<{ logs: any[] }> {
+    const response = await this.request<{ logs: any[] }>(`/verification-logs/candidate/${candidateId}`);
+    return response;
+  }
+
+  async getVerificationTimeline(params: { candidateId?: string; documentId?: string; limit?: number }): Promise<{ logs: any[] }> {
+    const queryParams = new URLSearchParams();
+    if (params.candidateId) queryParams.append('candidateId', params.candidateId);
+    if (params.documentId) queryParams.append('documentId', params.documentId);
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+    
+    const response = await this.request<{ logs: any[] }>(`/verification-logs/timeline?${queryParams.toString()}`);
+    return response;
+  }
+
   // Timeline API
   async getCandidateTimeline(candidateId: string, filters: TimelineFilters = {}): Promise<TimelineResponse> {
     const params = new URLSearchParams();

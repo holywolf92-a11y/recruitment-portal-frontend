@@ -101,22 +101,18 @@ export default function DocumentUploadVerification({ candidateId, onUploadComple
           )
         );
 
-        const response = await apiClient.post('/candidate-documents', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
+        const response = await apiClient.uploadCandidateDocument(uploadingFile.file, candidateId, 'Manual Upload');
 
         setUploadingFiles(prev =>
           prev.map(uf =>
             uf.file === uploadingFile.file
-              ? { ...uf, progress: 100, status: 'completed', documentId: response.data.document.id }
+              ? { ...uf, progress: 100, status: 'completed', documentId: response.document.id }
               : uf
           )
         );
 
         // Add to uploaded documents
-        setUploadedDocuments(prev => [...prev, response.data.document]);
+        setUploadedDocuments(prev => [...prev, response.document]);
 
         // Call callback
         if (onUploadComplete) {
@@ -156,8 +152,8 @@ export default function DocumentUploadVerification({ candidateId, onUploadComple
       }
 
       try {
-        const response = await apiClient.get(`/candidate-documents/${documentId}`);
-        const document = response.data.document;
+        const response = await apiClient.getCandidateDocument(documentId);
+        const document = response.document;
 
         // Update uploaded documents
         setUploadedDocuments(prev =>
