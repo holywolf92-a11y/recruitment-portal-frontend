@@ -138,39 +138,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
   };
 
   useEffect(() => {
-    let isMounted = true;
-    (async () => {
-      try {
-        const response = await apiClient.getCandidates({
-          search: filters.search,
-          position: filters.position,
-          country_of_interest: filters.country,
-          status: filters.status,
-        });
-        if (isMounted) {
-          setCandidates(response.candidates || []);
-          const uniquePositions = Array.from(
-            new Set((response.candidates || []).map(c => c.position).filter(Boolean))
-          ).sort() as string[];
-          setPositions(uniquePositions);
-
-          const uniqueCountries = Array.from(
-            new Set((response.candidates || []).map((c) => c.country_of_interest).filter(Boolean))
-          ).sort() as string[];
-          setCountries(uniqueCountries);
-
-          const uniqueStatuses = Array.from(
-            new Set((response.candidates || []).map((c) => (c.status || 'Applied')).filter(Boolean))
-          ).sort() as string[];
-          setStatuses(uniqueStatuses.length ? uniqueStatuses : ['Applied', 'Pending', 'Deployed', 'Cancelled']);
-        }
-      } catch (e: any) {
-        if (isMounted) setError(e?.message || 'Failed to load candidates');
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    })();
-    return () => { isMounted = false; };
+    fetchCandidates();
   }, [filters.search, filters.position, filters.country, filters.status]);, [filters]);
 
   const filteredCandidates = useMemo(() => {
