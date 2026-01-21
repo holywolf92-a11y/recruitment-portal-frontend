@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Dashboard } from './components/Dashboard';
 import { CandidateManagement } from './components/CandidateManagement_ENHANCED';
 import { CandidateBrowserEnhanced } from './components/CandidateBrowserEnhanced';
+import { CandidateBrowserExcel } from './components/CandidateBrowserExcel';
 import { EmployerManagement } from './components/EmployerManagement';
 import { JobOrderManagement } from './components/JobOrderManagement';
 import { Reports } from './components/Reports';
@@ -65,7 +66,7 @@ const AppContent = () => {
     };
   }, []);
 
-  const isBrowserView = activeTab === 'candidate-browser';
+  const isBrowserView = activeTab === 'candidate-browser' || activeTab === 'candidate-excel-browser';
 
   const renderContent = () => {
     switch (activeTab) {
@@ -79,6 +80,8 @@ const AppContent = () => {
         return <CandidateManagement initialProfessionFilter={selectedProfession} />;
       case 'candidate-browser':
         return <CandidateBrowserEnhanced />;
+      case 'candidate-excel-browser':
+        return <CandidateBrowserExcel />;
       case 'employers':
         return <EmployerManagement />;
       case 'jobs':
@@ -303,6 +306,18 @@ const AppContent = () => {
                 >
                   <FolderTree className="w-4 h-4" />
                   <span className="flex-1 text-left">Browser (Excel)</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('candidate-excel-browser')}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
+                    activeTab === 'candidate-excel-browser'
+                      ? 'bg-blue-50 text-blue-600 font-medium'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <FileText className="w-4 h-4" />
+                  <span className="flex-1 text-left">Excel Browser</span>
                 </button>
               </div>
 
