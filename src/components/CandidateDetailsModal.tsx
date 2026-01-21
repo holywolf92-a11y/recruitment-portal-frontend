@@ -136,6 +136,7 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
   const [documentsLoading, setDocumentsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'details' | 'documents'>(initialTab);
   const [extractionInProgress, setExtractionInProgress] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [showExtractionModal, setShowExtractionModal] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [extractionError, setExtractionError] = useState<string | null>(null);
@@ -242,6 +243,7 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
       const files = (e.target as HTMLInputElement).files;
       if (files) {
         setExtractionError(null);
+        setUploading(true); // Show loading during upload
         
         try {
           // Upload all files using the new API
@@ -362,6 +364,8 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
           setExtractionError(
             error instanceof Error ? error.message : 'An error occurred during upload'
           );
+        } finally {
+          setUploading(false); // Always reset uploading state
         }
       }
     };
@@ -813,6 +817,17 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
             </div>
           ) : (
             <div className="p-6 space-y-4">
+              {/* Upload Status */}
+              {uploading && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+                  <Loader className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5 animate-spin" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-800">Uploading Document...</p>
+                    <p className="text-sm text-blue-700 mt-1">Please wait while your file is being uploaded</p>
+                  </div>
+                </div>
+              )}
+
               {/* Auto-Extraction Status */}
               {extractionInProgress && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
@@ -861,15 +876,15 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                   </button>
                   <button
                     onClick={handleUploadDocument}
-                    disabled={extractionInProgress}
+                    disabled={extractionInProgress || uploading}
                     className={`${
-                      extractionInProgress
+                      extractionInProgress || uploading
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         : 'bg-blue-600 text-white hover:bg-blue-700'
                     } px-4 py-2 rounded-lg transition-colors flex items-center gap-2`}
                   >
-                    <Upload className="w-4 h-4" />
-                    {extractionInProgress ? 'Extracting...' : 'Upload Document'}
+                    <Upload className={`w-4 h-4 ${uploading ? 'animate-pulse' : ''}`} />
+                    {uploading ? 'Uploading...' : extractionInProgress ? 'Extracting...' : 'Upload Document'}
                   </button>
                 </div>
               </div>
