@@ -276,22 +276,42 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
             
             if (latestCV?.storage_path) {
               try {
-                const result = await apiClient.extractCandidateData(
+                // Add timeout to extraction call (30 seconds)
+                const extractionPromise = apiClient.extractCandidateData(
                   candidate.id, 
                   latestCV.storage_path
                 );
                 
-                if (result.success) {
+                const timeoutPromise = new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error('Extraction timeout: The process took too long. Please try again.')), 30000)
+                );
+                
+                const result = await Promise.race([extractionPromise, timeoutPromise]) as any;
+                
+                if (result && result.success) {
                   setExtractedData(result.data);
                   setShowExtractionModal(true);
+                  setExtractionInProgress(false); // Reset immediately on success
                 } else {
-                  setExtractionError(result.error || 'Failed to extract CV data');
+                  setExtractionError(result?.error || 'Failed to extract CV data');
+                  setExtractionInProgress(false); // Reset on failure
                 }
               } catch (error) {
                 console.error('Extraction error:', error);
-                // Don't show error for extraction, just continue
+                setExtractionError(
+                  error instanceof Error 
+                    ? error.message 
+                    : 'CV extraction failed. The document may still be processing. Please refresh the page.'
+                );
+                setExtractionInProgress(false); // Always reset on error
               }
+            } else {
+              // No CV found, reset extraction state
+              setExtractionInProgress(false);
             }
+          } else {
+            // No CV files, reset extraction state
+            setExtractionInProgress(false);
           }
         } catch (error) {
           setExtractionError(

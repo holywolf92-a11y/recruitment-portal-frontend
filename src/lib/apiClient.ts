@@ -642,10 +642,25 @@ class ApiClient {
 
   // CV Extraction API
   async extractCandidateData(id: string, cvUrl: string): Promise<any> {
-    return this.request(`/candidates/${id}/extract`, {
-      method: 'POST',
-      body: JSON.stringify({ cvUrl }),
-    });
+    // Add timeout to extraction request (30 seconds)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    
+    try {
+      const result = await this.request(`/candidates/${id}/extract`, {
+        method: 'POST',
+        body: JSON.stringify({ cvUrl }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      return result;
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Extraction timeout: The process took too long. Please try again.');
+      }
+      throw error;
+    }
   }
 
   async updateExtraction(id: string, extractedData: any, approved: boolean, notes?: string): Promise<any> {
