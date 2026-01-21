@@ -752,125 +752,90 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                         <div 
                           onClick={() => handleDocumentClick(c.id, 'cv', cvOk)}
                           className={`relative group cursor-pointer ${
-                            cvOk ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'
-                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md`}
+                            cvOk ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
+                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md hover:scale-105`}
                         >
                           <FileText className={`w-5 h-5 mb-1 ${
                             cvOk ? 'text-green-600' : 'text-red-600'
                           }`} />
-                          <span className={`text-xs font-medium ${cvOk ? 'text-green-800' : 'text-red-800'}`}>CV</span>
+                          <span className="text-xs font-semibold">CV</span>
                           {cvOk ? (
                             <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
                           ) : (
                             <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
                           )}
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all rounded-lg flex items-center justify-center">
-                            {cvOk ? (
-                              <Eye className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                            ) : (
-                              <Upload className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                            )}
-                          </div>
                         </div>
 
                         {/* Passport */}
                         <div 
                           onClick={() => handleDocumentClick(c.id, 'passport', passportOk)}
                           className={`relative group cursor-pointer ${
-                            passportOk ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'
-                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md`}
+                            passportOk ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
+                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md hover:scale-105`}
                         >
                           <File className={`w-5 h-5 mb-1 ${
                             passportOk ? 'text-purple-600' : 'text-red-600'
                           }`} />
-                          <span className={`text-xs font-medium ${passportOk ? 'text-green-800' : 'text-red-800'}`}>Passport</span>
+                          <span className="text-xs font-semibold">Passport</span>
                           {passportOk ? (
                             <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
                           ) : (
                             <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
                           )}
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all rounded-lg flex items-center justify-center">
-                            {passportOk ? (
-                              <Eye className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                            ) : (
-                              <Upload className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                            )}
-                          </div>
                         </div>
 
                         {/* Certificate */}
                         <div 
                           onClick={() => handleDocumentClick(c.id, 'certificate', certificateOk)}
                           className={`relative group cursor-pointer ${
-                            certificateOk ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'
-                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md`}
+                            certificateOk ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
+                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md hover:scale-105`}
                         >
                           <Award className={`w-5 h-5 mb-1 ${
                             certificateOk ? 'text-blue-600' : 'text-red-600'
                           }`} />
-                          <span className={`text-xs font-medium ${certificateOk ? 'text-green-800' : 'text-red-800'}`}>Cert</span>
+                          <span className="text-xs font-semibold">Cert</span>
                           {certificateOk ? (
                             <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
                           ) : (
                             <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
                           )}
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all rounded-lg flex items-center justify-center">
-                            {certificateOk ? (
-                              <Eye className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                            ) : (
-                              <Upload className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                            )}
-                          </div>
                         </div>
 
                         {/* Photo */}
                         <div 
                           onClick={() => handleDocumentClick(c.id, 'photo', photoOk)}
                           className={`relative group cursor-pointer ${
-                            photoOk ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'
-                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md`}
+                            photoOk ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
+                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md hover:scale-105`}
                         >
                           <Image className={`w-5 h-5 mb-1 ${
                             photoOk ? 'text-pink-600' : 'text-red-600'
                           }`} />
-                          <span className={`text-xs font-medium ${photoOk ? 'text-green-800' : 'text-red-800'}`}>Photo</span>
+                          <span className="text-xs font-semibold">Photo</span>
                           {photoOk ? (
                             <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
                           ) : (
                             <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
                           )}
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all rounded-lg flex items-center justify-center">
-                            {photoOk ? (
-                              <Eye className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                            ) : (
-                              <Upload className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                            )}
-                          </div>
                         </div>
 
                         {/* Medical */}
                         <div 
                           onClick={() => handleDocumentClick(c.id, 'medical', medicalOk)}
                           className={`relative group cursor-pointer ${
-                            medicalOk ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'
-                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md`}
+                            medicalOk ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
+                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md hover:scale-105`}
                         >
                           <File className={`w-5 h-5 mb-1 ${
                             medicalOk ? 'text-green-600' : 'text-red-600'
                           }`} />
-                          <span className={`text-xs font-medium ${medicalOk ? 'text-green-800' : 'text-red-800'}`}>Medical</span>
+                          <span className="text-xs font-semibold">Medical</span>
                           {medicalOk ? (
                             <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
                           ) : (
                             <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
                           )}
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all rounded-lg flex items-center justify-center">
-                            {medicalOk ? (
-                              <Eye className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                            ) : (
-                              <Upload className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                            )}
-                          </div>
                         </div>
                           </div>
 
