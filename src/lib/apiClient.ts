@@ -3,9 +3,10 @@
 // In development, it defaults to '/api' which will use the Vite proxy
 export const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || '/api';
 
-// Log API base URL for debugging (only in development)
-if (import.meta.env.DEV) {
-  console.log('[API Client] API_BASE_URL:', API_BASE_URL);
+// Log API base URL for debugging (always, to verify environment variable is set)
+console.log('[API Client] API_BASE_URL:', API_BASE_URL);
+if (!API_BASE_URL || API_BASE_URL === '/api') {
+  console.warn('[API Client] ⚠️  VITE_API_BASE_URL not set! Using default /api. This may cause connection errors in production.');
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
