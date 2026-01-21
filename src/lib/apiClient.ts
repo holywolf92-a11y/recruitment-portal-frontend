@@ -459,25 +459,44 @@ class ApiClient {
   }
 
   // Candidate Documents API (AI Verification System)
-  async uploadCandidateDocument(file: File, candidateId: string, source: string = 'Manual Upload'): Promise<{ document: any; request_id: string }> {
+  async uploadCandidateDocument(file: File, candidateId: string, source: string = 'web'): Promise<{ document: any; request_id: string }> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('candidate_id', candidateId);
     formData.append('source', source);
 
-    const url = `${API_BASE_URL}/documents/candidate-documents`;
-    const response = await fetch(url, {
-      method: 'POST',
-      body: formData,
-      // Don't set Content-Type header - browser will set it with boundary
-    });
+    // Calculate timeout based on file size (120 seconds for files up to 10MB, longer for larger files)
+    // Base timeout: 120 seconds, add 10 seconds per MB
+    const fileSizeMB = file.size / (1024 * 1024);
+    const timeoutMs = Math.max(120000, 120000 + (fileSizeMB * 10000)); // Min 120s, +10s per MB
 
-    if (!response.ok) {
-      const error = await response.text().catch(() => '');
-      throw new Error(`API Error: ${response.status} ${error}`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const url = `${API_BASE_URL}/documents/candidate-documents`;
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal,
+        // Don't set Content-Type header - browser will set it with boundary
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const error = await response.text().catch(() => '');
+        throw new Error(`API Error: ${response.status} ${error}`);
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error(`Upload timeout: The file (${fileSizeMB.toFixed(2)}MB) took too long to upload. Please try again or use a smaller file.`);
+      }
+      throw error;
     }
-
-    return await response.json();
   }
 
   async getCandidateDocument(id: string): Promise<{ document: any }> {

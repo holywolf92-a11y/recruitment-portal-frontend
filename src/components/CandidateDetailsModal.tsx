@@ -250,13 +250,8 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
           const uploadedDocumentIds: string[] = [];
           for (const file of Array.from(files)) {
             try {
-              // Add timeout to upload (60 seconds)
-              const uploadPromise = apiClient.uploadCandidateDocument(file, candidate.id, 'Manual Upload');
-              const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Upload timeout: The upload took too long. Please try again.')), 60000)
-              );
-              
-              const response = await Promise.race([uploadPromise, timeoutPromise]) as any;
+              // Upload with timeout handled by apiClient (120+ seconds based on file size)
+              const response = await apiClient.uploadCandidateDocument(file, candidate.id, 'web');
               if (response.document?.id) {
                 uploadedDocumentIds.push(response.document.id);
               }
