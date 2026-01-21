@@ -139,7 +139,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
 
   useEffect(() => {
     fetchCandidates();
-  }, [filters.search, filters.position, filters.country, filters.status]);, [filters]);
+  }, [filters.search, filters.position, filters.country, filters.status]);
 
   const filteredCandidates = useMemo(() => {
     return candidates.filter(c => {
