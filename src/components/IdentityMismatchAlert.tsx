@@ -81,8 +81,8 @@ export default function IdentityMismatchAlert({
 
   const fetchVerificationLogs = async () => {
     try {
-      const response = await apiClient.get(`/verification-logs/document/${documentId}`);
-      setVerificationLogs(response.data.logs || []);
+      const response = await apiClient.getVerificationLogsByDocument(documentId);
+      setVerificationLogs(response.logs || []);
     } catch (err) {
       console.error('Error fetching verification logs:', err);
     }
