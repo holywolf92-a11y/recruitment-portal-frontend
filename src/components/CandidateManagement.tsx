@@ -20,6 +20,8 @@ import {
   Share2,
   Star,
   X,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react';
 import { apiClient, Candidate } from '../lib/apiClient';
 
@@ -576,11 +578,18 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                             ].map((d) => (
                               <div
                                 key={`${c.id}-${d.label}`}
-                                className={`h-14 rounded-xl border flex flex-col items-center justify-center gap-1 text-[10px] font-semibold ${
-                                  d.ok ? 'bg-green-50 border-green-200 text-green-800' : 'bg-gray-50 border-gray-200 text-gray-600'
+                                className={`h-14 rounded-xl border flex flex-col items-center justify-center gap-1 text-[10px] font-semibold relative ${
+                                  d.ok 
+                                    ? 'bg-green-50 border-green-300 text-green-800' 
+                                    : 'bg-red-50 border-red-300 text-red-800'
                                 }`}
                                 title={d.ok ? 'Available' : 'Missing'}
                               >
+                                {d.ok ? (
+                                  <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
+                                ) : (
+                                  <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
+                                )}
                                 <d.Icon className="w-4 h-4" />
                                 {d.label}
                               </div>
