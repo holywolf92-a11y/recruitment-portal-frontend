@@ -419,7 +419,28 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
         }
       }
     };
-    input.click();
+    
+    // Add error handler for file input
+    input.onerror = (error) => {
+      console.error('[Upload] File input error:', error);
+      setExtractionError('Failed to open file picker. Please try again.');
+      setUploading(false);
+    };
+    
+    // Trigger file picker - must be called synchronously from user interaction
+    console.log('[Upload] Triggering file picker...'); // Debug log
+    try {
+      input.click();
+      console.log('[Upload] File picker triggered successfully'); // Debug log
+    } catch (error) {
+      console.error('[Upload] Error triggering file picker:', error);
+      setExtractionError('Failed to open file picker. Please check your browser settings.');
+    }
+    } catch (error) {
+      console.error('[Upload] Error in handleUploadDocument:', error);
+      setExtractionError('Failed to open file picker. Please try again.');
+      setUploading(false);
+    }
   };
 
   // Handle document upload completion callback
