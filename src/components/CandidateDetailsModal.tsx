@@ -8,6 +8,7 @@ interface CandidateDetailsModalProps {
   candidate: Candidate;
   onClose: () => void;
   initialTab?: 'details' | 'documents';
+  onDocumentChange?: () => void; // Callback when documents are added/deleted
 }
 
 interface Document {
@@ -129,7 +130,7 @@ function safeJsonArray(value: unknown): string[] {
   return [];
 }
 
-export function CandidateDetailsModal({ candidate, onClose, initialTab = 'details' }: CandidateDetailsModalProps) {
+export function CandidateDetailsModal({ candidate, onClose, initialTab = 'details', onDocumentChange }: CandidateDetailsModalProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedCandidate, setEditedCandidate] = useState(candidate);
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -516,6 +517,10 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
       await apiClient.deleteCandidateDocument(doc.id);
       // Refresh documents after deletion
       await fetchDocuments();
+      // Notify parent component to refresh candidate list (to update flags on card)
+      if (onDocumentChange) {
+        onDocumentChange();
+      }
     } catch (error: any) {
       console.error('Error deleting document:', error);
       alert(error?.message || 'Failed to delete document');

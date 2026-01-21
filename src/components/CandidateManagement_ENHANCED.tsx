@@ -106,6 +106,37 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
   const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
   const [documentAction, setDocumentAction] = useState<{ candidateId: string; docType: string } | null>(null);
 
+  const fetchCandidates = async () => {
+    setLoading(true);
+    try {
+      const response = await apiClient.getCandidates({
+        search: filters.search,
+        position: filters.position,
+        country_of_interest: filters.country,
+        status: filters.status,
+      });
+      setCandidates(response.candidates || []);
+      const uniquePositions = Array.from(
+        new Set((response.candidates || []).map(c => c.position).filter(Boolean))
+      ).sort() as string[];
+      setPositions(uniquePositions);
+
+      const uniqueCountries = Array.from(
+        new Set((response.candidates || []).map((c) => c.country_of_interest).filter(Boolean))
+      ).sort() as string[];
+      setCountries(uniqueCountries);
+
+      const uniqueStatuses = Array.from(
+        new Set((response.candidates || []).map((c) => (c.status || 'Applied')).filter(Boolean))
+      ).sort() as string[];
+      setStatuses(uniqueStatuses.length ? uniqueStatuses : ['Applied', 'Pending', 'Deployed', 'Cancelled']);
+    } catch (e: any) {
+      setError(e?.message || 'Failed to load candidates');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
     (async () => {
@@ -140,7 +171,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
       }
     })();
     return () => { isMounted = false; };
-  }, [filters]);
+  }, [filters.search, filters.position, filters.country, filters.status]);, [filters]);
 
   const filteredCandidates = useMemo(() => {
     return candidates.filter(c => {
@@ -900,7 +931,11 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
           onClose={() => {
             setShowDetailsModal(false);
             setSelectedCandidate(null);
-          }} 
+          }}
+          onDocumentChange={() => {
+            // Refresh candidate list to update document flags on cards
+            fetchCandidates();
+          }}
         />
       )}
     </div>
