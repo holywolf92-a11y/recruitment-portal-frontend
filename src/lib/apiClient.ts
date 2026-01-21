@@ -1,13 +1,35 @@
 // Lightweight API client using fetch with Vite base URL
 // In production, VITE_API_BASE_URL should be set to the full backend URL (e.g., https://backend.railway.app/api)
 // In development, it defaults to '/api' which will use the Vite proxy
-export const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || '/api';
 
-// Log API base URL for debugging (always, to verify environment variable is set)
+// Production backend URL (fallback if VITE_API_BASE_URL is not set at build time)
+const PRODUCTION_BACKEND_URL = 'https://recruitment-portal-backend-production-d1f7.up.railway.app/api';
+
+// Determine API base URL
+// Priority: 1. VITE_API_BASE_URL env var (set at build time), 2. Production fallback, 3. Default /api
+const getApiBaseUrl = () => {
+  const envUrl = (import.meta as any).env?.VITE_API_BASE_URL;
+  
+  // If env var is set and not empty, use it
+  if (envUrl && envUrl !== '/api' && envUrl.trim() !== '') {
+    return envUrl;
+  }
+  
+  // In production (not localhost), use production backend URL
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return PRODUCTION_BACKEND_URL;
+  }
+  
+  // Default to /api for local development
+  return '/api';
+};
+
+export const API_BASE_URL = getApiBaseUrl();
+
+// Log API base URL for debugging
 console.log('[API Client] API_BASE_URL:', API_BASE_URL);
-if (!API_BASE_URL || API_BASE_URL === '/api') {
-  console.warn('[API Client] ⚠️  VITE_API_BASE_URL not set! Using default /api. This may cause connection errors in production.');
-}
+console.log('[API Client] Environment:', import.meta.env.MODE);
+console.log('[API Client] Hostname:', typeof window !== 'undefined' ? window.location.hostname : 'server');
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
