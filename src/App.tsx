@@ -74,7 +74,7 @@ const AppContent = () => {
       case 'cv-inbox':
         return <CVInbox />;
       case 'inbox-ui':
-        return <InboxUI apiBaseUrl="http://localhost:1000/api" />;
+        return <InboxUI apiBaseUrl={(import.meta as any).env?.VITE_API_BASE_URL || '/api'} />;
       case 'candidates':
         return <CandidateManagement initialProfessionFilter={selectedProfession} />;
       case 'candidate-browser':

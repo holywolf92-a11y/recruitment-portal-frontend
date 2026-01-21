@@ -1,5 +1,12 @@
 // Lightweight API client using fetch with Vite base URL
+// In production, VITE_API_BASE_URL should be set to the full backend URL (e.g., https://backend.railway.app/api)
+// In development, it defaults to '/api' which will use the Vite proxy
 export const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || '/api';
+
+// Log API base URL for debugging (only in development)
+if (import.meta.env.DEV) {
+  console.log('[API Client] API_BASE_URL:', API_BASE_URL);
+}
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
