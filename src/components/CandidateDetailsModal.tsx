@@ -514,15 +514,23 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
     }
 
     try {
+      console.log('[DeleteDocument] Deleting document:', doc.id, doc.fileName, doc.category);
       await apiClient.deleteCandidateDocument(doc.id);
+      console.log('[DeleteDocument] Document deleted successfully');
+      
       // Refresh documents after deletion
       await fetchDocuments();
+      console.log('[DeleteDocument] Documents refreshed');
+      
       // Notify parent component to refresh candidate list (to update flags on card)
       if (onDocumentChange) {
+        console.log('[DeleteDocument] Calling onDocumentChange callback');
         onDocumentChange();
+      } else {
+        console.warn('[DeleteDocument] onDocumentChange callback not provided');
       }
     } catch (error: any) {
-      console.error('Error deleting document:', error);
+      console.error('[DeleteDocument] Error deleting document:', error);
       alert(error?.message || 'Failed to delete document');
     }
   };

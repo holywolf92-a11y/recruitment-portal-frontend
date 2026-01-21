@@ -109,12 +109,14 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
   const fetchCandidates = async () => {
     setLoading(true);
     try {
+      console.log('[CandidateManagement] Fetching candidates...');
       const response = await apiClient.getCandidates({
         search: filters.search,
         position: filters.position,
         country_of_interest: filters.country,
         status: filters.status,
       });
+      console.log('[CandidateManagement] Fetched candidates:', response.candidates?.length || 0);
       setCandidates(response.candidates || []);
       const uniquePositions = Array.from(
         new Set((response.candidates || []).map(c => c.position).filter(Boolean))
@@ -131,6 +133,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
       ).sort() as string[];
       setStatuses(uniqueStatuses.length ? uniqueStatuses : ['Applied', 'Pending', 'Deployed', 'Cancelled']);
     } catch (e: any) {
+      console.error('[CandidateManagement] Error fetching candidates:', e);
       setError(e?.message || 'Failed to load candidates');
     } finally {
       setLoading(false);
