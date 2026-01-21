@@ -245,41 +245,59 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
         setExtractionError(null);
         setUploading(true); // Show loading during upload
         
+        // Safety timeout: Always reset uploading state after 5 minutes max
+        let safetyTimeout: NodeJS.Timeout | null = setTimeout(() => {
+          console.warn('Upload safety timeout: Resetting uploading state');
+          setUploading(false);
+        }, 300000); // 5 minutes
+        
         try {
           // Upload all files using the new API
           const uploadedDocumentIds: string[] = [];
+          const uploadPromises: Promise<any>[] = [];
+          
+          // Create upload promises for all files
           for (const file of Array.from(files)) {
-            try {
-              // Upload with timeout handled by apiClient (120+ seconds based on file size)
-              const response = await apiClient.uploadCandidateDocument(file, candidate.id, 'web');
-              if (response.document?.id) {
-                uploadedDocumentIds.push(response.document.id);
+            const uploadPromise = (async () => {
+              try {
+                // Upload with timeout handled by apiClient (120+ seconds based on file size)
+                const response = await apiClient.uploadCandidateDocument(file, candidate.id, 'web');
+                if (response.document?.id) {
+                  uploadedDocumentIds.push(response.document.id);
+                }
+                return { success: true, file: file.name };
+              } catch (error) {
+                console.error('Error uploading document:', error);
+                const errorMessage = error instanceof Error 
+                  ? error.message 
+                  : 'Unknown error occurred';
+                
+                // Check for common error types
+                let userFriendlyMessage = `Failed to upload ${file.name}`;
+                if (errorMessage.includes('timeout') || errorMessage.includes('aborted') || errorMessage.includes('Upload timeout')) {
+                  userFriendlyMessage = `${file.name}: Upload timeout. Please check your connection and try again.`;
+                } else if (errorMessage.includes('File exceeds') || errorMessage.includes('size limit')) {
+                  userFriendlyMessage = `${file.name}: File is too large (max 10MB)`;
+                } else if (errorMessage.includes('Unsupported file type') || errorMessage.includes('file type')) {
+                  userFriendlyMessage = `${file.name}: Unsupported file type. Allowed: PDF, DOC, DOCX, JPG, PNG`;
+                } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+                  userFriendlyMessage = `${file.name}: Network error. Please check your connection and try again.`;
+                } else if (errorMessage.includes('Candidate not found')) {
+                  userFriendlyMessage = `${file.name}: Candidate not found. Please refresh the page.`;
+                } else if (errorMessage) {
+                  userFriendlyMessage = `${file.name}: ${errorMessage}`;
+                }
+                
+                setExtractionError(userFriendlyMessage);
+                return { success: false, file: file.name, error: userFriendlyMessage };
               }
-            } catch (error) {
-              console.error('Error uploading document:', error);
-              const errorMessage = error instanceof Error 
-                ? error.message 
-                : 'Unknown error occurred';
-              
-              // Check for common error types
-              let userFriendlyMessage = `Failed to upload ${file.name}`;
-              if (errorMessage.includes('timeout') || errorMessage.includes('aborted')) {
-                userFriendlyMessage = `${file.name}: Upload timeout. Please check your connection and try again.`;
-              } else if (errorMessage.includes('File exceeds') || errorMessage.includes('size limit')) {
-                userFriendlyMessage = `${file.name}: File is too large (max 10MB)`;
-              } else if (errorMessage.includes('Unsupported file type') || errorMessage.includes('file type')) {
-                userFriendlyMessage = `${file.name}: Unsupported file type. Allowed: PDF, DOC, DOCX, JPG, PNG`;
-              } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-                userFriendlyMessage = `${file.name}: Network error. Please check your connection and try again.`;
-              } else if (errorMessage.includes('Candidate not found')) {
-                userFriendlyMessage = `${file.name}: Candidate not found. Please refresh the page.`;
-              } else if (errorMessage) {
-                userFriendlyMessage = `${file.name}: ${errorMessage}`;
-              }
-              
-              setExtractionError(userFriendlyMessage);
-            }
+            })();
+            
+            uploadPromises.push(uploadPromise);
           }
+          
+          // Wait for all uploads to complete (or fail)
+          await Promise.allSettled(uploadPromises);
           
           // Upload is complete - reset uploading state immediately
           setUploading(false);
@@ -388,6 +406,10 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
           );
         } finally {
           // Always reset uploading state, even if there's an error
+          if (safetyTimeout) {
+            clearTimeout(safetyTimeout);
+            safetyTimeout = null;
+          }
           setUploading(false);
         }
       }

@@ -471,17 +471,22 @@ class ApiClient {
     const timeoutMs = Math.max(120000, 120000 + (fileSizeMB * 10000)); // Min 120s, +10s per MB
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, timeoutMs);
 
     try {
       const url = `${API_BASE_URL}/documents/candidate-documents`;
-      const response = await fetch(url, {
+      
+      // Create a promise that rejects on timeout
+      const uploadPromise = fetch(url, {
         method: 'POST',
         body: formData,
         signal: controller.signal,
         // Don't set Content-Type header - browser will set it with boundary
       });
 
+      const response = await uploadPromise;
       clearTimeout(timeoutId);
 
       if (!response.ok) {
@@ -492,8 +497,12 @@ class ApiClient {
       return await response.json();
     } catch (error: any) {
       clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
-        throw new Error(`Upload timeout: The file (${fileSizeMB.toFixed(2)}MB) took too long to upload. Please try again or use a smaller file.`);
+      if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+        throw new Error(`Upload timeout: The file (${fileSizeMB.toFixed(2)}MB) took too long to upload. Please check your connection and try again.`);
+      }
+      // Re-throw network errors with better messages
+      if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+        throw new Error(`Network error: Unable to connect to server. Please check your internet connection and try again.`);
       }
       throw error;
     }
