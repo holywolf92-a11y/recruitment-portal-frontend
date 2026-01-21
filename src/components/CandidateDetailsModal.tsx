@@ -234,12 +234,17 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
     });
   };
 
-  const handleUploadDocument = async () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
-    input.multiple = true;
-    input.onchange = async (e) => {
+  const handleUploadDocument = () => {
+    console.log('[Upload] Button clicked - opening file picker'); // Debug log
+    
+    try {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
+      input.multiple = true;
+      
+      input.onchange = async (e) => {
+        console.log('[Upload] File selected:', (e.target as HTMLInputElement).files?.length || 0, 'files'); // Debug log
       const files = (e.target as HTMLInputElement).files;
       if (files) {
         setExtractionError(null);
