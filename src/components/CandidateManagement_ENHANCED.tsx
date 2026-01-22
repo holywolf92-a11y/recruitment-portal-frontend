@@ -29,6 +29,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { apiClient, Candidate } from '../lib/apiClient';
+import { useCandidates } from '../lib/candidateContext';
 import { CandidateDetailsModal } from './CandidateDetailsModal';
 
 interface CandidateManagementProps {
@@ -82,9 +83,15 @@ function confidenceScore10(confidence?: Record<string, number>) {
 }
 
 export function CandidateManagement({ initialProfessionFilter = 'all' }: CandidateManagementProps) {
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Use shared candidate context
+  const { 
+    candidates, 
+    loading, 
+    error, 
+    fetchCandidates: fetchCandidatesFromContext,
+    refreshCandidates 
+  } = useCandidates();
+  
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = useState<'Applied' | 'Pending' | 'Deployed' | 'Cancelled'>('Pending');
@@ -106,43 +113,54 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
   const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
   const [documentAction, setDocumentAction] = useState<{ candidateId: string; docType: string } | null>(null);
 
+  // Fetch candidates using context
   const fetchCandidates = async () => {
-    setLoading(true);
-    try {
-      console.log('[CandidateManagement] Fetching candidates...');
-      const response = await apiClient.getCandidates({
-        search: filters.search,
-        position: filters.position,
-        country_of_interest: filters.country,
-        status: filters.status,
-      });
-      console.log('[CandidateManagement] Fetched candidates:', response.candidates?.length || 0);
-      setCandidates(response.candidates || []);
-      const uniquePositions = Array.from(
-        new Set((response.candidates || []).map(c => c.position).filter(Boolean))
-      ).sort() as string[];
-      setPositions(uniquePositions);
+    await fetchCandidatesFromContext({
+      search: filters.search,
+      position: filters.position === 'all' ? undefined : filters.position,
+      country_of_interest: filters.country === 'all' ? undefined : filters.country,
+      status: filters.status === 'all' ? undefined : filters.status,
+    });
+    
+    // Update local filter options from fetched candidates
+    const uniquePositions = Array.from(
+      new Set(candidates.map(c => c.position).filter(Boolean))
+    ).sort() as string[];
+    setPositions(uniquePositions);
 
-      const uniqueCountries = Array.from(
-        new Set((response.candidates || []).map((c) => c.country_of_interest).filter(Boolean))
-      ).sort() as string[];
-      setCountries(uniqueCountries);
+    const uniqueCountries = Array.from(
+      new Set(candidates.map((c) => c.country_of_interest).filter(Boolean))
+    ).sort() as string[];
+    setCountries(uniqueCountries);
 
-      const uniqueStatuses = Array.from(
-        new Set((response.candidates || []).map((c) => (c.status || 'Applied')).filter(Boolean))
-      ).sort() as string[];
-      setStatuses(uniqueStatuses.length ? uniqueStatuses : ['Applied', 'Pending', 'Deployed', 'Cancelled']);
-    } catch (e: any) {
-      console.error('[CandidateManagement] Error fetching candidates:', e);
-      setError(e?.message || 'Failed to load candidates');
-    } finally {
-      setLoading(false);
-    }
+    const uniqueStatuses = Array.from(
+      new Set(candidates.map((c) => (c.status || 'Applied')).filter(Boolean))
+    ).sort() as string[];
+    setStatuses(uniqueStatuses.length ? uniqueStatuses : ['Applied', 'Pending', 'Deployed', 'Cancelled']);
   };
 
   useEffect(() => {
     fetchCandidates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.search, filters.position, filters.country, filters.status]);
+  
+  // Update filter options when candidates change
+  useEffect(() => {
+    const uniquePositions = Array.from(
+      new Set(candidates.map(c => c.position).filter(Boolean))
+    ).sort() as string[];
+    setPositions(uniquePositions);
+
+    const uniqueCountries = Array.from(
+      new Set(candidates.map((c) => c.country_of_interest).filter(Boolean))
+    ).sort() as string[];
+    setCountries(uniqueCountries);
+
+    const uniqueStatuses = Array.from(
+      new Set(candidates.map((c) => (c.status || 'Applied')).filter(Boolean))
+    ).sort() as string[];
+    setStatuses(uniqueStatuses.length ? uniqueStatuses : ['Applied', 'Pending', 'Deployed', 'Cancelled']);
+  }, [candidates]);
 
   const filteredCandidates = useMemo(() => {
     return candidates.filter(c => {
@@ -211,11 +229,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
       setBulkUpdating(true);
       const ids = Array.from(selectedIds);
       const result = await apiClient.bulkUpdateCandidateStatus(ids, bulkStatus);
-      const updatedIds = new Set((result.candidates || []).map((c) => c.id));
-
-      setCandidates((prev) =>
-        prev.map((c) => (updatedIds.has(c.id) ? { ...c, status: bulkStatus } : c))
-      );
+      // Refresh candidates from context to get updated data
+      await refreshCandidates();
       clearSelection();
     } catch (e: any) {
       alert(e?.message || 'Failed to bulk update status');
@@ -280,9 +295,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
         const result = await apiClient.uploadCandidatePhoto(candidateId, file);
         console.log('Photo upload result:', result);
         
-        // Refresh candidate data
-        const response = await apiClient.getCandidates(filters);
-        setCandidates(response.candidates || []);
+        // Refresh candidates from context
+        await refreshCandidates();
         
         alert('Photo uploaded successfully!');
       } catch (error: any) {
@@ -310,8 +324,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
         try {
           const response = await apiClient.linkCandidateCV(candidateId);
           alert('CV linked successfully from inbox!');
-          // Refresh candidate data
-          await fetchCandidates();
+          // Refresh candidates from context
+          await refreshCandidates();
         } catch (error: any) {
           // If no CV in inbox, offer to upload
           if (error?.message?.includes('404') || error?.message?.includes('not found')) {
@@ -360,9 +374,12 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
       try {
         await apiClient.uploadDocument(file, candidateId, docType, false);
         
-        // Refresh candidate data
-        const response = await apiClient.getCandidates(filters);
-        setCandidates(response.candidates || []);
+        // Wait for backend flag updates to complete (updateDocumentFlagsController is called after upload)
+        // The backend now calls updateDocumentFlagsController after upload, so give it time to update the database
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Refresh candidates from context to get updated flags
+        await refreshCandidates();
         
         alert(`${docType} uploaded successfully!`);
       } catch (error: any) {
@@ -931,8 +948,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
             setSelectedCandidate(null);
           }}
           onDocumentChange={() => {
-            // Refresh candidate list to update document flags on cards
-            fetchCandidates();
+            // Refresh candidates from context to update document flags on cards
+            refreshCandidates();
           }}
         />
       )}

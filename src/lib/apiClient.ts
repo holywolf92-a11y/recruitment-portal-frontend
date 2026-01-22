@@ -186,6 +186,11 @@ export interface Candidate {
   certificate_received?: boolean;
   certificate_received_at?: string;
   
+  // Profile photo (migration 013)
+  profile_photo_url?: string;
+  profile_photo_bucket?: string;
+  profile_photo_path?: string;
+  
   // CV Extraction Fields
   nationality?: string;
   position?: string;
@@ -421,42 +426,88 @@ class ApiClient {
   }
 
   // Documents API
+  /**
+   * Upload document - NOW USES UNIFIED SYSTEM
+   * This method now uses the new /candidate-documents endpoint with AI verification
+   * @deprecated The old /documents endpoint is deprecated. This now uses the unified system.
+   */
   async uploadDocument(file: File, candidateId: string, docType: string, isPrimary: boolean = false): Promise<Document> {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('candidate_id', candidateId);
-    formData.append('doc_type', docType);
-    formData.append('is_primary', isPrimary.toString());
-
-    const url = `${API_BASE_URL}/documents`;
-    const response = await fetch(url, {
-      method: 'POST',
-      body: formData,
-      // Don't set Content-Type header - browser will set it with boundary
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`API Error: ${response.status} ${error}`);
-    }
-
-    const data = await response.json();
-    return data.document;
+    // Use the new unified endpoint instead of old /documents endpoint
+    // This ensures all documents go through AI verification
+    const response = await this.uploadCandidateDocument(file, candidateId, 'web');
+    
+    // Return in old format for backward compatibility
+    return {
+      id: response.document.id,
+      candidate_id: candidateId,
+      doc_type: docType,
+      storage_bucket: response.document.storage_bucket || 'documents',
+      storage_path: response.document.storage_path,
+      file_name: response.document.file_name,
+      mime_type: response.document.mime_type,
+      is_primary: isPrimary,
+      created_at: response.document.created_at || new Date().toISOString(),
+    };
   }
 
+  /**
+   * @deprecated Use getCandidateDocument() instead
+   * This now uses the unified system
+   */
   async getDocument(id: string): Promise<Document> {
-    const response = await this.request<{ document: Document }>(`/documents/${id}`);
-    return response.document;
+    // Use the new unified endpoint
+    const response = await this.getCandidateDocument(id);
+    // Convert to old format for backward compatibility
+    return {
+      id: response.document.id,
+      candidate_id: response.document.candidate_id,
+      doc_type: response.document.document_type || response.document.category || 'other',
+      storage_bucket: response.document.storage_bucket,
+      storage_path: response.document.storage_path,
+      file_name: response.document.file_name,
+      mime_type: response.document.mime_type,
+      is_primary: false,
+      created_at: response.document.created_at || response.document.received_at,
+    };
   }
 
+  /**
+   * @deprecated Use listCandidateDocumentsNew() instead
+   * This now uses the unified system
+   */
   async listCandidateDocuments(candidateId: string): Promise<Document[]> {
-    const response = await this.request<{ documents: Document[] }>(`/documents/candidate/${candidateId}`);
-    return response.documents;
+    // Use the new unified endpoint
+    const docs = await this.listCandidateDocumentsNew(candidateId);
+    // Convert to old format for backward compatibility
+    return docs.map((doc: any) => ({
+      id: doc.id,
+      candidate_id: doc.candidate_id,
+      doc_type: doc.document_type || doc.category || 'other',
+      storage_bucket: doc.storage_bucket,
+      storage_path: doc.storage_path,
+      file_name: doc.file_name,
+      mime_type: doc.mime_type,
+      is_primary: false,
+      created_at: doc.created_at || doc.received_at,
+    }));
   }
 
+  /**
+   * @deprecated Use getCandidateDocumentDownload() instead
+   * This now uses the unified system
+   */
   async getDocumentDownloadUrl(id: string, expiresIn: number = 3600): Promise<string> {
-    const response = await this.request<{ signedUrl: string }>(`/documents/${id}/download?expiresIn=${expiresIn}`);
-    return response.signedUrl;
+    // Use the new unified endpoint
+    const response = await this.getCandidateDocumentDownload(id);
+    return response.download_url;
+  }
+
+  /**
+   * Get download URL for candidate document (unified system)
+   */
+  async getCandidateDocumentDownloadUrl(id: string, expiresIn: number = 3600): Promise<string> {
+    const response = await this.getCandidateDocumentDownload(id);
+    return response.download_url;
   }
 
   async getCandidateCVDownload(candidateId: string): Promise<{ download_url: string; filename: string }> {
@@ -488,10 +539,13 @@ class ApiClient {
     return await response.json();
   }
 
+  /**
+   * @deprecated Use deleteCandidateDocument() instead
+   * This now uses the unified system
+   */
   async deleteDocument(id: string): Promise<void> {
-    await this.request(`/documents/${id}`, {
-      method: 'DELETE',
-    });
+    // Use the new unified endpoint
+    await this.deleteCandidateDocument(id);
   }
 
   // Candidate Documents API (AI Verification System)

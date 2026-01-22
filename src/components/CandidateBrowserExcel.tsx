@@ -19,6 +19,7 @@ import {
   Eye
 } from 'lucide-react';
 import { apiClient, Candidate } from '../lib/apiClient';
+import { useCandidates } from '../lib/candidateContext';
 
 interface FolderNode {
   id: string;
@@ -260,9 +261,15 @@ function buildFolderStructure(candidates: Candidate[]): FolderNode[] {
 }
 
 export function CandidateBrowserExcel() {
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Use shared candidate context
+  const { 
+    candidates, 
+    loading, 
+    error, 
+    fetchCandidates,
+    refreshCandidates 
+  } = useCandidates();
+  
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [selectedFolder, setSelectedFolder] = useState<FolderNode | null>(null);
   const [selectedCandidates, setSelectedCandidates] = useState<Set<string>>(new Set());
@@ -284,29 +291,14 @@ export function CandidateBrowserExcel() {
     }
   }, [folderStructure, selectedFolder]);
 
-  // Load candidates
+  // Load candidates on mount (only if not already loaded)
   useEffect(() => {
-    let isMounted = true;
-    (async () => {
-      try {
-        const data = await apiClient.getCandidates();
-        if (isMounted) {
-          setCandidates(data.candidates || []);
-        }
-      } catch (e: any) {
-        if (isMounted) {
-          setError(e?.message || 'Failed to load candidates');
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    })();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    // Only fetch if we don't have candidates yet (to avoid unnecessary refetch)
+    if (candidates.length === 0 && !loading) {
+      fetchCandidates();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
 
   const toggleFolder = (folderId: string) => {
     const newExpanded = new Set(expandedFolders);

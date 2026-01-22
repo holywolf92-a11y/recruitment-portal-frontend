@@ -15,6 +15,7 @@ import { UserManagement } from './components/UserManagement';
 import { Login } from './components/Login';
 import { InboxUI } from './components/InboxUI';
 import { useAuth, AuthProvider } from './lib/authContext';
+import { CandidateProvider } from './lib/candidateContext';
 import { hasPermission } from './lib/authData';
 import { apiClient } from './lib/apiClient';
 import { APP_CONFIG } from './lib/constants';
@@ -452,7 +453,9 @@ const AppContent = () => {
 export default function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <CandidateProvider>
+        <AppContent />
+      </CandidateProvider>
     </AuthProvider>
   );
 }
