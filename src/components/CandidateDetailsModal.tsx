@@ -7,7 +7,7 @@ import { apiClient } from '../lib/apiClient';
 interface CandidateDetailsModalProps {
   candidate: Candidate;
   onClose: () => void;
-  initialTab?: 'details' | 'documents';
+  initialTab?: 'details' | 'documents' | 'missing-data';
   onDocumentChange?: () => void; // Callback when documents are added/deleted
 }
 
@@ -135,7 +135,7 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
   const [editedCandidate, setEditedCandidate] = useState(candidate);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [documentsLoading, setDocumentsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'details' | 'documents'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'details' | 'documents' | 'missing-data'>(initialTab || 'details');
   const [extractionInProgress, setExtractionInProgress] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showExtractionModal, setShowExtractionModal] = useState(false);
@@ -662,6 +662,22 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
               {documents.length > 0 && (
                 <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full text-xs font-medium">
                   {documents.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('missing-data')}
+              className={`py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                activeTab === 'missing-data'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <AlertCircle className="w-4 h-4" />
+              Missing Data
+              {candidate.missing_fields && Array.isArray(candidate.missing_fields) && candidate.missing_fields.length > 0 && (
+                <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                  {candidate.missing_fields.length}
                 </span>
               )}
             </button>
@@ -1224,7 +1240,22 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                 </div>
               </div>
             </div>
-          )}
+          ) : activeTab === 'missing-data' ? (
+            <MissingDataTab candidate={candidate} onFieldUpdate={async (field, value) => {
+              try {
+                await apiClient.updateCandidateFieldManually(candidate.id, field, value);
+                // Refresh candidate data
+                const updated = await apiClient.getCandidate(candidate.id);
+                setEditedCandidate(updated);
+                if (onDocumentChange) {
+                  onDocumentChange();
+                }
+              } catch (error: any) {
+                console.error('Error updating field:', error);
+                alert(error?.message || 'Failed to update field');
+              }
+            }} />
+          ) : null}
         </div>
       </div>
 

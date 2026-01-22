@@ -209,6 +209,10 @@ export interface Candidate {
   extraction_source?: string;
   extracted_at?: string;
   
+  // Progressive data completion
+  field_sources?: Record<string, { field: string; source: string; updated_at: string; updated_by?: string }>;
+  missing_fields?: string[];
+  
   created_at: string;
   updated_at: string;
 }
@@ -417,6 +421,37 @@ class ApiClient {
       body: JSON.stringify(data),
     });
     return response.candidate;
+  }
+
+  /**
+   * Get missing fields for a candidate
+   */
+  async getMissingFields(candidateId: string): Promise<{
+    missing_fields: string[];
+    missing_fields_with_info: Array<{
+      field: string;
+      label: string;
+      source: string | null;
+      canBeManuallyUpdated: boolean;
+      hint: string;
+    }>;
+    total_missing: number;
+  }> {
+    return this.request(`/candidates/${candidateId}/missing-fields`);
+  }
+
+  /**
+   * Update a candidate field manually (highest priority - never overwritten)
+   */
+  async updateCandidateFieldManually(
+    candidateId: string,
+    field: string,
+    value: any
+  ): Promise<{ success: boolean; candidate: Candidate; message: string }> {
+    return this.request(`/candidates/${candidateId}/fields/${field}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ value }),
+    });
   }
 
   async deleteCandidate(id: string): Promise<void> {
