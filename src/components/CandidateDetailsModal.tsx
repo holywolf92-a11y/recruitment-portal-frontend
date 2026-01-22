@@ -541,6 +541,29 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
     }
   };
 
+  // Handle document reprocess (for stuck "Pending" documents)
+  const handleReprocessDocument = async (doc: Document) => {
+    if (!confirm(`Reprocess verification for "${doc.fileName}"? This will trigger AI verification again.`)) {
+      return;
+    }
+
+    try {
+      console.log('[ReprocessDocument] Reprocessing document:', doc.id, doc.fileName);
+      await apiClient.reprocessCandidateDocument(doc.id);
+      console.log('[ReprocessDocument] Document reprocessing initiated');
+      
+      alert('Document verification reprocessing initiated. Status will update shortly.');
+      
+      // Refresh documents after a delay to see status update
+      setTimeout(async () => {
+        await fetchDocuments();
+      }, 2000);
+    } catch (error: any) {
+      console.error('[ReprocessDocument] Error reprocessing document:', error);
+      alert(error?.message || 'Failed to reprocess document. The AI worker may not be running.');
+    }
+  };
+
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'CV': return <FileText className="w-4 h-4" />;
@@ -1147,6 +1170,16 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                               <Download className="w-3.5 h-3.5" />
                               Download
                             </button>
+                            {doc.status === 'pending' && (
+                              <button 
+                                onClick={() => handleReprocessDocument(doc)}
+                                className="px-3 py-1.5 bg-yellow-50 text-yellow-600 rounded-lg hover:bg-yellow-100 transition-colors flex items-center gap-1.5 text-sm"
+                                title="Reprocess AI verification"
+                              >
+                                <RefreshCw className="w-3.5 h-3.5" />
+                                Reprocess
+                              </button>
+                            )}
                             <button 
                               onClick={() => handleDeleteDocument(doc)}
                               className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-1.5 text-sm"

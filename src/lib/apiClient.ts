@@ -622,6 +622,16 @@ class ApiClient {
     });
   }
 
+  async reprocessCandidateDocument(id: string): Promise<{ success: boolean; request_id: string; message: string }> {
+    const response = await this.request<{ success: boolean; request_id: string; message: string }>(
+      `/documents/candidate-documents/${id}/reprocess`,
+      {
+        method: 'POST',
+      }
+    );
+    return response;
+  }
+
   async listCandidateDocumentsNew(candidateId: string): Promise<any[]> {
     const response = await this.request<{ documents: any[] }>(`/documents/candidates/${candidateId}/documents`);
     return response.documents || [];
