@@ -376,10 +376,48 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
         
         // Wait for backend flag updates to complete (updateDocumentFlagsController is called after upload)
         // The backend now calls updateDocumentFlagsController after upload, so give it time to update the database
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
         // Refresh candidates from context to get updated flags
         await refreshCandidates();
+        
+        // For AI-verified documents (passport, etc.), AI verification happens asynchronously
+        // Poll for verification completion (up to 30 seconds)
+        if (docType === 'passport' || docType === 'certificate' || docType === 'medical') {
+          let attempts = 0;
+          const maxAttempts = 15; // 15 attempts * 2 seconds = 30 seconds max
+          
+          while (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            await refreshCandidates();
+            
+            // Get fresh candidate data after refresh
+            const freshCandidates = await apiClient.getCandidates({});
+            const updatedCandidate = freshCandidates.candidates.find(c => c.id === candidateId);
+            
+            if (updatedCandidate) {
+              // If passport was uploaded, check if passport_received is true
+              if (docType === 'passport' && updatedCandidate.passport_received) {
+                // Final refresh to update UI
+                await refreshCandidates();
+                break; // Document flags updated, stop polling
+              }
+              if (docType === 'certificate' && updatedCandidate.certificate_received) {
+                await refreshCandidates();
+                break;
+              }
+              if (docType === 'medical' && updatedCandidate.medical_received) {
+                await refreshCandidates();
+                break;
+              }
+            }
+            
+            attempts++;
+          }
+          
+          // Final refresh after polling completes
+          await refreshCandidates();
+        }
         
         alert(`${docType} uploaded successfully!`);
       } catch (error: any) {
