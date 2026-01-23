@@ -639,6 +639,14 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
 
   // Handle document reprocess (for stuck "Pending" documents)
   const handleReprocessDocument = async (doc: Document) => {
+    // Check retry limits before reprocessing
+    if (doc.rejection?.retry_count !== undefined && doc.rejection?.max_retries !== undefined) {
+      if (doc.rejection.retry_count >= doc.rejection.max_retries) {
+        alert(`Maximum retry limit reached (${doc.rejection.retry_count}/${doc.rejection.max_retries}). Document cannot be reprocessed automatically. Please contact an administrator for manual review.`);
+        return;
+      }
+    }
+
     if (!confirm(`Reprocess verification for "${doc.fileName}"? This will trigger AI verification again.`)) {
       return;
     }
@@ -656,7 +664,14 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
       }, 2000);
     } catch (error: any) {
       console.error('[ReprocessDocument] Error reprocessing document:', error);
-      alert(error?.message || 'Failed to reprocess document. The AI worker may not be running.');
+      const errorMessage = error?.message || 'Failed to reprocess document';
+      
+      // Check if error is about max retries
+      if (errorMessage.includes('Maximum retry limit')) {
+        alert(`Cannot reprocess: ${errorMessage}`);
+      } else {
+        alert(`Error reprocessing document: ${errorMessage}`);
+      }
     }
   };
 
