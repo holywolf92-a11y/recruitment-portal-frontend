@@ -176,10 +176,35 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
         else if (doc.category === 'photos') category = 'Photo';
         
         // Map verification status
+        // First, check if passport is actually expired based on expiry date
         let status: Document['status'] = 'pending';
-        if (doc.verification_status === 'verified') status = 'verified';
-        else if (doc.verification_status === 'needs_review' || doc.verification_status === 'pending_ai') status = 'pending';
-        else if (doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed') status = 'expired';
+        const isPassport = category === 'Passport';
+        const passportExpiry = candidate.passport_expiry || doc.expiry_date;
+        
+        // Check if passport is expired (only for passport documents)
+        if (isPassport && passportExpiry) {
+          const expiryDate = new Date(passportExpiry);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0); // Reset time to compare dates only
+          if (expiryDate < today) {
+            status = 'expired';
+          } else if (doc.verification_status === 'verified') {
+            status = 'verified';
+          } else if (doc.verification_status === 'needs_review' || doc.verification_status === 'pending_ai') {
+            status = 'pending';
+          } else if (doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed') {
+            // For rejected/failed passports that aren't expired, show as pending (needs review)
+            status = 'pending';
+          }
+        } else {
+          // For non-passport documents or passports without expiry date, use verification status
+          if (doc.verification_status === 'verified') status = 'verified';
+          else if (doc.verification_status === 'needs_review' || doc.verification_status === 'pending_ai') status = 'pending';
+          else if (doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed') {
+            // Rejected/failed documents should show as pending (needs manual review)
+            status = 'pending';
+          }
+        }
         
         return {
           id: doc.id,
@@ -190,7 +215,7 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
           uploadedDate: doc.created_at ? new Date(doc.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           fileSize: doc.file_size ? `${(doc.file_size / 1024).toFixed(0)} KB` : '0 KB',
           status,
-          expiryDate: doc.expiry_date,
+          expiryDate: passportExpiry || doc.expiry_date,
         };
       });
       
