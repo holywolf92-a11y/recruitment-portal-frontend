@@ -183,7 +183,7 @@ export function AdminOverrideModal({
         </div>
 
         {/* Content */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+        <form id="admin-override-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Warning */}
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <div className="flex items-start gap-3">
@@ -298,22 +298,27 @@ export function AdminOverrideModal({
           </div>
         </form>
 
-        {/* Footer Actions */}
-        <div className="p-6 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+        {/* Footer Actions - Always visible at bottom */}
+        <div className="p-6 border-t border-gray-200 bg-gray-50 flex items-center justify-end gap-3 flex-shrink-0">
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
+            className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 font-medium"
           >
             Cancel
           </button>
 
           <button
             type="submit"
+            form="admin-override-form"
             onClick={handleSubmit}
             disabled={loading || !password.trim() || !justification.trim() || justification.trim().length < 10}
-            className="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className={`px-6 py-2.5 rounded-lg transition-colors flex items-center gap-2 font-medium ${
+              loading || !password.trim() || !justification.trim() || justification.trim().length < 10
+                ? 'bg-gray-400 text-gray-600 cursor-not-allowed opacity-60'
+                : 'bg-yellow-600 text-white hover:bg-yellow-700 shadow-md hover:shadow-lg'
+            }`}
           >
             {loading ? (
               <>
