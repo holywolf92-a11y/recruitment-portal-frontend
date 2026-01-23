@@ -20,6 +20,12 @@ interface Document {
   fileSize: string;
   status: 'verified' | 'pending' | 'expired';
   expiryDate?: string;
+  verification_status?: 'verified' | 'pending_ai' | 'needs_review' | 'rejected_mismatch' | 'failed';
+  verification_source?: string | null; // 'ai_verification' | 'admin_override' | 'manual_review'
+  overridden_by?: string | null;
+  overridden_at?: string | null;
+  override_reason?: string | null;
+  overridden_by_name?: string | null; // From API response rejection.overridden.by
 }
 
 // Mock documents for this candidate
@@ -160,10 +166,35 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
         else if (doc.category === 'photos') category = 'Photo';
         
         // Map verification status
+        // First, check if passport is actually expired based on expiry date
         let status: Document['status'] = 'pending';
-        if (doc.verification_status === 'verified') status = 'verified';
-        else if (doc.verification_status === 'needs_review' || doc.verification_status === 'pending_ai') status = 'pending';
-        else if (doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed') status = 'expired';
+        const isPassport = category === 'Passport';
+        const passportExpiry = candidate.passport_expiry || doc.expiry_date;
+        
+        // Check if passport is expired (only for passport documents)
+        if (isPassport && passportExpiry) {
+          const expiryDate = new Date(passportExpiry);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0); // Reset time to compare dates only
+          if (expiryDate < today) {
+            status = 'expired';
+          } else if (doc.verification_status === 'verified') {
+            status = 'verified';
+          } else if (doc.verification_status === 'needs_review' || doc.verification_status === 'pending_ai') {
+            status = 'pending';
+          } else if (doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed') {
+            // For rejected/failed passports that aren't expired, show as pending (needs review)
+            status = 'pending';
+          }
+        } else {
+          // For non-passport documents or passports without expiry date, use verification status
+          if (doc.verification_status === 'verified') status = 'verified';
+          else if (doc.verification_status === 'needs_review' || doc.verification_status === 'pending_ai') status = 'pending';
+          else if (doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed') {
+            // Rejected/failed documents should show as pending (needs manual review)
+            status = 'pending';
+          }
+        }
         
         return {
           id: doc.id,
@@ -174,7 +205,13 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
           uploadedDate: doc.created_at ? new Date(doc.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           fileSize: doc.file_size ? `${(doc.file_size / 1024).toFixed(0)} KB` : '0 KB',
           status,
-          expiryDate: doc.expiry_date,
+          expiryDate: passportExpiry || doc.expiry_date,
+          verification_status: doc.verification_status,
+          verification_source: doc.verification_source || null,
+          overridden_by: doc.overridden_by || null,
+          overridden_at: doc.overridden_at || null,
+          override_reason: doc.override_reason || null,
+          overridden_by_name: doc.rejection?.overridden?.by || doc.overridden_by_name || null,
         };
       });
       
@@ -861,16 +898,53 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                             </div>
                             
                             {/* Status Badge */}
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 flex-shrink-0 ${
-                              doc.status === 'verified' ? 'bg-green-100 text-green-700' :
-                              doc.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                              'bg-red-100 text-red-700'
-                            }`}>
-                              {doc.status === 'verified' && <CheckCircle className="w-3 h-3" />}
-                              {doc.status === 'expired' && <AlertCircle className="w-3 h-3" />}
-                              {doc.status === 'pending' && <AlertCircle className="w-3 h-3" />}
-                              {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
-                            </span>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
+                                doc.status === 'verified' ? 'bg-green-100 text-green-700' :
+                                doc.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-red-100 text-red-700'
+                              }`}>
+                                {doc.status === 'verified' && <CheckCircle className="w-3 h-3" />}
+                                {doc.status === 'expired' && <AlertCircle className="w-3 h-3" />}
+                                {doc.status === 'pending' && <AlertCircle className="w-3 h-3" />}
+                                {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
+                              </span>
+
+                              {/* Admin Override Badge */}
+                              {doc.verification_source === 'admin_override' && (
+                                <div className="relative group">
+                                  <span className="px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 bg-purple-100 text-purple-700 border border-purple-200">
+                                    <Shield className="w-3 h-3" />
+                                    Overridden
+                                  </span>
+                                  
+                                  {/* Tooltip */}
+                                  <div className="absolute left-0 bottom-full mb-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                                    <div className="absolute bottom-0 left-4 transform translate-y-1/2 rotate-45 w-2 h-2 bg-gray-900"></div>
+                                    <div className="font-semibold mb-2 flex items-center gap-1">
+                                      <Shield className="w-3 h-3" />
+                                      Admin Override
+                                    </div>
+                                    {doc.overridden_by_name && (
+                                      <div className="mb-1">
+                                        <span className="text-gray-400">Admin:</span> {doc.overridden_by_name}
+                                      </div>
+                                    )}
+                                    {doc.overridden_at && (
+                                      <div className="mb-1">
+                                        <span className="text-gray-400">Date:</span> {new Date(doc.overridden_at).toLocaleString()}
+                                      </div>
+                                    )}
+                                    {doc.override_reason && (
+                                      <div className="mt-2 pt-2 border-t border-gray-700">
+                                        <span className="text-gray-400 block mb-1">Justification:</span>
+                                        <span className="text-white">{doc.override_reason}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
 
                           {/* Metadata */}
