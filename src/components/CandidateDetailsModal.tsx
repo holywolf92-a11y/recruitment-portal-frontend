@@ -4,6 +4,9 @@ import { Candidate } from '../lib/apiClient';
 import { ExtractionReviewModal } from './ExtractionReviewModal';
 import { apiClient } from '../lib/apiClient';
 import { MissingDataTab } from './MissingDataTab';
+import { DocumentRejectionModal, DocumentRejectionDetails } from './DocumentRejectionModal';
+import { AdminOverrideModal } from './AdminOverrideModal';
+import { useAuth } from '../lib/authContext';
 
 interface CandidateDetailsModalProps {
   candidate: Candidate;
@@ -28,6 +31,31 @@ interface Document {
   overridden_at?: string | null;
   override_reason?: string | null;
   overridden_by_name?: string | null; // From API response rejection.overridden.by
+  // Rejection details
+  rejection?: {
+    code?: string;
+    reason?: string;
+    mismatch_fields?: string[];
+    ai_confidence?: number;
+    ocr_confidence?: number;
+    error_stage?: 'OCR' | 'Vision' | 'Matching' | 'Extraction' | 'Categorization';
+    retry_possible?: boolean;
+    retry_count?: number;
+    max_retries?: number;
+    document_expiry_date?: string;
+    rejection_context?: {
+      mismatch_fields?: string[];
+      extracted_values?: Record<string, any>;
+      candidate_values?: Record<string, any>;
+    };
+    is_overridable?: boolean;
+    required_role?: 'admin' | 'super_admin';
+    overridden?: {
+      by?: string;
+      at?: string;
+      reason?: string;
+    };
+  };
 }
 
 // Mock documents for this candidate
@@ -148,6 +176,19 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
   const [showExtractionModal, setShowExtractionModal] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [extractionError, setExtractionError] = useState<string | null>(null);
+  
+  // Rejection modal state
+  const [rejectionModalDocument, setRejectionModalDocument] = useState<Document | null>(null);
+  const [overrideModalDocument, setOverrideModalDocument] = useState<Document | null>(null);
+  const [overrideLoading, setOverrideLoading] = useState(false);
+  
+  // Auth context for admin check
+  const auth = useAuth();
+  // Get user info from session
+  const userEmail = auth?.session?.user?.email || '';
+  // For now, assume admin if logged in (you may need to fetch user role from backend)
+  const isAdmin = !!userEmail; // Simplified - you may need to check actual role
+  const isSuperAdmin = false; // Simplified - you may need to check actual role
 
   // Safety: Reset uploading state if it's been stuck for too long
   useEffect(() => {
@@ -228,6 +269,23 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
           overridden_at: doc.overridden_at || null,
           override_reason: doc.override_reason || null,
           overridden_by_name: doc.rejection?.overridden?.by || doc.overridden_by_name || null,
+          // Map rejection details from API response
+          rejection: doc.rejection ? {
+            code: doc.rejection.code,
+            reason: doc.rejection.reason,
+            mismatch_fields: doc.rejection.mismatch_fields,
+            ai_confidence: doc.rejection.ai_confidence,
+            ocr_confidence: doc.rejection.ocr_confidence,
+            error_stage: doc.rejection.error_stage,
+            retry_possible: doc.rejection.retry_possible,
+            retry_count: doc.rejection.retry_count,
+            max_retries: doc.rejection.max_retries,
+            document_expiry_date: doc.rejection.document_expiry_date,
+            rejection_context: doc.rejection.rejection_context,
+            is_overridable: doc.rejection.is_overridable,
+            required_role: doc.rejection.required_role,
+            overridden: doc.rejection.overridden,
+          } : undefined,
         };
       });
       
@@ -600,6 +658,67 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
       console.error('[ReprocessDocument] Error reprocessing document:', error);
       alert(error?.message || 'Failed to reprocess document. The AI worker may not be running.');
     }
+  };
+
+  // Handle admin override request from rejection modal
+  const handleRequestOverride = (doc: Document) => {
+    setRejectionModalDocument(null);
+    setOverrideModalDocument(doc);
+  };
+
+  // Handle admin override confirmation
+  const handleConfirmOverride = async (password: string, justification: string) => {
+    if (!overrideModalDocument) return;
+
+    try {
+      setOverrideLoading(true);
+      const adminEmail = auth?.session?.user?.email || '';
+      if (!adminEmail) {
+        throw new Error('Admin email not found. Please log in again.');
+      }
+
+      await apiClient.overrideCandidateDocument(
+        overrideModalDocument.id,
+        adminEmail,
+        password,
+        justification
+      );
+
+      // Success - close modals and refresh documents
+      setOverrideModalDocument(null);
+      setOverrideLoading(false);
+      alert('Document override successful. The document is now marked as verified.');
+      
+      // Refresh documents to show updated status
+      await fetchDocuments();
+      if (onDocumentChange) {
+        onDocumentChange();
+      }
+    } catch (error: any) {
+      setOverrideLoading(false);
+      throw error; // Let AdminOverrideModal handle the error display
+    }
+  };
+
+  // Helper function to check if rejection is overridable
+  const isRejectionOverridable = (doc: Document): boolean => {
+    if (!doc.rejection) return false;
+    // Check if rejection code is non-overridable
+    const nonOverridableCodes = ['DOCUMENT_TAMPERED', 'PHOTO_MISMATCH'];
+    if (doc.rejection.code && nonOverridableCodes.includes(doc.rejection.code)) {
+      return false;
+    }
+    return doc.rejection.is_overridable !== false; // Default to true if not specified
+  };
+
+  // Helper function to get required role for override
+  const getRequiredOverrideRole = (doc: Document): 'admin' | 'super_admin' => {
+    if (!doc.rejection) return 'admin';
+    const superAdminCodes = ['DOCUMENT_TAMPERED', 'PHOTO_MISMATCH'];
+    if (doc.rejection.code && superAdminCodes.includes(doc.rejection.code)) {
+      return 'super_admin';
+    }
+    return doc.rejection.required_role || 'admin';
   };
 
   const getCategoryIcon = (category: string) => {
@@ -1427,17 +1546,30 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                               </div>
                             </div>
                             
-                            {/* Status Badge */}
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 flex-shrink-0 ${
-                              doc.status === 'verified' ? 'bg-green-100 text-green-700' :
-                              doc.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                              'bg-red-100 text-red-700'
-                            }`}>
-                              {doc.status === 'verified' && <CheckCircle className="w-3 h-3" />}
-                              {doc.status === 'expired' && <AlertCircle className="w-3 h-3" />}
-                              {doc.status === 'pending' && <AlertCircle className="w-3 h-3" />}
-                              {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
-                            </span>
+                            {/* Status Badge - Clickable for rejected/failed documents */}
+                            {(doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed') ? (
+                              <button
+                                onClick={() => setRejectionModalDocument(doc)}
+                                className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity ${
+                                  'bg-red-100 text-red-700'
+                                }`}
+                                title="Click to view rejection details"
+                              >
+                                <AlertCircle className="w-3 h-3" />
+                                {doc.verification_status === 'rejected_mismatch' ? 'Rejected' : 'Failed'}
+                              </button>
+                            ) : (
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 flex-shrink-0 ${
+                                doc.status === 'verified' ? 'bg-green-100 text-green-700' :
+                                doc.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-red-100 text-red-700'
+                              }`}>
+                                {doc.status === 'verified' && <CheckCircle className="w-3 h-3" />}
+                                {doc.status === 'expired' && <AlertCircle className="w-3 h-3" />}
+                                {doc.status === 'pending' && <AlertCircle className="w-3 h-3" />}
+                                {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
+                              </span>
+                            )}
                           </div>
 
                           {/* Metadata */}
@@ -1937,6 +2069,39 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
             }
           `}</style>
         </div>
+      )}
+      
+      {/* Document Rejection Modal */}
+      {rejectionModalDocument && (
+        <DocumentRejectionModal
+          documentId={rejectionModalDocument.id}
+          documentName={rejectionModalDocument.fileName}
+          documentCategory={rejectionModalDocument.category}
+          rejectionDetails={rejectionModalDocument.rejection || {}}
+          verificationStatus={rejectionModalDocument.verification_status === 'rejected_mismatch' ? 'rejected_mismatch' : 'failed'}
+          onClose={() => setRejectionModalDocument(null)}
+          onRequestOverride={() => handleRequestOverride(rejectionModalDocument)}
+          isAdmin={isAdmin}
+        />
+      )}
+
+      {/* Admin Override Modal */}
+      {overrideModalDocument && (
+        <AdminOverrideModal
+          documentId={overrideModalDocument.id}
+          documentName={overrideModalDocument.fileName}
+          documentCategory={overrideModalDocument.category}
+          rejectionCode={overrideModalDocument.rejection?.code}
+          rejectionReason={overrideModalDocument.rejection?.reason}
+          isOverridable={isRejectionOverridable(overrideModalDocument)}
+          requiredRole={getRequiredOverrideRole(overrideModalDocument)}
+          onClose={() => {
+            setOverrideModalDocument(null);
+            setOverrideLoading(false);
+          }}
+          onConfirm={handleConfirmOverride}
+          loading={overrideLoading}
+        />
       )}
     </div>
   );

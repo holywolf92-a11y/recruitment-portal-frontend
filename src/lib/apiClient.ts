@@ -667,6 +667,26 @@ class ApiClient {
     return response;
   }
 
+  async overrideCandidateDocument(
+    documentId: string,
+    adminEmail: string,
+    adminPassword: string,
+    justification: string
+  ): Promise<{ document: any }> {
+    const response = await this.request<{ document: any }>(
+      `/documents/candidate-documents/${documentId}/override`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          admin_email: adminEmail,
+          admin_password: adminPassword,
+          justification: justification,
+        }),
+      }
+    );
+    return response;
+  }
+
   async listCandidateDocumentsNew(candidateId: string): Promise<any[]> {
     const response = await this.request<{ documents: any[] }>(`/documents/candidates/${candidateId}/documents`);
     return response.documents || [];
