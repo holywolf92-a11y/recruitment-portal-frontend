@@ -262,8 +262,12 @@ ALTER TABLE candidate_documents
   ADD COLUMN IF NOT EXISTS rejection_code TEXT,
   ADD COLUMN IF NOT EXISTS rejection_reason TEXT,
   ADD COLUMN IF NOT EXISTS mismatch_fields JSONB DEFAULT '[]'::jsonb,
-  ADD COLUMN IF NOT EXISTS ai_confidence DECIMAL(3,2),
-  ADD COLUMN IF NOT EXISTS ocr_confidence DECIMAL(3,2),
+  ADD COLUMN IF NOT EXISTS ai_confidence DECIMAL(3,2) CHECK (ai_confidence >= 0 AND ai_confidence <= 1),
+  ADD COLUMN IF NOT EXISTS ocr_confidence DECIMAL(3,2) CHECK (ocr_confidence >= 0 AND ocr_confidence <= 1),
+  
+  -- Retry tracking
+  ADD COLUMN IF NOT EXISTS retry_count INT DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS max_retries INT DEFAULT 2,
   
   -- Verification metadata
   ADD COLUMN IF NOT EXISTS verified_against JSONB DEFAULT '{}'::jsonb,
@@ -311,8 +315,10 @@ ALTER TABLE candidate_documents
 COMMENT ON COLUMN candidate_documents.rejection_code IS 'Universal rejection reason code applicable to all document types';
 COMMENT ON COLUMN candidate_documents.rejection_reason IS 'Human-readable rejection reason message';
 COMMENT ON COLUMN candidate_documents.mismatch_fields IS 'Array of field names that did not match (e.g., ["name", "passport"])';
-COMMENT ON COLUMN candidate_documents.ai_confidence IS 'AI confidence score (0-1) for document categorization';
-COMMENT ON COLUMN candidate_documents.ocr_confidence IS 'OCR confidence score (0-1) for text extraction';
+COMMENT ON COLUMN candidate_documents.ai_confidence IS 'AI confidence score (0-1) for document categorization. Standardized to 0-1 scale, convert to percentage in UI only.';
+COMMENT ON COLUMN candidate_documents.ocr_confidence IS 'OCR confidence score (0-1) for text extraction. Standardized to 0-1 scale, convert to percentage in UI only.';
+COMMENT ON COLUMN candidate_documents.retry_count IS 'Number of retry attempts made for this document';
+COMMENT ON COLUMN candidate_documents.max_retries IS 'Maximum allowed retry attempts (default: 2)';
 COMMENT ON COLUMN candidate_documents.verified_against IS 'JSON object with candidate_id and source document type';
 COMMENT ON COLUMN candidate_documents.verification_source IS 'Source of verification: ai_verification, admin_override, or manual_review';
 COMMENT ON COLUMN candidate_documents.error_stage IS 'Stage where error occurred: OCR, Vision, Matching, Extraction, or Categorization';
@@ -341,10 +347,12 @@ CREATE TABLE IF NOT EXISTS admin_override_logs (
   previous_rejection_code TEXT,
   previous_rejection_reason TEXT,
   override_reason TEXT NOT NULL,
+  required_role TEXT NOT NULL DEFAULT 'admin', -- 'admin' or 'super_admin'
   
   -- Admin info
   overridden_by UUID NOT NULL REFERENCES users(id),
   overridden_by_name TEXT, -- Denormalized for quick access
+  overridden_by_role TEXT, -- Role used for override (admin/super_admin)
   overridden_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   
   -- Additional context
@@ -400,17 +408,45 @@ interface RejectionContext {
 
 export class DocumentRejectionService {
   /**
+   * Priority order for rejection codes (highest priority first)
+   * When multiple mismatches exist, use the highest priority code
+   * but keep all mismatches in mismatchFields array
+   */
+  private static readonly REJECTION_PRIORITY_ORDER = [
+    REJECTION_REASON_CODES.CNIC_MISMATCH,
+    REJECTION_REASON_CODES.PASSPORT_MISMATCH,
+    REJECTION_REASON_CODES.DOB_MISMATCH,
+    REJECTION_REASON_CODES.NAME_MISMATCH,
+    REJECTION_REASON_CODES.EMAIL_MISMATCH,
+    REJECTION_REASON_CODES.PHONE_MISMATCH,
+    REJECTION_REASON_CODES.FATHER_NAME_MISMATCH,
+  ];
+  
+  /**
+   * Rejection codes that cannot be overridden by admin
+   * Require super-admin role for override
+   */
+  private static readonly NON_OVERRIDABLE_CODES = [
+    REJECTION_REASON_CODES.DOCUMENT_TAMPERED,
+    REJECTION_REASON_CODES.PHOTO_MISMATCH,
+  ];
+  
+  /**
    * Determine rejection code based on document type and context
+   * Uses priority-based decision to select highest priority mismatch
+   * but captures all mismatches in mismatchFields array
    */
   static determineRejectionCode(context: RejectionContext): {
     code: string;
     reason: string;
     mismatchFields: string[];
     retryPossible: boolean;
+    isOverridable: boolean; // NEW: Whether admin can override
   } {
     const { documentCategory, extractedIdentity, candidateData, aiConfidence, ocrConfidence, expiryDate, errorStage } = context;
     
     const mismatchFields: string[] = [];
+    const mismatchCodes: string[] = []; // Track all mismatch codes
     let rejectionCode: string = REJECTION_REASON_CODES.MANUAL_REVIEW_REQUIRED;
     let retryPossible = false;
     
@@ -465,43 +501,84 @@ export class DocumentRejectionService {
     }
     
     // Check identity mismatches (if identity fields extracted)
+    // FIX: Use priority-based decision - capture all mismatches but use highest priority code
     if (extractedIdentity && candidateData) {
-      // Name mismatch
+      // CNIC mismatch (highest priority)
+      if (extractedIdentity.cnic && candidateData.cnic_normalized) {
+        const extractedCnic = normalizeCNIC(extractedIdentity.cnic);
+        const candidateCnic = candidateData.cnic_normalized;
+        if (extractedCnic !== candidateCnic) {
+          mismatchFields.push('cnic');
+          mismatchCodes.push(REJECTION_REASON_CODES.CNIC_MISMATCH);
+        }
+      }
+      
+      // Passport mismatch (second priority)
+      if (extractedIdentity.passport_no && candidateData.passport_normalized) {
+        const extractedPassport = normalizePassport(extractedIdentity.passport_no);
+        const candidatePassport = candidateData.passport_normalized;
+        if (extractedPassport !== candidatePassport) {
+          mismatchFields.push('passport');
+          mismatchCodes.push(REJECTION_REASON_CODES.PASSPORT_MISMATCH);
+        }
+      }
+      
+      // DOB mismatch (third priority)
+      if (extractedIdentity.date_of_birth && candidateData.date_of_birth) {
+        const extractedDOB = new Date(extractedIdentity.date_of_birth);
+        const candidateDOB = new Date(candidateData.date_of_birth);
+        if (extractedDOB.getTime() !== candidateDOB.getTime()) {
+          mismatchFields.push('date_of_birth');
+          mismatchCodes.push(REJECTION_REASON_CODES.DOB_MISMATCH);
+        }
+      }
+      
+      // Name mismatch (fourth priority)
       if (extractedIdentity.name && candidateData.name) {
         // Use fuzzy matching - if still fails, it's a mismatch
         // (This check should happen before calling this service)
-        mismatchFields.push('name');
-        rejectionCode = REJECTION_REASON_CODES.NAME_MISMATCH;
+        if (!fuzzyNameMatch(extractedIdentity.name, candidateData.name)) {
+          mismatchFields.push('name');
+          mismatchCodes.push(REJECTION_REASON_CODES.NAME_MISMATCH);
+        }
       }
       
-      // CNIC mismatch
-      if (extractedIdentity.cnic && candidateData.cnic_normalized) {
-        mismatchFields.push('cnic');
-        rejectionCode = REJECTION_REASON_CODES.CNIC_MISMATCH;
-      }
-      
-      // Passport mismatch
-      if (extractedIdentity.passport_no && candidateData.passport_normalized) {
-        mismatchFields.push('passport');
-        rejectionCode = REJECTION_REASON_CODES.PASSPORT_MISMATCH;
-      }
-      
-      // DOB mismatch
-      if (extractedIdentity.date_of_birth && candidateData.date_of_birth) {
-        mismatchFields.push('date_of_birth');
-        rejectionCode = REJECTION_REASON_CODES.DOB_MISMATCH;
-      }
-      
-      // Email mismatch
+      // Email mismatch (fifth priority)
       if (extractedIdentity.email && candidateData.email) {
-        mismatchFields.push('email');
-        rejectionCode = REJECTION_REASON_CODES.EMAIL_MISMATCH;
+        const extractedEmail = extractedIdentity.email.toLowerCase().trim();
+        const candidateEmail = candidateData.email.toLowerCase().trim();
+        if (extractedEmail !== candidateEmail) {
+          mismatchFields.push('email');
+          mismatchCodes.push(REJECTION_REASON_CODES.EMAIL_MISMATCH);
+        }
       }
       
-      // Phone mismatch
+      // Phone mismatch (sixth priority)
       if (extractedIdentity.phone && candidateData.phone) {
-        mismatchFields.push('phone');
-        rejectionCode = REJECTION_REASON_CODES.PHONE_MISMATCH;
+        const extractedPhone = normalizePhoneE164(extractedIdentity.phone);
+        const candidatePhone = normalizePhoneE164(candidateData.phone);
+        if (extractedPhone !== candidatePhone) {
+          mismatchFields.push('phone');
+          mismatchCodes.push(REJECTION_REASON_CODES.PHONE_MISMATCH);
+        }
+      }
+      
+      // Father name mismatch (lowest priority)
+      if (extractedIdentity.father_name && candidateData.father_name) {
+        if (!fuzzyNameMatch(extractedIdentity.father_name, candidateData.father_name)) {
+          mismatchFields.push('father_name');
+          mismatchCodes.push(REJECTION_REASON_CODES.FATHER_NAME_MISMATCH);
+        }
+      }
+      
+      // Select highest priority mismatch code (if any mismatches found)
+      if (mismatchCodes.length > 0) {
+        for (const priorityCode of this.REJECTION_PRIORITY_ORDER) {
+          if (mismatchCodes.includes(priorityCode)) {
+            rejectionCode = priorityCode;
+            break; // Use first (highest priority) match
+          }
+        }
       }
     }
     
@@ -538,12 +615,32 @@ export class DocumentRejectionService {
       }
     );
     
+    // Check if rejection code is overridable
+    const isOverridable = !this.NON_OVERRIDABLE_CODES.includes(rejectionCode as any);
+    
     return {
       code: rejectionCode,
       reason,
       mismatchFields,
       retryPossible,
+      isOverridable,
     };
+  }
+  
+  /**
+   * Check if a rejection code can be overridden
+   * Returns true if overridable, false if requires super-admin
+   */
+  static isOverridable(rejectionCode: string): boolean {
+    return !this.NON_OVERRIDABLE_CODES.includes(rejectionCode as any);
+  }
+  
+  /**
+   * Get required role for override
+   * Returns 'super_admin' for non-overridable codes, 'admin' otherwise
+   */
+  static getRequiredOverrideRole(rejectionCode: string): 'admin' | 'super_admin' {
+    return this.isOverridable(rejectionCode) ? 'admin' : 'super_admin';
   }
 }
 ```
@@ -603,8 +700,9 @@ interface DocumentRejectionModalProps {
       code: string;
       reason: string;
       fields: string[];
-      confidence: number;
-      ocr_confidence?: number;
+      confidence: number; // 0-1 scale (convert to percentage in UI)
+      ocr_confidence?: number; // 0-1 scale (convert to percentage in UI)
+      is_overridable?: boolean; // Whether admin can override
     } | null;
     
     // Error details (if failed)
