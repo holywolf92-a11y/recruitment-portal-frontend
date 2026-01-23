@@ -320,7 +320,7 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
         setUploading(true); // Show loading during upload
         
         // Safety timeout: Always reset uploading state after 5 minutes max
-        let safetyTimeout: NodeJS.Timeout | null = setTimeout(() => {
+        let safetyTimeout: ReturnType<typeof setTimeout> | null = setTimeout(() => {
           console.warn('Upload safety timeout: Resetting uploading state');
           setUploading(false);
         }, 300000); // 5 minutes
@@ -963,11 +963,11 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
               )}
 
               {/* Video Link */}
-              {candidate.videoLink && (
+              {(candidate as any).videoLink && (
                 <div>
                   <h3 className="mb-4">Video Profile</h3>
                   <a
-                    href={candidate.videoLink}
+                    href={(candidate as any).videoLink}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
@@ -979,11 +979,11 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
               )}
 
               {/* Notes */}
-              {candidate.notes && (
+              {(candidate as any).notes && (
                 <div>
                   <h3 className="mb-4">Notes & Remarks</h3>
                   <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-                    <p className="text-sm">{candidate.notes}</p>
+                    <p className="text-sm">{(candidate as any).notes}</p>
                   </div>
                 </div>
               )}
@@ -1651,7 +1651,7 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                     </div>
                     <div className="flex items-center gap-2">
                       <MapPin className="w-5 h-5 text-blue-600" />
-                      <span>Seeking: {candidate.country || 'Not specified'}</span>
+                      <span>Seeking: {candidate.country_of_interest || 'Not specified'}</span>
                     </div>
                   </div>
                 </div>
@@ -1696,7 +1696,7 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                     </div>
                   </div>
                   <p className="text-gray-700 text-sm leading-relaxed">
-                    {candidate.professional_summary || `Highly skilled ${candidate.position || 'professional'} with ${candidate.experience_years || 0} years of professional experience. Seeking opportunities in ${candidate.country || 'various markets'} to contribute technical expertise and drive operational excellence.`}
+                    {candidate.professional_summary || `Highly skilled ${candidate.position || 'professional'} with ${candidate.experience_years || 0} years of professional experience. Seeking opportunities in ${candidate.country_of_interest || 'various markets'} to contribute technical expertise and drive operational excellence.`}
                   </p>
                 </div>
 
@@ -1778,7 +1778,7 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                         <MapPin className="w-4 h-4 text-gray-600" />
                         <span className="font-semibold text-gray-900 text-sm">Preferred Location</span>
                       </div>
-                      <p className="text-gray-700 text-sm">{candidate.country || 'Not specified'}</p>
+                      <p className="text-gray-700 text-sm">{candidate.country_of_interest || 'Not specified'}</p>
                     </div>
                   </div>
                 </div>
