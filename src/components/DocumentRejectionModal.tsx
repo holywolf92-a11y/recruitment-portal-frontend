@@ -27,6 +27,7 @@ interface DocumentRejectionModalProps {
   verificationStatus: 'rejected_mismatch' | 'failed';
   onClose: () => void;
   onRequestOverride?: () => void; // Callback when user requests admin override
+  onRetry?: () => void; // Callback when user requests retry
   isAdmin?: boolean; // Whether current user is admin (to show override button)
 }
 
@@ -124,6 +125,7 @@ export function DocumentRejectionModal({
   verificationStatus,
   onClose,
   onRequestOverride,
+  onRetry,
   isAdmin = false,
 }: DocumentRejectionModalProps) {
   const {
@@ -340,14 +342,23 @@ export function DocumentRejectionModal({
           </button>
 
           <div className="flex gap-3">
-            {canRetry && (
+            {canRetry && onRetry && (
               <button
-                onClick={onClose}
+                onClick={() => {
+                  onRetry();
+                  onClose(); // Close modal after initiating retry
+                }}
                 className="px-6 py-2 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-2"
               >
                 <RefreshCw className="w-4 h-4" />
                 Retry Processing
               </button>
+            )}
+            {!canRetry && retry_count >= max_retries && (
+              <div className="px-6 py-2 bg-gray-100 text-gray-500 rounded-lg flex items-center gap-2 cursor-not-allowed">
+                <XCircle className="w-4 h-4" />
+                Max Retries Reached ({retry_count}/{max_retries})
+              </div>
             )}
             
             {isAdmin && onRequestOverride && (

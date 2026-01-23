@@ -1868,6 +1868,7 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
           rejectionDetails={rejectionModalDocument.rejection || {}}
           verificationStatus={rejectionModalDocument.verification_status === 'rejected_mismatch' ? 'rejected_mismatch' : 'failed'}
           onClose={() => setRejectionModalDocument(null)}
+          onRetry={() => handleReprocessDocument(rejectionModalDocument)}
           onRequestOverride={() => handleRequestOverride(rejectionModalDocument)}
           isAdmin={isAdmin}
         />
