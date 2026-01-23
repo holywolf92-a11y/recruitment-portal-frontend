@@ -1,5 +1,35 @@
 // Lightweight API client using fetch with Vite base URL
-export const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || '/api';
+// In production, VITE_API_BASE_URL should be set to the full backend URL (e.g., https://backend.railway.app/api)
+// In development, it defaults to '/api' which will use the Vite proxy
+
+// Production backend URL (fallback if VITE_API_BASE_URL is not set at build time)
+const PRODUCTION_BACKEND_URL = 'https://recruitment-portal-backend-production-d1f7.up.railway.app/api';
+
+// Determine API base URL
+// Priority: 1. VITE_API_BASE_URL env var (set at build time), 2. Production fallback, 3. Default /api
+const getApiBaseUrl = () => {
+  const envUrl = (import.meta as any).env?.VITE_API_BASE_URL;
+  
+  // If env var is set and not empty, use it
+  if (envUrl && envUrl !== '/api' && envUrl.trim() !== '') {
+    return envUrl;
+  }
+  
+  // In production (not localhost), use production backend URL
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return PRODUCTION_BACKEND_URL;
+  }
+  
+  // Default to /api for local development
+  return '/api';
+};
+
+export const API_BASE_URL = getApiBaseUrl();
+
+// Log API base URL for debugging
+console.log('[API Client] API_BASE_URL:', API_BASE_URL);
+console.log('[API Client] Environment:', import.meta.env.MODE);
+console.log('[API Client] Hostname:', typeof window !== 'undefined' ? window.location.hostname : 'server');
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
@@ -156,6 +186,11 @@ export interface Candidate {
   certificate_received?: boolean;
   certificate_received_at?: string;
   
+  // Profile photo (migration 013)
+  profile_photo_url?: string;
+  profile_photo_bucket?: string;
+  profile_photo_path?: string;
+  
   // CV Extraction Fields
   nationality?: string;
   position?: string;
@@ -173,6 +208,10 @@ export interface Candidate {
   extraction_confidence?: Record<string, number>;
   extraction_source?: string;
   extracted_at?: string;
+  
+  // Progressive data completion
+  field_sources?: Record<string, { field: string; source: string; updated_at: string; updated_by?: string }>;
+  missing_fields?: string[];
   
   created_at: string;
   updated_at: string;
@@ -384,6 +423,37 @@ class ApiClient {
     return response.candidate;
   }
 
+  /**
+   * Get missing fields for a candidate
+   */
+  async getMissingFields(candidateId: string): Promise<{
+    missing_fields: string[];
+    missing_fields_with_info: Array<{
+      field: string;
+      label: string;
+      source: string | null;
+      canBeManuallyUpdated: boolean;
+      hint: string;
+    }>;
+    total_missing: number;
+  }> {
+    return this.request(`/candidates/${candidateId}/missing-fields`);
+  }
+
+  /**
+   * Update a candidate field manually (highest priority - never overwritten)
+   */
+  async updateCandidateFieldManually(
+    candidateId: string,
+    field: string,
+    value: any
+  ): Promise<{ success: boolean; candidate: Candidate; message: string }> {
+    return this.request(`/candidates/${candidateId}/fields/${field}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ value }),
+    });
+  }
+
   async deleteCandidate(id: string): Promise<void> {
     await this.request(`/candidates/${id}`, {
       method: 'DELETE',
@@ -391,46 +461,98 @@ class ApiClient {
   }
 
   // Documents API
+  /**
+   * Upload document - NOW USES UNIFIED SYSTEM
+   * This method now uses the new /candidate-documents endpoint with AI verification
+   * @deprecated The old /documents endpoint is deprecated. This now uses the unified system.
+   */
   async uploadDocument(file: File, candidateId: string, docType: string, isPrimary: boolean = false): Promise<Document> {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('candidate_id', candidateId);
-    formData.append('doc_type', docType);
-    formData.append('is_primary', isPrimary.toString());
-
-    const url = `${API_BASE_URL}/documents`;
-    const response = await fetch(url, {
-      method: 'POST',
-      body: formData,
-      // Don't set Content-Type header - browser will set it with boundary
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`API Error: ${response.status} ${error}`);
-    }
-
-    const data = await response.json();
-    return data.document;
+    // Use the new unified endpoint instead of old /documents endpoint
+    // This ensures all documents go through AI verification
+    const response = await this.uploadCandidateDocument(file, candidateId, 'web');
+    
+    // Return in old format for backward compatibility
+    return {
+      id: response.document.id,
+      candidate_id: candidateId,
+      doc_type: docType,
+      storage_bucket: response.document.storage_bucket || 'documents',
+      storage_path: response.document.storage_path,
+      file_name: response.document.file_name,
+      mime_type: response.document.mime_type,
+      is_primary: isPrimary,
+      created_at: response.document.created_at || new Date().toISOString(),
+    };
   }
 
+  /**
+   * @deprecated Use getCandidateDocument() instead
+   * This now uses the unified system
+   */
   async getDocument(id: string): Promise<Document> {
-    const response = await this.request<{ document: Document }>(`/documents/${id}`);
-    return response.document;
+    // Use the new unified endpoint
+    const response = await this.getCandidateDocument(id);
+    // Convert to old format for backward compatibility
+    return {
+      id: response.document.id,
+      candidate_id: response.document.candidate_id,
+      doc_type: response.document.document_type || response.document.category || 'other',
+      storage_bucket: response.document.storage_bucket,
+      storage_path: response.document.storage_path,
+      file_name: response.document.file_name,
+      mime_type: response.document.mime_type,
+      is_primary: false,
+      created_at: response.document.created_at || response.document.received_at,
+    };
   }
 
+  /**
+   * @deprecated Use listCandidateDocumentsNew() instead
+   * This now uses the unified system
+   */
   async listCandidateDocuments(candidateId: string): Promise<Document[]> {
-    const response = await this.request<{ documents: Document[] }>(`/documents/candidate/${candidateId}`);
-    return response.documents;
+    // Use the new unified endpoint
+    const docs = await this.listCandidateDocumentsNew(candidateId);
+    // Convert to old format for backward compatibility
+    return docs.map((doc: any) => ({
+      id: doc.id,
+      candidate_id: doc.candidate_id,
+      doc_type: doc.document_type || doc.category || 'other',
+      storage_bucket: doc.storage_bucket,
+      storage_path: doc.storage_path,
+      file_name: doc.file_name,
+      mime_type: doc.mime_type,
+      is_primary: false,
+      created_at: doc.created_at || doc.received_at,
+    }));
   }
 
+  /**
+   * @deprecated Use getCandidateDocumentDownload() instead
+   * This now uses the unified system
+   */
   async getDocumentDownloadUrl(id: string, expiresIn: number = 3600): Promise<string> {
-    const response = await this.request<{ signedUrl: string }>(`/documents/${id}/download?expiresIn=${expiresIn}`);
-    return response.signedUrl;
+    // Use the new unified endpoint
+    const response = await this.getCandidateDocumentDownload(id);
+    return response.download_url;
+  }
+
+  /**
+   * Get download URL for candidate document (unified system)
+   */
+  async getCandidateDocumentDownloadUrl(id: string, expiresIn: number = 3600): Promise<string> {
+    const response = await this.getCandidateDocumentDownload(id);
+    return response.download_url;
   }
 
   async getCandidateCVDownload(candidateId: string): Promise<{ download_url: string; filename: string }> {
     return await this.request<{ download_url: string; filename: string }>(`/candidates/${candidateId}/documents/cv/download`);
+  }
+
+  async linkCandidateCV(candidateId: string): Promise<{ document: any; message: string }> {
+    return await this.request<{ document: any; message: string }>(`/candidates/${candidateId}/link-cv`, {
+      method: 'POST',
+    });
   }
 
   async uploadCandidatePhoto(candidateId: string, file: File): Promise<{ message: string; photo_url: string; photo_path: string }> {
@@ -452,32 +574,63 @@ class ApiClient {
     return await response.json();
   }
 
+  /**
+   * @deprecated Use deleteCandidateDocument() instead
+   * This now uses the unified system
+   */
   async deleteDocument(id: string): Promise<void> {
-    await this.request(`/documents/${id}`, {
-      method: 'DELETE',
-    });
+    // Use the new unified endpoint
+    await this.deleteCandidateDocument(id);
   }
 
   // Candidate Documents API (AI Verification System)
-  async uploadCandidateDocument(file: File, candidateId: string, source: string = 'Manual Upload'): Promise<{ document: any; request_id: string }> {
+  async uploadCandidateDocument(file: File, candidateId: string, source: string = 'web'): Promise<{ document: any; request_id: string }> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('candidate_id', candidateId);
     formData.append('source', source);
 
-    const url = `${API_BASE_URL}/documents/candidate-documents`;
-    const response = await fetch(url, {
-      method: 'POST',
-      body: formData,
-      // Don't set Content-Type header - browser will set it with boundary
-    });
+    // Calculate timeout based on file size (120 seconds for files up to 10MB, longer for larger files)
+    // Base timeout: 120 seconds, add 10 seconds per MB
+    const fileSizeMB = file.size / (1024 * 1024);
+    const timeoutMs = Math.max(120000, 120000 + (fileSizeMB * 10000)); // Min 120s, +10s per MB
 
-    if (!response.ok) {
-      const error = await response.text().catch(() => '');
-      throw new Error(`API Error: ${response.status} ${error}`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, timeoutMs);
+
+    try {
+      const url = `${API_BASE_URL}/documents/candidate-documents`;
+      
+      // Create a promise that rejects on timeout
+      const uploadPromise = fetch(url, {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal,
+        // Don't set Content-Type header - browser will set it with boundary
+      });
+
+      const response = await uploadPromise;
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const error = await response.text().catch(() => '');
+        throw new Error(`API Error: ${response.status} ${error}`);
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+        throw new Error(`Upload timeout: The file (${fileSizeMB.toFixed(2)}MB) took too long to upload. Please check your connection and try again.`);
+      }
+      // Re-throw network errors with better messages
+      if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+        throw new Error(`Network error: Unable to connect to server. Please check your internet connection and try again.`);
+      }
+      throw error;
     }
-
-    return await response.json();
   }
 
   async getCandidateDocument(id: string): Promise<{ document: any }> {
@@ -495,6 +648,22 @@ class ApiClient {
 
   async getCandidateDocumentDownload(id: string): Promise<{ download_url: string }> {
     const response = await this.request<{ download_url: string }>(`/documents/candidate-documents/${id}/download`);
+    return response;
+  }
+
+  async deleteCandidateDocument(id: string): Promise<void> {
+    await this.request(`/documents/candidate-documents/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async reprocessCandidateDocument(id: string): Promise<{ success: boolean; request_id: string; message: string }> {
+    const response = await this.request<{ success: boolean; request_id: string; message: string }>(
+      `/documents/candidate-documents/${id}/reprocess`,
+      {
+        method: 'POST',
+      }
+    );
     return response;
   }
 
@@ -642,10 +811,25 @@ class ApiClient {
 
   // CV Extraction API
   async extractCandidateData(id: string, cvUrl: string): Promise<any> {
-    return this.request(`/candidates/${id}/extract`, {
-      method: 'POST',
-      body: JSON.stringify({ cvUrl }),
-    });
+    // Add timeout to extraction request (30 seconds)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    
+    try {
+      const result = await this.request(`/candidates/${id}/extract`, {
+        method: 'POST',
+        body: JSON.stringify({ cvUrl }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      return result;
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Extraction timeout: The process took too long. Please try again.');
+      }
+      throw error;
+    }
   }
 
   async updateExtraction(id: string, extractedData: any, approved: boolean, notes?: string): Promise<any> {

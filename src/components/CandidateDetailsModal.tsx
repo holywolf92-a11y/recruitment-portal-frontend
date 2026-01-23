@@ -3,11 +3,13 @@ import { X, Edit2, Save, Phone, Mail, MapPin, Briefcase, Calendar, FileText, Glo
 import { Candidate } from '../lib/apiClient';
 import { ExtractionReviewModal } from './ExtractionReviewModal';
 import { apiClient } from '../lib/apiClient';
+import { MissingDataTab } from './MissingDataTab';
 
 interface CandidateDetailsModalProps {
   candidate: Candidate;
   onClose: () => void;
-  initialTab?: 'details' | 'documents';
+  initialTab?: 'details' | 'documents' | 'missing-data';
+  onDocumentChange?: () => void; // Callback when documents are added/deleted
 }
 
 interface Document {
@@ -135,16 +137,30 @@ function safeJsonArray(value: unknown): string[] {
   return [];
 }
 
-export function CandidateDetailsModal({ candidate, onClose, initialTab = 'details' }: CandidateDetailsModalProps) {
+export function CandidateDetailsModal({ candidate, onClose, initialTab = 'details', onDocumentChange }: CandidateDetailsModalProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedCandidate, setEditedCandidate] = useState(candidate);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [documentsLoading, setDocumentsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'details' | 'documents'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'details' | 'documents' | 'missing-data'>(initialTab || 'details');
   const [extractionInProgress, setExtractionInProgress] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [showExtractionModal, setShowExtractionModal] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [extractionError, setExtractionError] = useState<string | null>(null);
+
+  // Safety: Reset uploading state if it's been stuck for too long
+  useEffect(() => {
+    if (uploading) {
+      const timeout = setTimeout(() => {
+        console.warn('[Upload] Safety timeout: Uploading state stuck, resetting');
+        setUploading(false);
+        setExtractionError('Upload timed out. Please try again.');
+      }, 180000); // 3 minutes (should be less than the 5-minute safety timeout in handleUploadDocument)
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [uploading]);
   const [showEmployerCV, setShowEmployerCV] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -270,82 +286,320 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
     });
   };
 
-  const handleUploadDocument = async () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
-    input.multiple = true;
-    input.onchange = async (e) => {
-      const files = (e.target as HTMLInputElement).files;
-      if (files) {
-        setExtractionInProgress(true);
+  const handleUploadDocument = () => {
+    console.log('[Upload] Button clicked - opening file picker'); // Debug log
+    
+    // Reset any previous error state
+    setExtractionError(null);
+    
+    try {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
+      input.multiple = true;
+      
+      // Handle file picker cancellation
+      input.oncancel = () => {
+        console.log('[Upload] File picker cancelled by user');
+        setUploading(false);
+      };
+      
+      input.onchange = async (e) => {
+        console.log('[Upload] File selected:', (e.target as HTMLInputElement).files?.length || 0, 'files'); // Debug log
+        const files = (e.target as HTMLInputElement).files;
+        
+        // If no files selected, reset state and return
+        if (!files || files.length === 0) {
+          console.log('[Upload] No files selected - resetting state');
+          setUploading(false);
+          return;
+        }
+        
+        if (files) {
         setExtractionError(null);
+        setUploading(true); // Show loading during upload
+        
+        // Safety timeout: Always reset uploading state after 5 minutes max
+        let safetyTimeout: NodeJS.Timeout | null = setTimeout(() => {
+          console.warn('Upload safety timeout: Resetting uploading state');
+          setUploading(false);
+        }, 300000); // 5 minutes
         
         try {
           // Upload all files using the new API
+          const uploadedDocumentIds: string[] = [];
+          const uploadPromises: Promise<any>[] = [];
+          
+          // Create upload promises for all files
           for (const file of Array.from(files)) {
-            try {
-              await apiClient.uploadCandidateDocument(file, candidate.id, 'Manual Upload');
-            } catch (error) {
-              console.error('Error uploading document:', error);
-              setExtractionError(`Failed to upload ${file.name}`);
-            }
+            const uploadPromise = (async () => {
+              try {
+                // Upload with timeout handled by apiClient (120+ seconds based on file size)
+                const response = await apiClient.uploadCandidateDocument(file, candidate.id, 'web');
+                if (response.document?.id) {
+                  uploadedDocumentIds.push(response.document.id);
+                }
+                return { success: true, file: file.name };
+              } catch (error) {
+                console.error('Error uploading document:', error);
+                const errorMessage = error instanceof Error 
+                  ? error.message 
+                  : 'Unknown error occurred';
+                
+                // Check for common error types
+                let userFriendlyMessage = `Failed to upload ${file.name}`;
+                if (errorMessage.includes('timeout') || errorMessage.includes('aborted') || errorMessage.includes('Upload timeout')) {
+                  userFriendlyMessage = `${file.name}: Upload timeout. Please check your connection and try again.`;
+                } else if (errorMessage.includes('File exceeds') || errorMessage.includes('size limit')) {
+                  userFriendlyMessage = `${file.name}: File is too large (max 10MB)`;
+                } else if (errorMessage.includes('Unsupported file type') || errorMessage.includes('file type')) {
+                  userFriendlyMessage = `${file.name}: Unsupported file type. Allowed: PDF, DOC, DOCX, JPG, PNG`;
+                } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+                  userFriendlyMessage = `${file.name}: Network error. Please check your connection and try again.`;
+                } else if (errorMessage.includes('Candidate not found')) {
+                  userFriendlyMessage = `${file.name}: Candidate not found. Please refresh the page.`;
+                } else if (errorMessage) {
+                  userFriendlyMessage = `${file.name}: ${errorMessage}`;
+                }
+                
+                setExtractionError(userFriendlyMessage);
+                return { success: false, file: file.name, error: userFriendlyMessage };
+              }
+            })();
+            
+            uploadPromises.push(uploadPromise);
           }
           
-          // Automatically refresh documents after upload
-          await fetchDocuments();
+          // Wait for all uploads to complete (or fail)
+          await Promise.allSettled(uploadPromises);
           
-          // Auto-extract if CV is uploaded
-          const cvFiles = Array.from(files).filter(file => 
-            file.name.toLowerCase().endsWith('.pdf') || 
-            file.name.toLowerCase().endsWith('.docx') ||
-            file.name.toLowerCase().endsWith('.doc')
-          );
+          // Upload is complete - reset uploading state immediately
+          setUploading(false);
           
-          if (cvFiles.length > 0) {
-            // Get the uploaded document to extract
-            const uploadedDocs = await apiClient.listCandidateDocumentsNew(candidate.id);
-            const latestCV = uploadedDocs
-              .filter((doc: any) => doc.category === 'cv_resume')
-              .sort((a: any, b: any) => 
-                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-              )[0];
+          // Automatically refresh documents after upload (with error handling)
+          try {
+            await fetchDocuments();
+          } catch (fetchError) {
+            console.error('Error fetching documents after upload:', fetchError);
+            // Don't show error to user, just log it
+          }
+          
+          // Wait for AI categorization to complete, then check if any uploaded document is a CV
+          // Only trigger extraction if the document is actually categorized as a CV
+          if (uploadedDocumentIds.length > 0) {
+            // Poll for categorization completion (max 30 seconds)
+            const maxAttempts = 15; // 15 attempts * 2 seconds = 30 seconds max
+            let attempts = 0;
+            let cvFound = false;
             
-            if (latestCV?.storage_path) {
+            while (attempts < maxAttempts && !cvFound) {
+              await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+              
               try {
-                const result = await apiClient.extractCandidateData(
-                  candidate.id, 
-                  latestCV.storage_path
-                );
+                const uploadedDocs = await apiClient.listCandidateDocumentsNew(candidate.id);
                 
-                if (result.success) {
-                  setExtractedData(result.data);
-                  setShowExtractionModal(true);
-                } else {
-                  setExtractionError(result.error || 'Failed to extract CV data');
+                // Check if any of the uploaded documents is now categorized as CV
+                const latestCV = uploadedDocs
+                  .filter((doc: any) => 
+                    uploadedDocumentIds.includes(doc.id) && 
+                    doc.category === 'cv_resume' &&
+                    doc.verification_status !== 'pending_ai' // Wait for categorization to complete
+                  )
+                  .sort((a: any, b: any) => 
+                    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                  )[0];
+                
+                if (latestCV?.storage_path) {
+                  cvFound = true;
+                  
+                  // Now trigger extraction - this is a CV
+                  setExtractionInProgress(true);
+                  
+                  try {
+                    // Add timeout to extraction call (30 seconds)
+                    const extractionPromise = apiClient.extractCandidateData(
+                      candidate.id, 
+                      latestCV.storage_path
+                    );
+                    
+                    const timeoutPromise = new Promise((_, reject) => 
+                      setTimeout(() => reject(new Error('Extraction timeout: The process took too long. Please try again.')), 30000)
+                    );
+                    
+                    const result = await Promise.race([extractionPromise, timeoutPromise]) as any;
+                    
+                    if (result && result.success) {
+                      setExtractedData(result.data);
+                      setShowExtractionModal(true);
+                      setExtractionInProgress(false); // Reset immediately on success
+                    } else {
+                      setExtractionError(result?.error || 'Failed to extract CV data');
+                      setExtractionInProgress(false); // Reset on failure
+                    }
+                  } catch (error) {
+                    console.error('Extraction error:', error);
+                    setExtractionError(
+                      error instanceof Error 
+                        ? error.message 
+                        : 'CV extraction failed. The document may still be processing. Please refresh the page.'
+                    );
+                    setExtractionInProgress(false); // Always reset on error
+                  }
+                  break; // Exit the polling loop
                 }
               } catch (error) {
-                console.error('Extraction error:', error);
-                // Don't show error for extraction, just continue
+                console.error('Error checking document status:', error);
+                // Continue polling
               }
+              
+              attempts++;
             }
+            
+            // Refresh documents after categorization completes (whether CV found or not)
+            // This ensures the UI shows the updated category and status
+            await fetchDocuments();
+            
+            // If we didn't find a CV after polling, it means the uploaded documents are not CVs
+            // This is normal for passports, certificates, etc. - no extraction needed
+            if (!cvFound) {
+              // Documents uploaded successfully, but they're not CVs
+              // No extraction needed - this is expected behavior
+              console.log('Uploaded documents are not CVs - no extraction needed');
+              
+              // Refresh documents to show updated status/category after categorization
+              await fetchDocuments();
+            }
+          } else {
+            // No documents uploaded, but refresh anyway to ensure UI is up to date
+            await fetchDocuments();
           }
         } catch (error) {
+          console.error('Upload error:', error);
           setExtractionError(
             error instanceof Error ? error.message : 'An error occurred during upload'
           );
         } finally {
-          setExtractionInProgress(false);
+          // Always reset uploading state, even if there's an error
+          if (safetyTimeout) {
+            clearTimeout(safetyTimeout);
+            safetyTimeout = null;
+          }
+          setUploading(false);
         }
       }
     };
-    input.click();
+    
+    // Add error handler for file input
+    input.onerror = (error) => {
+      console.error('[Upload] File input error:', error);
+      setExtractionError('Failed to open file picker. Please try again.');
+      setUploading(false);
+    };
+    
+    // Trigger file picker - must be called synchronously from user interaction
+    console.log('[Upload] Triggering file picker...'); // Debug log
+    try {
+      input.click();
+      console.log('[Upload] File picker triggered successfully'); // Debug log
+    } catch (error) {
+      console.error('[Upload] Error triggering file picker:', error);
+      setExtractionError('Failed to open file picker. Please check your browser settings.');
+    }
+    } catch (error) {
+      console.error('[Upload] Error in handleUploadDocument:', error);
+      setExtractionError('Failed to open file picker. Please try again.');
+      setUploading(false);
+    }
   };
 
   // Handle document upload completion callback
   const handleDocumentUploadComplete = async (document: any) => {
     // Automatically refresh documents when upload completes
     await fetchDocuments();
+  };
+
+  // Handle document view
+  const handleViewDocument = async (doc: Document) => {
+    try {
+      const response = await apiClient.getCandidateDocumentDownload(doc.id);
+      window.open(response.download_url, '_blank');
+    } catch (error: any) {
+      console.error('Error viewing document:', error);
+      alert(error?.message || 'Failed to view document');
+    }
+  };
+
+  // Handle document download
+  const handleDownloadDocument = async (doc: Document) => {
+    try {
+      const response = await apiClient.getCandidateDocumentDownload(doc.id);
+      const link = document.createElement('a');
+      link.href = response.download_url;
+      link.download = doc.fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error: any) {
+      console.error('Error downloading document:', error);
+      alert(error?.message || 'Failed to download document');
+    }
+  };
+
+  // Handle document delete
+  const handleDeleteDocument = async (doc: Document) => {
+    if (!confirm(`Are you sure you want to delete "${doc.fileName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      console.log('[DeleteDocument] Deleting document:', doc.id, doc.fileName, doc.category);
+      await apiClient.deleteCandidateDocument(doc.id);
+      console.log('[DeleteDocument] Document deleted successfully');
+      
+      // Wait a moment for backend to finish updating flags
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Refresh documents after deletion
+      await fetchDocuments();
+      console.log('[DeleteDocument] Documents refreshed');
+      
+      // Notify parent component to refresh candidate list (to update flags on card)
+      if (onDocumentChange) {
+        console.log('[DeleteDocument] Calling onDocumentChange callback');
+        // Add a small delay to ensure backend has updated flags
+        setTimeout(() => {
+          onDocumentChange();
+        }, 300);
+      } else {
+        console.warn('[DeleteDocument] onDocumentChange callback not provided');
+      }
+    } catch (error: any) {
+      console.error('[DeleteDocument] Error deleting document:', error);
+      alert(error?.message || 'Failed to delete document');
+    }
+  };
+
+  // Handle document reprocess (for stuck "Pending" documents)
+  const handleReprocessDocument = async (doc: Document) => {
+    if (!confirm(`Reprocess verification for "${doc.fileName}"? This will trigger AI verification again.`)) {
+      return;
+    }
+
+    try {
+      console.log('[ReprocessDocument] Reprocessing document:', doc.id, doc.fileName);
+      await apiClient.reprocessCandidateDocument(doc.id);
+      console.log('[ReprocessDocument] Document reprocessing initiated');
+      
+      alert('Document verification reprocessing initiated. Status will update shortly.');
+      
+      // Refresh documents after a delay to see status update
+      setTimeout(async () => {
+        await fetchDocuments();
+      }, 2000);
+    } catch (error: any) {
+      console.error('[ReprocessDocument] Error reprocessing document:', error);
+      alert(error?.message || 'Failed to reprocess document. The AI worker may not be running.');
+    }
   };
 
   const getCategoryIcon = (category: string) => {
@@ -446,6 +700,22 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
               {documents.length > 0 && (
                 <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full text-xs font-medium">
                   {documents.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('missing-data')}
+              className={`py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                activeTab === 'missing-data'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <AlertCircle className="w-4 h-4" />
+              Missing Data
+              {candidate.missing_fields && Array.isArray(candidate.missing_fields) && candidate.missing_fields.length > 0 && (
+                <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                  {candidate.missing_fields.length}
                 </span>
               )}
             </button>
@@ -785,8 +1055,19 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                 </button>
               </div>
             </div>
-          ) : (
+          ) : activeTab === 'documents' ? (
             <div className="p-6 space-y-4">
+              {/* Upload Status */}
+              {uploading && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+                  <Loader className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5 animate-spin" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-800">Uploading Document...</p>
+                    <p className="text-sm text-blue-700 mt-1">Please wait while your file is being uploaded</p>
+                  </div>
+                </div>
+              )}
+
               {/* Auto-Extraction Status */}
               {extractionInProgress && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
@@ -835,15 +1116,15 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                   </button>
                   <button
                     onClick={handleUploadDocument}
-                    disabled={extractionInProgress}
+                    disabled={extractionInProgress || uploading}
                     className={`${
-                      extractionInProgress
+                      extractionInProgress || uploading
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         : 'bg-blue-600 text-white hover:bg-blue-700'
                     } px-4 py-2 rounded-lg transition-colors flex items-center gap-2`}
                   >
-                    <Upload className="w-4 h-4" />
-                    {extractionInProgress ? 'Extracting...' : 'Upload Document'}
+                    <Upload className={`w-4 h-4 ${uploading ? 'animate-pulse' : ''}`} />
+                    {uploading ? 'Uploading...' : extractionInProgress ? 'Extracting...' : 'Upload Document'}
                   </button>
                 </div>
               </div>
@@ -966,15 +1247,34 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
 
                           {/* Action Buttons */}
                           <div className="flex items-center gap-2">
-                            <button className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1.5 text-sm">
+                            <button 
+                              onClick={() => handleViewDocument(doc)}
+                              className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1.5 text-sm"
+                            >
                               <Eye className="w-3.5 h-3.5" />
                               View
                             </button>
-                            <button className="px-3 py-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors flex items-center gap-1.5 text-sm">
+                            <button 
+                              onClick={() => handleDownloadDocument(doc)}
+                              className="px-3 py-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors flex items-center gap-1.5 text-sm"
+                            >
                               <Download className="w-3.5 h-3.5" />
                               Download
                             </button>
-                            <button className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-1.5 text-sm">
+                            {doc.status === 'pending' && (
+                              <button 
+                                onClick={() => handleReprocessDocument(doc)}
+                                className="px-3 py-1.5 bg-yellow-50 text-yellow-600 rounded-lg hover:bg-yellow-100 transition-colors flex items-center gap-1.5 text-sm"
+                                title="Reprocess AI verification"
+                              >
+                                <RefreshCw className="w-3.5 h-3.5" />
+                                Reprocess
+                              </button>
+                            )}
+                            <button 
+                              onClick={() => handleDeleteDocument(doc)}
+                              className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-1.5 text-sm"
+                            >
                               <Trash2 className="w-3.5 h-3.5" />
                               Delete
                             </button>
@@ -1015,7 +1315,234 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                 </div>
               </div>
             </div>
-          )}
+          ) : activeTab === 'documents' ? (
+            <div className="p-6 space-y-4">
+              {/* Auto-Extraction Status */}
+              {extractionInProgress && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+                  <Loader className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5 animate-spin" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-800">Extracting CV Data</p>
+                    <p className="text-sm text-blue-700 mt-1">Processing your CV with AI... This may take a moment.</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Error Message */}
+              {extractionError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-red-800">Extraction Error</p>
+                    <p className="text-sm text-red-700 mt-1">{extractionError}</p>
+                    <button
+                      onClick={() => setExtractionError(null)}
+                      className="text-xs text-red-600 hover:text-red-700 mt-2 underline"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Documents Header */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Candidate Documents</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {documentsLoading ? 'Loading...' : `${documents.length} files uploaded`}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={fetchDocuments}
+                    disabled={documentsLoading}
+                    className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
+                    title="Refresh documents"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${documentsLoading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </button>
+                  <button
+                    onClick={handleUploadDocument}
+                    disabled={extractionInProgress || uploading}
+                    className={`${
+                      extractionInProgress || uploading
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                    } px-4 py-2 rounded-lg transition-colors flex items-center gap-2`}
+                  >
+                    <Upload className={`w-4 h-4 ${uploading ? 'animate-pulse' : ''}`} />
+                    {uploading ? 'Uploading...' : extractionInProgress ? 'Extracting...' : 'Upload Document'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Documents Grid */}
+              {documentsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader className="w-6 h-6 animate-spin text-blue-600" />
+                  <span className="ml-2 text-gray-600">Loading documents...</span>
+                </div>
+              ) : documents.length > 0 ? (
+                <div className="grid grid-cols-1 gap-3">
+                  {documents.map(doc => (
+                    <div
+                      key={doc.id}
+                      className="bg-white border-2 border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all"
+                    >
+                      <div className="flex items-start gap-4">
+                        {/* Icon */}
+                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                          doc.category === 'CV' ? 'bg-blue-100 text-blue-600' :
+                          doc.category === 'Passport' ? 'bg-purple-100 text-purple-600' :
+                          doc.category === 'Certificate' ? 'bg-green-100 text-green-600' :
+                          doc.category === 'Medical' ? 'bg-red-100 text-red-600' :
+                          doc.category === 'Photo' ? 'bg-pink-100 text-pink-600' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>
+                          {getCategoryIcon(doc.category)}
+                        </div>
+
+                        {/* File Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-900 truncate">{doc.fileName}</h4>
+                              <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                                <span>{doc.fileType}</span>
+                                <span>•</span>
+                                <span>{doc.fileSize}</span>
+                                <span>•</span>
+                                <span className={`px-2 py-0.5 rounded-full ${
+                                  doc.category === 'CV' ? 'bg-blue-100 text-blue-700' :
+                                  doc.category === 'Passport' ? 'bg-purple-100 text-purple-700' :
+                                  doc.category === 'Certificate' ? 'bg-green-100 text-green-700' :
+                                  doc.category === 'Medical' ? 'bg-red-100 text-red-700' :
+                                  doc.category === 'Photo' ? 'bg-pink-100 text-pink-700' :
+                                  'bg-gray-100 text-gray-700'
+                                }`}>
+                                  {doc.category}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {/* Status Badge */}
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 flex-shrink-0 ${
+                              doc.status === 'verified' ? 'bg-green-100 text-green-700' :
+                              doc.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                              {doc.status === 'verified' && <CheckCircle className="w-3 h-3" />}
+                              {doc.status === 'expired' && <AlertCircle className="w-3 h-3" />}
+                              {doc.status === 'pending' && <AlertCircle className="w-3 h-3" />}
+                              {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
+                            </span>
+                          </div>
+
+                          {/* Metadata */}
+                          <div className="flex items-center gap-4 text-xs text-gray-600 mb-3">
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              <span>Uploaded {doc.uploadedDate}</span>
+                            </div>
+                            <div>
+                              By {doc.uploadedBy}
+                            </div>
+                            {doc.expiryDate && (
+                              <div className="flex items-center gap-1">
+                                <AlertCircle className="w-3 h-3" />
+                                <span>Expires: {doc.expiryDate}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => handleViewDocument(doc)}
+                              className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1.5 text-sm"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              View
+                            </button>
+                            <button 
+                              onClick={() => handleDownloadDocument(doc)}
+                              className="px-3 py-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors flex items-center gap-1.5 text-sm"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              Download
+                            </button>
+                            {doc.status === 'pending' && (
+                              <button 
+                                onClick={() => handleReprocessDocument(doc)}
+                                className="px-3 py-1.5 bg-yellow-50 text-yellow-600 rounded-lg hover:bg-yellow-100 transition-colors flex items-center gap-1.5 text-sm"
+                                title="Reprocess AI verification"
+                              >
+                                <RefreshCw className="w-3.5 h-3.5" />
+                                Reprocess
+                              </button>
+                            )}
+                            <button 
+                              onClick={() => handleDeleteDocument(doc)}
+                              className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-1.5 text-sm"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-600 mb-4">No documents uploaded yet</p>
+                  <button
+                    onClick={handleUploadDocument}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Upload First Document
+                  </button>
+                </div>
+              )}
+
+              {/* Document Categories Info */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+                <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-blue-600" />
+                  Document Categories
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-700">
+                  <div>📄 CV / Resume</div>
+                  <div>🛂 Passport</div>
+                  <div>📜 Certificates</div>
+                  <div>📝 Contracts</div>
+                  <div>🏥 Medical Reports</div>
+                  <div>📷 Photos</div>
+                  <div>📁 Other Documents</div>
+                </div>
+              </div>
+            </div>
+          ) : activeTab === 'missing-data' ? (
+            <MissingDataTab candidate={candidate} onFieldUpdate={async (field, value) => {
+              try {
+                await apiClient.updateCandidateFieldManually(candidate.id, field, value);
+                // Refresh candidate data
+                const updated = await apiClient.getCandidate(candidate.id);
+                setEditedCandidate(updated);
+                if (onDocumentChange) {
+                  onDocumentChange();
+                }
+              } catch (error: any) {
+                console.error('Error updating field:', error);
+                alert(error?.message || 'Failed to update field');
+              }
+            }} />
+          ) : null}
         </div>
       </div>
 

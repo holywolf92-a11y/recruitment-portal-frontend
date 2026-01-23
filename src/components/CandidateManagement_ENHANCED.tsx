@@ -29,6 +29,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { apiClient, Candidate } from '../lib/apiClient';
+import { useCandidates } from '../lib/candidateContext';
 import { CandidateDetailsModal } from './CandidateDetailsModal';
 
 interface CandidateManagementProps {
@@ -82,9 +83,15 @@ function confidenceScore10(confidence?: Record<string, number>) {
 }
 
 export function CandidateManagement({ initialProfessionFilter = 'all' }: CandidateManagementProps) {
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Use shared candidate context
+  const { 
+    candidates, 
+    loading, 
+    error, 
+    fetchCandidates: fetchCandidatesFromContext,
+    refreshCandidates 
+  } = useCandidates();
+  
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = useState<'Applied' | 'Pending' | 'Deployed' | 'Cancelled'>('Pending');
@@ -106,41 +113,54 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
   const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
   const [documentAction, setDocumentAction] = useState<{ candidateId: string; docType: string } | null>(null);
 
+  // Fetch candidates using context
+  const fetchCandidates = async () => {
+    await fetchCandidatesFromContext({
+      search: filters.search,
+      position: filters.position === 'all' ? undefined : filters.position,
+      country_of_interest: filters.country === 'all' ? undefined : filters.country,
+      status: filters.status === 'all' ? undefined : filters.status,
+    });
+    
+    // Update local filter options from fetched candidates
+    const uniquePositions = Array.from(
+      new Set(candidates.map(c => c.position).filter(Boolean))
+    ).sort() as string[];
+    setPositions(uniquePositions);
+
+    const uniqueCountries = Array.from(
+      new Set(candidates.map((c) => c.country_of_interest).filter(Boolean))
+    ).sort() as string[];
+    setCountries(uniqueCountries);
+
+    const uniqueStatuses = Array.from(
+      new Set(candidates.map((c) => (c.status || 'Applied')).filter(Boolean))
+    ).sort() as string[];
+    setStatuses(uniqueStatuses.length ? uniqueStatuses : ['Applied', 'Pending', 'Deployed', 'Cancelled']);
+  };
+
   useEffect(() => {
-    let isMounted = true;
-    (async () => {
-      try {
-        const response = await apiClient.getCandidates({
-          search: filters.search,
-          position: filters.position,
-          country_of_interest: filters.country,
-          status: filters.status,
-        });
-        if (isMounted) {
-          setCandidates(response.candidates || []);
-          const uniquePositions = Array.from(
-            new Set((response.candidates || []).map(c => c.position).filter(Boolean))
-          ).sort() as string[];
-          setPositions(uniquePositions);
+    fetchCandidates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.search, filters.position, filters.country, filters.status]);
+  
+  // Update filter options when candidates change
+  useEffect(() => {
+    const uniquePositions = Array.from(
+      new Set(candidates.map(c => c.position).filter(Boolean))
+    ).sort() as string[];
+    setPositions(uniquePositions);
 
-          const uniqueCountries = Array.from(
-            new Set((response.candidates || []).map((c) => c.country_of_interest).filter(Boolean))
-          ).sort() as string[];
-          setCountries(uniqueCountries);
+    const uniqueCountries = Array.from(
+      new Set(candidates.map((c) => c.country_of_interest).filter(Boolean))
+    ).sort() as string[];
+    setCountries(uniqueCountries);
 
-          const uniqueStatuses = Array.from(
-            new Set((response.candidates || []).map((c) => (c.status || 'Applied')).filter(Boolean))
-          ).sort() as string[];
-          setStatuses(uniqueStatuses.length ? uniqueStatuses : ['Applied', 'Pending', 'Deployed', 'Cancelled']);
-        }
-      } catch (e: any) {
-        if (isMounted) setError(e?.message || 'Failed to load candidates');
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    })();
-    return () => { isMounted = false; };
-  }, [filters]);
+    const uniqueStatuses = Array.from(
+      new Set(candidates.map((c) => (c.status || 'Applied')).filter(Boolean))
+    ).sort() as string[];
+    setStatuses(uniqueStatuses.length ? uniqueStatuses : ['Applied', 'Pending', 'Deployed', 'Cancelled']);
+  }, [candidates]);
 
   const filteredCandidates = useMemo(() => {
     return candidates.filter(c => {
@@ -209,11 +229,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
       setBulkUpdating(true);
       const ids = Array.from(selectedIds);
       const result = await apiClient.bulkUpdateCandidateStatus(ids, bulkStatus);
-      const updatedIds = new Set((result.candidates || []).map((c) => c.id));
-
-      setCandidates((prev) =>
-        prev.map((c) => (updatedIds.has(c.id) ? { ...c, status: bulkStatus } : c))
-      );
+      // Refresh candidates from context to get updated data
+      await refreshCandidates();
       clearSelection();
     } catch (e: any) {
       alert(e?.message || 'Failed to bulk update status');
@@ -278,9 +295,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
         const result = await apiClient.uploadCandidatePhoto(candidateId, file);
         console.log('Photo upload result:', result);
         
-        // Refresh candidate data
-        const response = await apiClient.getCandidates(filters);
-        setCandidates(response.candidates || []);
+        // Refresh candidates from context
+        await refreshCandidates();
         
         alert('Photo uploaded successfully!');
       } catch (error: any) {
@@ -293,13 +309,40 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
     input.click();
   }
 
-  function handleDocumentClick(candidateId: string, docType: string, hasDocument: boolean) {
+  async function handleDocumentClick(candidateId: string, docType: string, hasDocument: boolean) {
     if (hasDocument) {
       // View/download document
-      viewDocument(candidateId, docType);
+      if (docType === 'cv') {
+        // Use the CV download handler which checks both candidate_documents and inbox_attachments
+        handleDownloadCV(candidates.find(c => c.id === candidateId)!);
+      } else {
+        viewDocument(candidateId, docType);
+      }
     } else {
-      // Upload document
-      uploadDocument(candidateId, docType);
+      // For CV, try to link existing CV from inbox first
+      if (docType === 'cv') {
+        try {
+          const response = await apiClient.linkCandidateCV(candidateId);
+          alert('CV linked successfully from inbox!');
+          // Refresh candidates from context
+          await refreshCandidates();
+        } catch (error: any) {
+          // If no CV in inbox, offer to upload
+          if (error?.message?.includes('404') || error?.message?.includes('not found')) {
+            if (confirm('No CV found in inbox. Would you like to upload a new CV?')) {
+              uploadDocument(candidateId, docType);
+            }
+          } else {
+            alert(error?.message || 'Failed to link CV. Would you like to upload a new one?');
+            if (confirm('Upload a new CV?')) {
+              uploadDocument(candidateId, docType);
+            }
+          }
+        }
+      } else {
+        // Upload document for other types
+        uploadDocument(candidateId, docType);
+      }
     }
   }
 
@@ -331,9 +374,50 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
       try {
         await apiClient.uploadDocument(file, candidateId, docType, false);
         
-        // Refresh candidate data
-        const response = await apiClient.getCandidates(filters);
-        setCandidates(response.candidates || []);
+        // Wait for backend flag updates to complete (updateDocumentFlagsController is called after upload)
+        // The backend now calls updateDocumentFlagsController after upload, so give it time to update the database
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Refresh candidates from context to get updated flags
+        await refreshCandidates();
+        
+        // For AI-verified documents (passport, etc.), AI verification happens asynchronously
+        // Poll for verification completion (up to 30 seconds)
+        if (docType === 'passport' || docType === 'certificate' || docType === 'medical') {
+          let attempts = 0;
+          const maxAttempts = 15; // 15 attempts * 2 seconds = 30 seconds max
+          
+          while (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            await refreshCandidates();
+            
+            // Get fresh candidate data after refresh
+            const freshCandidates = await apiClient.getCandidates({});
+            const updatedCandidate = freshCandidates.candidates.find(c => c.id === candidateId);
+            
+            if (updatedCandidate) {
+              // If passport was uploaded, check if passport_received is true
+              if (docType === 'passport' && updatedCandidate.passport_received) {
+                // Final refresh to update UI
+                await refreshCandidates();
+                break; // Document flags updated, stop polling
+              }
+              if (docType === 'certificate' && updatedCandidate.certificate_received) {
+                await refreshCandidates();
+                break;
+              }
+              if (docType === 'medical' && updatedCandidate.medical_received) {
+                await refreshCandidates();
+                break;
+              }
+            }
+            
+            attempts++;
+          }
+          
+          // Final refresh after polling completes
+          await refreshCandidates();
+        }
         
         alert(`${docType} uploaded successfully!`);
       } catch (error: any) {
@@ -752,125 +836,90 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                         <div 
                           onClick={() => handleDocumentClick(c.id, 'cv', cvOk)}
                           className={`relative group cursor-pointer ${
-                            cvOk ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
-                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md`}
+                            cvOk ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
+                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md hover:scale-105`}
                         >
                           <FileText className={`w-5 h-5 mb-1 ${
-                            cvOk ? 'text-green-600' : 'text-gray-400'
+                            cvOk ? 'text-green-600' : 'text-red-600'
                           }`} />
-                          <span className="text-xs font-medium text-gray-700">CV</span>
+                          <span className="text-xs font-semibold">CV</span>
                           {cvOk ? (
-                            <CheckCircle className="w-3 h-3 text-green-600 absolute top-1 right-1" />
+                            <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
                           ) : (
-                            <XCircle className="w-3 h-3 text-red-400 absolute top-1 right-1" />
+                            <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
                           )}
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all rounded-lg flex items-center justify-center">
-                            {cvOk ? (
-                              <Eye className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                            ) : (
-                              <Upload className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                            )}
-                          </div>
                         </div>
 
                         {/* Passport */}
                         <div 
                           onClick={() => handleDocumentClick(c.id, 'passport', passportOk)}
                           className={`relative group cursor-pointer ${
-                            passportOk ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
-                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md`}
+                            passportOk ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
+                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md hover:scale-105`}
                         >
                           <File className={`w-5 h-5 mb-1 ${
-                            passportOk ? 'text-purple-600' : 'text-gray-400'
+                            passportOk ? 'text-purple-600' : 'text-red-600'
                           }`} />
-                          <span className="text-xs font-medium text-gray-700">Passport</span>
+                          <span className="text-xs font-semibold">Passport</span>
                           {passportOk ? (
-                            <CheckCircle className="w-3 h-3 text-green-600 absolute top-1 right-1" />
+                            <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
                           ) : (
-                            <XCircle className="w-3 h-3 text-red-400 absolute top-1 right-1" />
+                            <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
                           )}
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all rounded-lg flex items-center justify-center">
-                            {passportOk ? (
-                              <Eye className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                            ) : (
-                              <Upload className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                            )}
-                          </div>
                         </div>
 
                         {/* Certificate */}
                         <div 
                           onClick={() => handleDocumentClick(c.id, 'certificate', certificateOk)}
                           className={`relative group cursor-pointer ${
-                            certificateOk ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
-                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md`}
+                            certificateOk ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
+                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md hover:scale-105`}
                         >
                           <Award className={`w-5 h-5 mb-1 ${
-                            certificateOk ? 'text-blue-600' : 'text-gray-400'
+                            certificateOk ? 'text-blue-600' : 'text-red-600'
                           }`} />
-                          <span className="text-xs font-medium text-gray-700">Cert</span>
+                          <span className="text-xs font-semibold">Cert</span>
                           {certificateOk ? (
-                            <CheckCircle className="w-3 h-3 text-green-600 absolute top-1 right-1" />
+                            <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
                           ) : (
-                            <XCircle className="w-3 h-3 text-red-400 absolute top-1 right-1" />
+                            <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
                           )}
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all rounded-lg flex items-center justify-center">
-                            {certificateOk ? (
-                              <Eye className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                            ) : (
-                              <Upload className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                            )}
-                          </div>
                         </div>
 
                         {/* Photo */}
                         <div 
                           onClick={() => handleDocumentClick(c.id, 'photo', photoOk)}
                           className={`relative group cursor-pointer ${
-                            photoOk ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
-                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md`}
+                            photoOk ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
+                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md hover:scale-105`}
                         >
                           <Image className={`w-5 h-5 mb-1 ${
-                            photoOk ? 'text-pink-600' : 'text-gray-400'
+                            photoOk ? 'text-pink-600' : 'text-red-600'
                           }`} />
-                          <span className="text-xs font-medium text-gray-700">Photo</span>
+                          <span className="text-xs font-semibold">Photo</span>
                           {photoOk ? (
-                            <CheckCircle className="w-3 h-3 text-green-600 absolute top-1 right-1" />
+                            <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
                           ) : (
-                            <XCircle className="w-3 h-3 text-red-400 absolute top-1 right-1" />
+                            <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
                           )}
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all rounded-lg flex items-center justify-center">
-                            {photoOk ? (
-                              <Eye className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                            ) : (
-                              <Upload className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                            )}
-                          </div>
                         </div>
 
                         {/* Medical */}
                         <div 
                           onClick={() => handleDocumentClick(c.id, 'medical', medicalOk)}
                           className={`relative group cursor-pointer ${
-                            medicalOk ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
-                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md`}
+                            medicalOk ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
+                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md hover:scale-105`}
                         >
                           <File className={`w-5 h-5 mb-1 ${
-                            medicalOk ? 'text-green-600' : 'text-gray-400'
+                            medicalOk ? 'text-green-600' : 'text-red-600'
                           }`} />
-                          <span className="text-xs font-medium text-gray-700">Medical</span>
+                          <span className="text-xs font-semibold">Medical</span>
                           {medicalOk ? (
-                            <CheckCircle className="w-3 h-3 text-green-600 absolute top-1 right-1" />
+                            <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
                           ) : (
-                            <XCircle className="w-3 h-3 text-red-400 absolute top-1 right-1" />
+                            <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
                           )}
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all rounded-lg flex items-center justify-center">
-                            {medicalOk ? (
-                              <Eye className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                            ) : (
-                              <Upload className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                            )}
-                          </div>
                         </div>
                           </div>
 
@@ -935,7 +984,11 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
           onClose={() => {
             setShowDetailsModal(false);
             setSelectedCandidate(null);
-          }} 
+          }}
+          onDocumentChange={() => {
+            // Refresh candidates from context to update document flags on cards
+            refreshCandidates();
+          }}
         />
       )}
     </div>
