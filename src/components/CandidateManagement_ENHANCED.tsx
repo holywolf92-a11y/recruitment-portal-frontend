@@ -190,7 +190,13 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
   // Check for documents being processed when candidates load
   useEffect(() => {
     const checkProcessingDocuments = async () => {
-      for (const candidate of candidates) {
+      // Only check candidates that don't already have processing state
+      const candidatesToCheck = candidates.filter(c => !processingDocuments.get(c.id)?.isProcessing);
+      
+      if (candidatesToCheck.length === 0) return;
+      
+      // Check in batches to avoid overwhelming the API
+      for (const candidate of candidatesToCheck.slice(0, 10)) { // Limit to 10 at a time
         try {
           const documents = await apiClient.listCandidateDocumentsNew(candidate.id);
           const pendingDocs = documents.filter((doc: any) => 
@@ -200,7 +206,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
             doc.status === 'processing'
           );
           
-          if (pendingDocs.length > 0 && !processingDocuments.get(candidate.id)?.isProcessing) {
+          if (pendingDocs.length > 0) {
             // Start polling for this candidate
             startDocumentPolling(candidate.id);
           }
@@ -212,9 +218,11 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
     };
     
     if (candidates.length > 0) {
-      checkProcessingDocuments();
+      // Debounce the check slightly to avoid checking on every render
+      const timeoutId = setTimeout(checkProcessingDocuments, 1000);
+      return () => clearTimeout(timeoutId);
     }
-  }, [candidates.length]); // Only check when candidate count changes
+  }, [candidates.map(c => c.id).join(',')]); // Only re-check when candidate IDs change
 
   // Fetch candidates on mount and when filters change
   useEffect(() => {
