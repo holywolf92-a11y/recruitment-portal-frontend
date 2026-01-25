@@ -530,17 +530,30 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
   }
 
   function uploadDocument(candidateId: string, docType: string) {
+    // Start processing state IMMEDIATELY before file picker opens
+    // This ensures UI updates right away
+    startDocumentPolling(candidateId);
+    
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = docType === 'photo' ? 'image/*' : '.pdf,.jpg,.jpeg,.png,.doc,.docx';
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
+      if (!file) {
+        // User cancelled - stop processing state
+        if (pollingIntervalsRef.current.has(candidateId)) {
+          clearInterval(pollingIntervalsRef.current.get(candidateId)!);
+          pollingIntervalsRef.current.delete(candidateId);
+        }
+        setProcessingDocuments(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(candidateId);
+          return newMap;
+        });
+        return;
+      }
 
       try {
-        // Start processing state immediately
-        startDocumentPolling(candidateId);
-        
         await apiClient.uploadDocument(file, candidateId, docType, false);
         
         // Wait for backend flag updates to complete
