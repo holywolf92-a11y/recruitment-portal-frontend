@@ -254,6 +254,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
         startTime: Date.now(),
         lastUpdate: Date.now(),
       });
+      console.log('[DocumentPolling] Started processing for candidate:', candidateId, 'State:', newMap.get(candidateId));
       return newMap;
     });
 
