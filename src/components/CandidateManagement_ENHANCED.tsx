@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import {
   AlertTriangle,
   AlertCircle,
@@ -28,7 +28,9 @@ import {
   Upload,
   X,
   XCircle,
+  Loader2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { apiClient, Candidate } from '../lib/apiClient';
 import { useCandidates } from '../lib/candidateContext';
 import { CandidateDetailsModal } from './CandidateDetailsModal';
@@ -83,6 +85,41 @@ function confidenceScore10(confidence?: Record<string, number>) {
   return Math.round(score * 10) / 10;
 }
 
+// Premium Shimmer Skeleton Component
+function DocumentSkeletonCard({ delay = 0 }: { delay?: number }) {
+  return (
+    <div
+      className="relative overflow-hidden bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100 border-2 border-gray-200 rounded-lg p-2 flex flex-col items-center justify-center h-16"
+      style={{
+        animationDelay: `${delay}ms`,
+      }}
+    >
+      {/* Shimmer effect overlay */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent transform -skew-x-12 animate-shimmer" />
+      
+      {/* Icon placeholder */}
+      <div className="w-5 h-5 bg-gray-300 rounded mb-1 relative z-10 animate-pulse" />
+      
+      {/* Text placeholder */}
+      <div className="w-12 h-3 bg-gray-300 rounded relative z-10 animate-pulse" />
+      
+      {/* Badge placeholder */}
+      <div className="absolute top-1 right-1 w-4 h-4 bg-gray-300 rounded-full relative z-10 animate-pulse" />
+    </div>
+  );
+}
+
+// Progress Dots Component
+function ProgressDots() {
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1.4s' }} />
+      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '200ms', animationDuration: '1.4s' }} />
+      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '400ms', animationDuration: '1.4s' }} />
+    </div>
+  );
+}
+
 export function CandidateManagement({ initialProfessionFilter = 'all' }: CandidateManagementProps) {
   // Use shared candidate context
   const { 
@@ -113,6 +150,16 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
   const [detailsInitialTab, setDetailsInitialTab] = useState<'details' | 'documents'>('details');
   const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
   const [documentAction, setDocumentAction] = useState<{ candidateId: string; docType: string } | null>(null);
+  
+  // Document processing states
+  const [processingDocuments, setProcessingDocuments] = useState<Map<string, {
+    isProcessing: boolean;
+    documentCount: number;
+    startTime: number;
+    lastUpdate: number;
+  }>>(new Map());
+  
+  const pollingIntervalsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   // Fetch candidates using context
   const fetchCandidates = async () => {
@@ -140,10 +187,122 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
     setStatuses(uniqueStatuses.length ? uniqueStatuses : ['Applied', 'Pending', 'Deployed', 'Cancelled']);
   };
 
+  // Cleanup polling intervals on unmount
   useEffect(() => {
-    fetchCandidates();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.search, filters.position, filters.country, filters.status]);
+    return () => {
+      pollingIntervalsRef.current.forEach(interval => clearInterval(interval));
+      pollingIntervalsRef.current.clear();
+    };
+  }, []);
+
+  // Start document processing polling for a candidate
+  const startDocumentPolling = (candidateId: string) => {
+    // Clear existing interval if any
+    if (pollingIntervalsRef.current.has(candidateId)) {
+      clearInterval(pollingIntervalsRef.current.get(candidateId)!);
+    }
+
+    // Set initial processing state
+    setProcessingDocuments(prev => {
+      const newMap = new Map(prev);
+      newMap.set(candidateId, {
+        isProcessing: true,
+        documentCount: 0,
+        startTime: Date.now(),
+        lastUpdate: Date.now(),
+      });
+      return newMap;
+    });
+
+    // Show initial toast
+    toast.info('Document processing started', {
+      description: 'Extracting documents... This may take 30-60 seconds',
+      duration: 4000,
+    });
+
+    let lastDocumentCount = 0;
+    let pollCount = 0;
+    const maxPolls = 30; // 30 polls * 2 seconds = 60 seconds max
+    const pollInterval = 2000; // 2 seconds
+
+    const interval = setInterval(async () => {
+      pollCount++;
+      
+      try {
+        // Fetch current documents for this candidate
+        const documents = await apiClient.listCandidateDocumentsNew(candidateId);
+        const currentCount = documents.length;
+
+        // Update processing state
+        setProcessingDocuments(prev => {
+          const newMap = new Map(prev);
+          const current = newMap.get(candidateId);
+          if (current) {
+            newMap.set(candidateId, {
+              ...current,
+              documentCount: currentCount,
+              lastUpdate: Date.now(),
+            });
+          }
+          return newMap;
+        });
+
+        // Show toast when new documents are found
+        if (currentCount > lastDocumentCount) {
+          const newDocs = currentCount - lastDocumentCount;
+          toast.success(`Found ${newDocs} document${newDocs > 1 ? 's' : ''}`, {
+            description: `Total: ${currentCount} document${currentCount > 1 ? 's' : ''} extracted`,
+            duration: 3000,
+          });
+          lastDocumentCount = currentCount;
+        }
+
+        // Refresh candidates to update flags
+        await refreshCandidates();
+
+        // Check if processing is complete (no new documents for 3 consecutive polls)
+        if (pollCount >= maxPolls) {
+          // Timeout reached
+          clearInterval(interval);
+          pollingIntervalsRef.current.delete(candidateId);
+          
+          setProcessingDocuments(prev => {
+            const newMap = new Map(prev);
+            newMap.delete(candidateId);
+            return newMap;
+          });
+
+          toast.success('Document extraction complete', {
+            description: `Found ${currentCount} document${currentCount > 1 ? 's' : ''}`,
+            duration: 4000,
+          });
+        } else if (pollCount > 3 && currentCount === lastDocumentCount && currentCount > 0) {
+          // No new documents for 3 polls and we have at least one document
+          // Likely complete, but continue polling a bit more
+          if (pollCount > 10) {
+            clearInterval(interval);
+            pollingIntervalsRef.current.delete(candidateId);
+            
+            setProcessingDocuments(prev => {
+              const newMap = new Map(prev);
+              newMap.delete(candidateId);
+              return newMap;
+            });
+
+            toast.success('Document extraction complete', {
+              description: `Found ${currentCount} document${currentCount > 1 ? 's' : ''}`,
+              duration: 4000,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error polling documents:', error);
+        // Continue polling despite errors
+      }
+    }, pollInterval);
+
+    pollingIntervalsRef.current.set(candidateId, interval);
+  };
   
   // Update filter options when candidates change
   useEffect(() => {
@@ -373,68 +532,47 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
       if (!file) return;
 
       try {
+        // Start processing state immediately
+        startDocumentPolling(candidateId);
+        
         await apiClient.uploadDocument(file, candidateId, docType, false);
         
-        // Wait for backend flag updates to complete (updateDocumentFlagsController is called after upload)
-        // The backend now calls updateDocumentFlagsController after upload, so give it time to update the database
+        // Wait for backend flag updates to complete
         await new Promise(resolve => setTimeout(resolve, 2000));
         
         // Refresh candidates from context to get updated flags
         await refreshCandidates();
         
-        // For AI-verified documents (passport, etc.), AI verification happens asynchronously
-        // Poll for verification completion (up to 30 seconds)
-        if (docType === 'passport' || docType === 'certificate' || docType === 'medical') {
-          let attempts = 0;
-          const maxAttempts = 15; // 15 attempts * 2 seconds = 30 seconds max
-          
-          while (attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            await refreshCandidates();
-            
-            // Get fresh candidate data after refresh
-            const freshCandidates = await apiClient.getCandidates({});
-            const updatedCandidate = freshCandidates.candidates.find(c => c.id === candidateId);
-            
-            if (updatedCandidate) {
-              // If passport was uploaded, check if passport_received is true
-              if (docType === 'passport' && updatedCandidate.passport_received) {
-                // Final refresh to update UI
-                await refreshCandidates();
-                break; // Document flags updated, stop polling
-              }
-              if (docType === 'cnic' && updatedCandidate.cnic_received) {
-                await refreshCandidates();
-                break;
-              }
-              if (docType === 'driving_license' && updatedCandidate.driving_license_received) {
-                await refreshCandidates();
-                break;
-              }
-              if (docType === 'police_character_certificate' && updatedCandidate.police_character_received) {
-                await refreshCandidates();
-                break;
-              }
-              if (docType === 'certificate' && updatedCandidate.certificate_received) {
-                await refreshCandidates();
-                break;
-              }
-              if (docType === 'medical' && updatedCandidate.medical_received) {
-                await refreshCandidates();
-                break;
-              }
-            }
-            
-            attempts++;
-          }
-          
-          // Final refresh after polling completes
+        // For split-and-categorize flow (PDFs), documents are processed asynchronously
+        // The polling mechanism will handle updates
+        
+        // For single document uploads, check flag updates
+        if (docType !== 'cv' && docType !== 'passport' && docType !== 'cnic' && docType !== 'driving_license' && docType !== 'police_character_certificate') {
+          // Simple document uploads - just wait a bit and refresh
+          await new Promise(resolve => setTimeout(resolve, 3000));
           await refreshCandidates();
         }
         
-        alert(`${docType} uploaded successfully!`);
+        toast.success(`${docType} uploaded successfully!`, {
+          description: 'Document is being processed...',
+          duration: 3000,
+        });
       } catch (error: any) {
-        alert(error?.message || `Failed to upload ${docType}`);
+        // Stop processing on error
+        if (pollingIntervalsRef.current.has(candidateId)) {
+          clearInterval(pollingIntervalsRef.current.get(candidateId)!);
+          pollingIntervalsRef.current.delete(candidateId);
+        }
+        setProcessingDocuments(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(candidateId);
+          return newMap;
+        });
+        
+        toast.error(`Failed to upload ${docType}`, {
+          description: error?.message || 'Unknown error occurred',
+          duration: 4000,
+        });
       }
     };
     input.click();
@@ -829,13 +967,20 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                         <div className="flex items-center gap-2">
                           <FileText className="w-4 h-4 text-gray-600" />
                           <span className="text-sm font-semibold text-gray-700">Document List</span>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                            docCount === 0 ? 'bg-red-100 text-red-700' :
-                            allDocsOk ? 'bg-green-100 text-green-700' :
-                            'bg-yellow-100 text-yellow-700'
-                          }`}>
-                            {docCount} files
-                          </span>
+                          {processingDocuments.get(c.id)?.isProcessing ? (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 flex items-center gap-1.5">
+                              <ProgressDots />
+                              <span>Processing...</span>
+                            </span>
+                          ) : (
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              docCount === 0 ? 'bg-red-100 text-red-700' :
+                              allDocsOk ? 'bg-green-100 text-green-700' :
+                              'bg-yellow-100 text-yellow-700'
+                            }`}>
+                              {docCount} files
+                            </span>
+                          )}
                         </div>
                         <button
                           onClick={() => handleViewAllDocuments(c)}
@@ -845,7 +990,29 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                         </button>
                       </div>
 
-                      {docCount > 0 ? (
+                      {processingDocuments.get(c.id)?.isProcessing ? (
+                        // Premium Loading State with Shimmer Skeletons
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 text-xs text-blue-600 mb-2">
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            <span className="font-medium">
+                              {processingDocuments.get(c.id)?.documentCount 
+                                ? `Found ${processingDocuments.get(c.id)?.documentCount} document${(processingDocuments.get(c.id)?.documentCount || 0) > 1 ? 's' : ''}...`
+                                : 'Extracting documents...'}
+                            </span>
+                            <span className="text-gray-500">Usually takes 30-60 seconds</span>
+                          </div>
+                          <div className="grid grid-cols-4 gap-2">
+                            <DocumentSkeletonCard delay={0} />
+                            <DocumentSkeletonCard delay={100} />
+                            <DocumentSkeletonCard delay={200} />
+                            <DocumentSkeletonCard delay={300} />
+                          </div>
+                          <div className="mt-2 text-xs text-gray-500 text-center">
+                            Please wait while we process your documents...
+                          </div>
+                        </div>
+                      ) : docCount > 0 ? (
                         <>
                           <div className="grid grid-cols-4 gap-2">
                         {/* CV */}
@@ -853,7 +1020,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                           onClick={() => handleDocumentClick(c.id, 'cv', cvOk)}
                           className={`relative group cursor-pointer ${
                             cvOk ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
-                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md hover:scale-105`}
+                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md hover:scale-105 animate-fade-in`}
                         >
                           <FileText className={`w-5 h-5 mb-1 ${
                             cvOk ? 'text-green-600' : 'text-red-600'

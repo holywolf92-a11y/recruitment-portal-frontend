@@ -19,6 +19,7 @@ import { CandidateProvider } from './lib/candidateContext';
 import { hasPermission } from './lib/authData';
 import { apiClient } from './lib/apiClient';
 import { APP_CONFIG } from './lib/constants';
+import { Toaster } from './components/ui/sonner';
 import { Users, Briefcase, Building2, FileText, Settings as SettingsIcon, LayoutDashboard, Link2, Inbox, MessageSquare, FolderTree, ArrowLeft, LogOut, Shield, ChevronDown, Mail, Phone } from 'lucide-react';
 
 const AppContent = () => {
@@ -446,6 +447,7 @@ const AppContent = () => {
           </div>
         </main>
       </div>
+      <Toaster position="top-right" richColors closeButton />
     </div>
   );
 };
