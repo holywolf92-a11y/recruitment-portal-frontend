@@ -187,6 +187,35 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
     setStatuses(uniqueStatuses.length ? uniqueStatuses : ['Applied', 'Pending', 'Deployed', 'Cancelled']);
   };
 
+  // Check for documents being processed when candidates load
+  useEffect(() => {
+    const checkProcessingDocuments = async () => {
+      for (const candidate of candidates) {
+        try {
+          const documents = await apiClient.listCandidateDocumentsNew(candidate.id);
+          const pendingDocs = documents.filter((doc: any) => 
+            doc.verification_status === 'pending' || 
+            doc.verification_status === 'processing' ||
+            doc.status === 'pending' ||
+            doc.status === 'processing'
+          );
+          
+          if (pendingDocs.length > 0 && !processingDocuments.get(candidate.id)?.isProcessing) {
+            // Start polling for this candidate
+            startDocumentPolling(candidate.id);
+          }
+        } catch (error) {
+          // Silently fail - don't spam errors
+          console.debug('Error checking documents for', candidate.id, error);
+        }
+      }
+    };
+    
+    if (candidates.length > 0) {
+      checkProcessingDocuments();
+    }
+  }, [candidates.length]); // Only check when candidate count changes
+
   // Fetch candidates on mount and when filters change
   useEffect(() => {
     fetchCandidates();
