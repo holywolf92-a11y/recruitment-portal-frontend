@@ -22,6 +22,7 @@ import {
   Search,
   Send,
   Share2,
+  Shield,
   Sparkles,
   Star,
   Upload,
@@ -402,6 +403,18 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                 await refreshCandidates();
                 break; // Document flags updated, stop polling
               }
+              if (docType === 'cnic' && updatedCandidate.cnic_received) {
+                await refreshCandidates();
+                break;
+              }
+              if (docType === 'driving_license' && updatedCandidate.driving_license_received) {
+                await refreshCandidates();
+                break;
+              }
+              if (docType === 'police_character_certificate' && updatedCandidate.police_character_received) {
+                await refreshCandidates();
+                break;
+              }
               if (docType === 'certificate' && updatedCandidate.certificate_received) {
                 await refreshCandidates();
                 break;
@@ -626,11 +639,14 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
 
               const cvOk = !!c.cv_received;
               const passportOk = !!c.passport_received;
+              const cnicOk = !!c.cnic_received;
+              const drivingLicenseOk = !!c.driving_license_received;
+              const policeCharacterOk = !!c.police_character_received;
               const certificateOk = !!c.certificate_received || !!c.degree_received;
               const photoOk = !!c.photo_received;
               const medicalOk = !!c.medical_received;
-              const docCount = [cvOk, passportOk, certificateOk, photoOk, medicalOk].filter(Boolean).length;
-              const allDocsOk = docCount === 5;
+              const docCount = [cvOk, passportOk, cnicOk, drivingLicenseOk, policeCharacterOk, certificateOk, photoOk, medicalOk].filter(Boolean).length;
+              const allDocsOk = docCount === 8;
 
               return (
                 <div
@@ -831,7 +847,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
 
                       {docCount > 0 ? (
                         <>
-                          <div className="grid grid-cols-5 gap-2">
+                          <div className="grid grid-cols-4 gap-2">
                         {/* CV */}
                         <div 
                           onClick={() => handleDocumentClick(c.id, 'cv', cvOk)}
@@ -862,6 +878,60 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                           }`} />
                           <span className="text-xs font-semibold">Passport</span>
                           {passportOk ? (
+                            <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
+                          ) : (
+                            <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
+                          )}
+                        </div>
+
+                        {/* CNIC */}
+                        <div 
+                          onClick={() => handleDocumentClick(c.id, 'cnic', cnicOk)}
+                          className={`relative group cursor-pointer ${
+                            cnicOk ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
+                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md hover:scale-105`}
+                        >
+                          <Shield className={`w-5 h-5 mb-1 ${
+                            cnicOk ? 'text-indigo-600' : 'text-red-600'
+                          }`} />
+                          <span className="text-xs font-semibold">CNIC</span>
+                          {cnicOk ? (
+                            <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
+                          ) : (
+                            <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
+                          )}
+                        </div>
+
+                        {/* Driving License */}
+                        <div 
+                          onClick={() => handleDocumentClick(c.id, 'driving_license', drivingLicenseOk)}
+                          className={`relative group cursor-pointer ${
+                            drivingLicenseOk ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
+                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md hover:scale-105`}
+                        >
+                          <Shield className={`w-5 h-5 mb-1 ${
+                            drivingLicenseOk ? 'text-cyan-600' : 'text-red-600'
+                          }`} />
+                          <span className="text-xs font-semibold">License</span>
+                          {drivingLicenseOk ? (
+                            <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
+                          ) : (
+                            <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
+                          )}
+                        </div>
+
+                        {/* Police Character Certificate */}
+                        <div 
+                          onClick={() => handleDocumentClick(c.id, 'police_character_certificate', policeCharacterOk)}
+                          className={`relative group cursor-pointer ${
+                            policeCharacterOk ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
+                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md hover:scale-105`}
+                        >
+                          <Shield className={`w-5 h-5 mb-1 ${
+                            policeCharacterOk ? 'text-teal-600' : 'text-red-600'
+                          }`} />
+                          <span className="text-xs font-semibold">PCC</span>
+                          {policeCharacterOk ? (
                             <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
                           ) : (
                             <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />

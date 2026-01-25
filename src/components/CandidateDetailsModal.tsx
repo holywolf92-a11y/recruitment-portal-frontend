@@ -1002,6 +1002,39 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                       <p className="text-sm">{candidate.passport_received ? 'Received' : 'Not Received'}</p>
                     </div>
                   </div>
+                  <div className="flex items-start gap-3">
+                    {candidate.cnic_received ? (
+                      <CheckCircle className="w-5 h-5 text-green-500 mt-1" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-red-500 mt-1" />
+                    )}
+                    <div>
+                      <p className="text-sm text-gray-600">CNIC Status</p>
+                      <p className="text-sm">{candidate.cnic_received ? 'Received' : 'Not Received'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    {candidate.driving_license_received ? (
+                      <CheckCircle className="w-5 h-5 text-green-500 mt-1" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-red-500 mt-1" />
+                    )}
+                    <div>
+                      <p className="text-sm text-gray-600">Driving License Status</p>
+                      <p className="text-sm">{candidate.driving_license_received ? 'Received' : 'Not Received'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    {candidate.police_character_received ? (
+                      <CheckCircle className="w-5 h-5 text-green-500 mt-1" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-red-500 mt-1" />
+                    )}
+                    <div>
+                      <p className="text-sm text-gray-600">Police Character Certificate Status</p>
+                      <p className="text-sm">{candidate.police_character_received ? 'Received' : 'Not Received'}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1142,6 +1175,9 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                       <p className="text-sm">
                         <strong>Recommendation:</strong> Highly suitable for {candidate.country_of_interest} market.
                         {candidate.passport_received ? ' Passport ready - can deploy quickly.' : ' Passport needed - estimated 2-3 weeks.'}
+                        {candidate.cnic_received ? ' CNIC ready.' : ' CNIC needed.'}
+                        {candidate.driving_license_received ? ' Driving License ready.' : ' Driving License needed (if required).'}
+                        {candidate.police_character_received ? ' Police Character Certificate ready.' : ' Police Character Certificate needed (if required).'}
                       </p>
                     )}
                     {candidate.ai_score && (

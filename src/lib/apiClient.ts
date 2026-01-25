@@ -171,6 +171,10 @@ export interface Candidate {
   passport_received_at?: string;
   cnic_received?: boolean;
   cnic_received_at?: string;
+  driving_license_received?: boolean;
+  driving_license_received_at?: string;
+  police_character_received?: boolean;
+  police_character_received_at?: string;
   degree_received?: boolean;
   degree_received_at?: string;
   medical_received?: boolean;

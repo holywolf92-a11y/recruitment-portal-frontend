@@ -10,6 +10,9 @@ interface DocumentUploadVerificationProps {
 const DOCUMENT_CATEGORIES = {
   cv_resume: { label: 'CV / Resume', icon: FileText, color: 'blue' },
   passport: { label: 'Passport', icon: Shield, color: 'purple' },
+  cnic: { label: 'CNIC (National ID)', icon: Shield, color: 'indigo' },
+  driving_license: { label: 'Driving License', icon: Shield, color: 'cyan' },
+  police_character_certificate: { label: 'Police Character Certificate', icon: Shield, color: 'teal' },
   certificates: { label: 'Certificates', icon: Award, color: 'green' },
   contracts: { label: 'Contracts', icon: Briefcase, color: 'orange' },
   medical_reports: { label: 'Medical Reports', icon: Heart, color: 'red' },
