@@ -187,6 +187,12 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
     setStatuses(uniqueStatuses.length ? uniqueStatuses : ['Applied', 'Pending', 'Deployed', 'Cancelled']);
   };
 
+  // Fetch candidates on mount and when filters change
+  useEffect(() => {
+    fetchCandidates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.search, filters.position, filters.country, filters.status]);
+
   // Cleanup polling intervals on unmount
   useEffect(() => {
     return () => {
