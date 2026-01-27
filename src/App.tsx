@@ -104,12 +104,6 @@ const AppContent = () => {
     }
   };
 
-  // Check if we should show the public form based on URL (before auth check)
-  if (typeof window !== 'undefined' && window.location.pathname === '/apply') {
-    return <PublicApplicationForm />;
-  }
-
-
   // Show loading spinner while checking auth
   if (loading) {
     return (
