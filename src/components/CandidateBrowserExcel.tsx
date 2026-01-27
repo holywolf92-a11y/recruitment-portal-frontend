@@ -113,16 +113,22 @@ function parseLanguageLevel(languages?: string, targetLang: 'english' | 'arabic'
   return 'missing';
 }
 
-// Helper function to generate profile link
+// Helper function to generate profile link (uses current frontend URL)
 function generateProfileLink(candidate: Candidate): string {
   const slug = candidate.name.toLowerCase().replace(/\s+/g, '-');
-  return `https://falisha.com/profile/${candidate.id}/${slug}`;
+  const baseUrl = typeof window !== 'undefined' 
+    ? window.location.origin 
+    : 'https://exquisite-surprise-production.up.railway.app';
+  return `${baseUrl}/profile/${candidate.id}/${slug}`;
 }
 
-// Helper function to generate CV share link
+// Helper function to generate CV share link (uses current frontend URL)
 function generateCVShareLink(candidate: Candidate): string {
   const slug = candidate.name.toLowerCase().replace(/\s+/g, '-');
-  return `https://falisha.com/cv/${candidate.id}/${slug}`;
+  const baseUrl = typeof window !== 'undefined' 
+    ? window.location.origin 
+    : 'https://exquisite-surprise-production.up.railway.app';
+  return `${baseUrl}/cv/${candidate.id}/${slug}`;
 }
 
 // Helper function to copy to clipboard

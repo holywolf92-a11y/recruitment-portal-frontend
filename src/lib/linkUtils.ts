@@ -1,15 +1,21 @@
 import { Candidate } from './mockData';
 
-// Generate unique profile link for candidate
+// Generate unique profile link for candidate (uses current frontend URL)
 export function generateProfileLink(candidate: Candidate): string {
   const slug = candidate.name.toLowerCase().replace(/\s+/g, '-');
-  return `https://falisha.com/profile/${candidate.id}/${slug}`;
+  const baseUrl = typeof window !== 'undefined' 
+    ? window.location.origin 
+    : 'https://exquisite-surprise-production.up.railway.app';
+  return `${baseUrl}/profile/${candidate.id}/${slug}`;
 }
 
-// Generate shareable recruiter CV link
+// Generate shareable recruiter CV link (uses current frontend URL)
 export function generateCVShareLink(candidate: Candidate): string {
   const slug = candidate.name.toLowerCase().replace(/\s+/g, '-');
-  return `https://falisha.com/cv/${candidate.id}/${slug}`;
+  const baseUrl = typeof window !== 'undefined' 
+    ? window.location.origin 
+    : 'https://exquisite-surprise-production.up.railway.app';
+  return `${baseUrl}/cv/${candidate.id}/${slug}`;
 }
 
 // Copy to clipboard helper
