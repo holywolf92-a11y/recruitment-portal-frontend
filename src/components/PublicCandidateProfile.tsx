@@ -14,14 +14,18 @@ export function PublicCandidateProfile() {
 
   useEffect(() => {
     // Extract candidate ID from URL path: /profile/:id/:slug
-    const pathMatch = typeof window !== 'undefined' 
-      ? window.location.pathname.match(/^\/profile\/([^\/]+)/)
-      : null;
+    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+    console.log('[PublicCandidateProfile] Current path:', currentPath);
+    
+    const pathMatch = currentPath.match(/^\/profile\/([^\/]+)/);
+    console.log('[PublicCandidateProfile] Path match:', pathMatch);
     
     const candidateId = pathMatch ? pathMatch[1] : null;
+    console.log('[PublicCandidateProfile] Extracted candidate ID:', candidateId);
 
     if (!candidateId) {
-      setError('Invalid candidate ID');
+      console.error('[PublicCandidateProfile] No candidate ID found in URL');
+      setError('Invalid candidate ID in URL');
       setLoading(false);
       return;
     }
@@ -29,14 +33,16 @@ export function PublicCandidateProfile() {
     const fetchCandidate = async () => {
       try {
         setLoading(true);
+        console.log('[PublicCandidateProfile] Fetching candidate:', candidateId);
         // apiClient.getCandidate returns the candidate directly
         const data = await apiClient.getCandidate(candidateId);
+        console.log('[PublicCandidateProfile] Candidate loaded:', data?.name);
         setCandidate(data);
         setError(null);
       } catch (err: any) {
-        console.error('Failed to load candidate:', err);
+        console.error('[PublicCandidateProfile] Failed to load candidate:', err);
         // If it's a 404 or not found, show friendly message
-        if (err?.message?.includes('404') || err?.message?.includes('not found')) {
+        if (err?.message?.includes('404') || err?.message?.includes('not found') || err?.message?.includes('PGRST116')) {
           setError('This candidate profile is not available or has been removed.');
         } else {
           setError(err?.message || 'Failed to load candidate profile. Please check the link and try again.');

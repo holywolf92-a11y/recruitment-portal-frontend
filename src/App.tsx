@@ -440,14 +440,19 @@ const AppContent = () => {
 export default function App() {
   // Check for public routes BEFORE auth (no login required)
   if (typeof window !== 'undefined') {
+    const pathname = window.location.pathname;
+    console.log('[App] Checking route:', pathname);
+    
     // Public application form
-    if (window.location.pathname === '/apply') {
+    if (pathname === '/apply') {
+      console.log('[App] Rendering PublicApplicationForm');
       return <PublicApplicationForm />;
     }
     
-    // Public candidate profile
-    const profileMatch = window.location.pathname.match(/^\/profile\/([^\/]+)(?:\/(.+))?$/);
+    // Public candidate profile - match /profile/:id/:slug or /profile/:id
+    const profileMatch = pathname.match(/^\/profile\/([^\/]+)(?:\/(.+))?$/);
     if (profileMatch) {
+      console.log('[App] Rendering PublicCandidateProfile for ID:', profileMatch[1]);
       return (
         <>
           <PublicCandidateProfile />
