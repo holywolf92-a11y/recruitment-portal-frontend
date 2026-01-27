@@ -204,6 +204,34 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
     }
   }
 
+  async function handleDownloadCV(candidate: Candidate) {
+    try {
+      // ✅ NEW SYSTEM: Server-side Puppeteer PDF generation (employer-safe format)
+      const result = await apiClient.generateCandidateCV(candidate.id, 'employer-safe', false);
+      
+      // Download PDF from signed URL
+      const response = await fetch(result.cv_url);
+      if (!response.ok) {
+        throw new Error(`Failed to download CV: ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${candidate.name || 'Candidate'}_Employer_Safe_CV.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      alert('Employer-Safe CV downloaded successfully!');
+    } catch (error: any) {
+      console.error('Failed to download CV:', error);
+      alert(error?.message || 'Failed to download CV. Please try again.');
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
@@ -621,6 +649,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                         </button>
                         <button
                           type="button"
+                          onClick={() => handleDownloadCV(c)}
                           className="h-11 rounded-xl bg-purple-600 text-white font-semibold hover:bg-purple-700 transition-colors inline-flex items-center justify-center gap-2"
                         >
                           <Download className="w-4 h-4" />
@@ -695,6 +724,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
+                          onClick={() => handleDownloadCV(c)}
                           className="p-1.5 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
                           title="Download CV"
                         >
