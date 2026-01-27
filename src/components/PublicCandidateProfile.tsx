@@ -136,6 +136,57 @@ export function PublicCandidateProfile() {
     try {
       setDownloadingCV(true);
       
+      // Create a clone of the element to avoid modifying the original
+      const clonedElement = element.cloneNode(true) as HTMLElement;
+      
+      // Add a style tag to convert all colors to hex/rgb for PDF compatibility
+      const styleFix = document.createElement('style');
+      styleFix.textContent = `
+        * {
+          color: inherit !important;
+        }
+        .bg-blue-50 { background-color: #eff6ff !important; }
+        .bg-purple-50 { background-color: #faf5ff !important; }
+        .bg-yellow-50 { background-color: #fefce8 !important; }
+        .bg-gray-50 { background-color: #f9fafb !important; }
+        .bg-green-100 { background-color: #dcfce7 !important; }
+        .bg-blue-100 { background-color: #dbeafe !important; }
+        .bg-purple-100 { background-color: #f3e8ff !important; }
+        .bg-yellow-100 { background-color: #fef9c3 !important; }
+        .bg-green-100 { background-color: #dcfce7 !important; }
+        .text-blue-600 { color: #2563eb !important; }
+        .text-purple-600 { color: #9333ea !important; }
+        .text-yellow-600 { color: #ca8a04 !important; }
+        .text-gray-600 { color: #4b5563 !important; }
+        .text-gray-700 { color: #374151 !important; }
+        .text-gray-900 { color: #111827 !important; }
+        .text-green-600 { color: #16a34a !important; }
+        .text-blue-700 { color: #1d4ed8 !important; }
+        .text-purple-700 { color: #7e22ce !important; }
+        .text-yellow-700 { color: #a16207 !important; }
+        .text-yellow-800 { color: #854d0e !important; }
+        .text-yellow-900 { color: #713f12 !important; }
+        .border-blue-600 { border-color: #2563eb !important; }
+        .border-blue-200 { border-color: #bfdbfe !important; }
+        .border-yellow-200 { border-color: #fef08a !important; }
+        .border-gray-200 { border-color: #e5e7eb !important; }
+        .border-gray-300 { border-color: #d1d5db !important; }
+        .from-blue-50 { background: linear-gradient(to right, #eff6ff, var(--tw-gradient-to)) !important; }
+        .to-purple-50 { --tw-gradient-to: #faf5ff !important; }
+        .from-blue-500 { background: linear-gradient(to bottom right, #3b82f6, var(--tw-gradient-to)) !important; }
+        .to-purple-600 { --tw-gradient-to: #9333ea !important; }
+        .from-blue-50.to-purple-50 { background: linear-gradient(to right, #eff6ff, #faf5ff) !important; }
+        .from-blue-500.to-purple-600 { background: linear-gradient(to bottom right, #3b82f6, #9333ea) !important; }
+      `;
+      clonedElement.appendChild(styleFix);
+      
+      // Temporarily append to body (hidden) for rendering
+      clonedElement.style.position = 'absolute';
+      clonedElement.style.left = '-9999px';
+      clonedElement.style.top = '0';
+      clonedElement.style.width = element.offsetWidth + 'px';
+      document.body.appendChild(clonedElement);
+      
       // Dynamic import html2pdf.js
       const html2pdf = (await import('html2pdf.js')).default;
       
@@ -148,7 +199,11 @@ export function PublicCandidateProfile() {
           scale: 2,
           useCORS: true,
           logging: false,
-          backgroundColor: '#ffffff'
+          backgroundColor: '#ffffff',
+          ignoreElements: (element: any) => {
+            // Ignore elements that might cause issues
+            return element.classList?.contains('print-hidden');
+          }
         },
         jsPDF: { 
           unit: 'mm', 
@@ -159,14 +214,25 @@ export function PublicCandidateProfile() {
       };
       
       // Generate and download PDF
-      await html2pdf().set(opt).from(element).save();
+      await html2pdf().set(opt).from(clonedElement).save();
+      
+      // Clean up cloned element
+      document.body.removeChild(clonedElement);
       
       toast.success('Employer CV downloaded successfully!');
     } catch (err: any) {
       console.error('[PublicCandidateProfile] Failed to generate Employer CV PDF:', err);
       
+      // Clean up cloned element if it exists
+      const cloned = document.querySelector('[style*="position: absolute"][style*="left: -9999px"]');
+      if (cloned) {
+        document.body.removeChild(cloned);
+      }
+      
       // Provide more specific error messages
-      if (err?.message?.includes('timeout') || err?.message?.includes('time')) {
+      if (err?.message?.includes('oklch') || err?.message?.includes('color')) {
+        toast.error('PDF generation failed due to color format. Please try again or contact support.');
+      } else if (err?.message?.includes('timeout') || err?.message?.includes('time')) {
         toast.error('PDF generation timed out. The CV content might be too large. Please try again.');
       } else if (err?.message?.includes('canvas') || err?.message?.includes('image')) {
         toast.error('Failed to render CV content. Please ensure all images are loaded and try again.');
