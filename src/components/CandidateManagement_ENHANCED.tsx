@@ -1,3 +1,4 @@
+// Updated: Using NEW server-side CV generation system
 import { useEffect, useMemo, useState, useRef } from 'react';
 import {
   AlertTriangle,
@@ -410,7 +411,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
 
   async function handleDownloadCV(candidate: Candidate) {
     try {
-      // Use the NEW backend CV generation service (employer-safe format)
+      // ✅ NEW SYSTEM: Server-side Puppeteer PDF generation (employer-safe format)
+      // Replaces old getCandidateCVDownload that downloaded original uploaded CV
       const result = await apiClient.generateCandidateCV(candidate.id, 'employer-safe', false);
       
       if (result.cached) {
