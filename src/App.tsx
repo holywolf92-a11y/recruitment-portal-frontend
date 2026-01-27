@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Dashboard } from './components/Dashboard';
 import { CandidateManagement } from './components/CandidateManagement_ENHANCED';
-import { CandidateBrowserEnhanced } from './components/CandidateBrowserEnhanced';
-import { CandidateBrowserExcel } from './components/CandidateBrowserExcel';
 import { EmployerManagement } from './components/EmployerManagement';
 import { JobOrderManagement } from './components/JobOrderManagement';
 import { Reports } from './components/Reports';
@@ -14,6 +12,7 @@ import { CommunicationTemplates } from './components/CommunicationTemplates';
 import { UserManagement } from './components/UserManagement';
 import { Login } from './components/Login';
 import { InboxUI } from './components/InboxUI';
+import { CandidateBrowserExcel } from './components/CandidateBrowserExcel';
 import { useAuth, AuthProvider } from './lib/authContext';
 import { CandidateProvider } from './lib/candidateContext';
 import { hasPermission } from './lib/authData';
@@ -68,7 +67,7 @@ const AppContent = () => {
     };
   }, []);
 
-  const isBrowserView = activeTab === 'candidate-browser' || activeTab === 'candidate-excel-browser';
+  const isBrowserView = activeTab === 'candidate-excel-browser'; // Excel Browser only (Browser (Excel) removed)
 
   const renderContent = () => {
     switch (activeTab) {
@@ -78,12 +77,10 @@ const AppContent = () => {
         return <CVInbox />;
       case 'inbox-ui':
         return <InboxUI apiBaseUrl={(import.meta as any).env?.VITE_API_BASE_URL || '/api'} />;
-      case 'candidates':
-        return <CandidateManagement initialProfessionFilter={selectedProfession} />;
-      case 'candidate-browser':
-        return <CandidateBrowserEnhanced />;
       case 'candidate-excel-browser':
         return <CandidateBrowserExcel />;
+      case 'candidates':
+        return <CandidateManagement initialProfessionFilter={selectedProfession} />;
       case 'employers':
         return <EmployerManagement />;
       case 'jobs':
@@ -262,6 +259,18 @@ const AppContent = () => {
                   <Mail className="w-4 h-4" />
                   <span className="flex-1 text-left">Inbox Manager</span>
                 </button>
+
+                <button
+                  onClick={() => setActiveTab('candidate-excel-browser')}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
+                    activeTab === 'candidate-excel-browser'
+                      ? 'bg-blue-50 text-blue-600 font-medium'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <FileText className="w-4 h-4" />
+                  <span className="flex-1 text-left">Excel Browser</span>
+                </button>
                 
                 <button
                   onClick={() => {
@@ -298,29 +307,6 @@ const AppContent = () => {
                   </button>
                 ))}
 
-                <button
-                  onClick={() => setActiveTab('candidate-browser')}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
-                    activeTab === 'candidate-browser'
-                      ? 'bg-blue-50 text-blue-600 font-medium'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <FolderTree className="w-4 h-4" />
-                  <span className="flex-1 text-left">Browser (Excel)</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('candidate-excel-browser')}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
-                    activeTab === 'candidate-excel-browser'
-                      ? 'bg-blue-50 text-blue-600 font-medium'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <FileText className="w-4 h-4" />
-                  <span className="flex-1 text-left">Excel Browser</span>
-                </button>
               </div>
 
               {/* Section: Employer & Jobs */}
