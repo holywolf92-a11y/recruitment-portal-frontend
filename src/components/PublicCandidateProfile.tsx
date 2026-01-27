@@ -98,16 +98,30 @@ export function PublicCandidateProfile() {
   };
 
   const handleDownloadCV = async () => {
-    if (!candidate || !employerCVRef.current) return;
+    if (!candidate) {
+      toast.error('Candidate information not available.');
+      return;
+    }
+    
+    if (!employerCVRef.current) {
+      toast.error('CV content not ready. Please wait a moment and try again.');
+      return;
+    }
+    
+    // Check if there's meaningful content to generate PDF from
+    const element = employerCVRef.current;
+    const hasContent = element.textContent && element.textContent.trim().length > 0;
+    
+    if (!hasContent) {
+      toast.error('No CV content available to download. Please ensure candidate information is complete.');
+      return;
+    }
     
     try {
       setDownloadingCV(true);
       
       // Dynamic import html2pdf.js
       const html2pdf = (await import('html2pdf.js')).default;
-      
-      // Get the Employer CV section element
-      const element = employerCVRef.current;
       
       // Configure PDF options
       const opt = {
@@ -117,7 +131,8 @@ export function PublicCandidateProfile() {
         html2canvas: { 
           scale: 2,
           useCORS: true,
-          logging: false
+          logging: false,
+          backgroundColor: '#ffffff'
         },
         jsPDF: { 
           unit: 'mm', 
@@ -133,7 +148,15 @@ export function PublicCandidateProfile() {
       toast.success('Employer CV downloaded successfully!');
     } catch (err: any) {
       console.error('[PublicCandidateProfile] Failed to generate Employer CV PDF:', err);
-      toast.error(err?.message || 'Failed to generate Employer CV. Please try again.');
+      
+      // Provide more specific error messages
+      if (err?.message?.includes('timeout') || err?.message?.includes('time')) {
+        toast.error('PDF generation timed out. The CV content might be too large. Please try again.');
+      } else if (err?.message?.includes('canvas') || err?.message?.includes('image')) {
+        toast.error('Failed to render CV content. Please ensure all images are loaded and try again.');
+      } else {
+        toast.error(err?.message || 'Failed to generate Employer CV. Please try again or refresh the page.');
+      }
     } finally {
       setDownloadingCV(false);
     }
