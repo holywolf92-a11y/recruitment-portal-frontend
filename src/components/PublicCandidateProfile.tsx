@@ -114,6 +114,7 @@ export function PublicCandidateProfile() {
   };
 
   const handleDownloadCV = async () => {
+    console.log('[PublicCandidateProfile] handleDownloadCV called - NEW SYSTEM');
     if (!candidate) {
       toast.error('Candidate information not available.');
       return;
@@ -121,9 +122,11 @@ export function PublicCandidateProfile() {
     
     try {
       setDownloadingCV(true);
+      console.log('[PublicCandidateProfile] Calling backend CV generation API...');
       
       // Use backend CV generation service
       const result = await apiClient.generateCandidateCV(candidate.id, 'employer-safe', false);
+      console.log('[PublicCandidateProfile] CV generation result:', result);
       
       if (result.cached) {
         toast.success('Downloading cached CV...');
