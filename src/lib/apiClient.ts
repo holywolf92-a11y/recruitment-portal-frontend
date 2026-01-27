@@ -616,6 +616,97 @@ class ApiClient {
     return await this.request<{ download_url: string; filename: string }>(`/candidates/${candidateId}/documents/cv/download`);
   }
 
+  /**
+   * Generate employer-safe CV for a candidate (new unified system)
+   * GET /api/cv-generator/:candidateId?format=employer-safe&force=true
+   */
+  async generateCandidateCV(
+    candidateId: string,
+    format: 'employer-safe' | 'internal' | 'standard' = 'employer-safe',
+    forceRegenerate: boolean = false
+  ): Promise<{ cv_url: string; cached: boolean; version_hash: string; file_size?: number }> {
+    const params = new URLSearchParams();
+    params.set('format', format);
+    if (forceRegenerate) {
+      params.set('force', 'true');
+    }
+    return await this.request<{ cv_url: string; cached: boolean; version_hash: string; file_size?: number }>(
+      `/cv-generator/${candidateId}?${params.toString()}`
+    );
+  }
+
+  /**
+   * Get CV generation status for a candidate
+   * GET /api/cv-generator/:candidateId/status?format=employer-safe
+   */
+  async getCandidateCVStatus(
+    candidateId: string,
+    format: 'employer-safe' | 'internal' | 'standard' = 'employer-safe'
+  ): Promise<{
+    exists: boolean;
+    cached: boolean;
+    version_hash?: string;
+    generated_at?: string;
+    file_size?: number;
+    access_count?: number;
+  }> {
+    const params = new URLSearchParams();
+    params.set('format', format);
+    return await this.request<{
+      exists: boolean;
+      cached: boolean;
+      version_hash?: string;
+      generated_at?: string;
+      file_size?: number;
+      access_count?: number;
+    }>(`/cv-generator/${candidateId}/status?${params.toString()}`);
+  }
+
+  /**
+   * Generate CVs for multiple candidates (bulk operation)
+   * POST /api/cv-generator/bulk
+   */
+  async generateBulkCVs(
+    candidateIds: string[],
+    format: 'employer-safe' | 'internal' | 'standard' = 'employer-safe',
+    template?: string
+  ): Promise<{
+    results: Array<{
+      candidate_id: string;
+      candidate_name: string;
+      success: boolean;
+      cv_url?: string;
+      error?: string;
+    }>;
+    summary: {
+      total: number;
+      success: number;
+      failed: number;
+    };
+  }> {
+    return await this.request<{
+      results: Array<{
+        candidate_id: string;
+        candidate_name: string;
+        success: boolean;
+        cv_url?: string;
+        error?: string;
+      }>;
+      summary: {
+        total: number;
+        success: number;
+        failed: number;
+      };
+    }>(`/cv-generator/bulk`, {
+      method: 'POST',
+      body: JSON.stringify({
+        candidate_ids: candidateIds,
+        format,
+        template,
+      }),
+    });
+  }
+
   async linkCandidateCV(candidateId: string): Promise<{ document: any; message: string }> {
     return await this.request<{ document: any; message: string }>(`/candidates/${candidateId}/link-cv`, {
       method: 'POST',

@@ -119,189 +119,47 @@ export function PublicCandidateProfile() {
       return;
     }
     
-    if (!employerCVRef.current) {
-      toast.error('CV content not ready. Please wait a moment and try again.');
-      return;
-    }
-    
-    // Check if there's meaningful content to generate PDF from
-    const element = employerCVRef.current;
-    const hasContent = element.textContent && element.textContent.trim().length > 0;
-    
-    if (!hasContent) {
-      toast.error('No CV content available to download. Please ensure candidate information is complete.');
-      return;
-    }
-    
     try {
       setDownloadingCV(true);
       
-      // Import html2canvas and jsPDF separately for better control
-      const html2canvas = (await import('html2canvas')).default;
-      const { jsPDF } = await import('jspdf');
+      // Use backend CV generation service
+      const result = await apiClient.generateCandidateCV(candidate.id, 'employer-safe', false);
       
-      // Create a clone of the element to avoid modifying the original
-      const clonedElement = element.cloneNode(true) as HTMLElement;
-      
-      // Add a comprehensive style override to convert all colors to hex
-      const styleOverride = document.createElement('style');
-      styleOverride.id = 'pdf-color-override';
-      styleOverride.textContent = `
-        /* Force all colors to hex format to avoid oklch issues */
-        .bg-blue-50, [class*="bg-blue-50"] { background-color: #eff6ff !important; }
-        .bg-purple-50, [class*="bg-purple-50"] { background-color: #faf5ff !important; }
-        .bg-yellow-50, [class*="bg-yellow-50"] { background-color: #fefce8 !important; }
-        .bg-gray-50, [class*="bg-gray-50"] { background-color: #f9fafb !important; }
-        .bg-green-100, [class*="bg-green-100"] { background-color: #dcfce7 !important; }
-        .bg-blue-100, [class*="bg-blue-100"] { background-color: #dbeafe !important; }
-        .bg-purple-100, [class*="bg-purple-100"] { background-color: #f3e8ff !important; }
-        .bg-yellow-100, [class*="bg-yellow-100"] { background-color: #fef9c3 !important; }
-        .bg-indigo-50, [class*="bg-indigo-50"] { background-color: #eef2ff !important; }
-        .bg-pink-50, [class*="bg-pink-50"] { background-color: #fdf2f8 !important; }
-        .bg-cyan-50, [class*="bg-cyan-50"] { background-color: #ecfeff !important; }
-        .bg-teal-50, [class*="bg-teal-50"] { background-color: #f0fdfa !important; }
-        .bg-emerald-50, [class*="bg-emerald-50"] { background-color: #ecfdf5 !important; }
-        .bg-orange-50, [class*="bg-orange-50"] { background-color: #fff7ed !important; }
-        .bg-amber-50, [class*="bg-amber-50"] { background-color: #fffbeb !important; }
-        
-        /* Gradient backgrounds - convert to solid colors */
-        .bg-gradient-to-br.from-blue-500.to-blue-600,
-        [class*="from-blue-500"][class*="to-blue-600"] { background-color: #3b82f6 !important; }
-        .bg-gradient-to-br.from-purple-500.to-pink-600,
-        [class*="from-purple-500"][class*="to-pink-600"] { background-color: #9333ea !important; }
-        .bg-gradient-to-br.from-green-500.to-emerald-600,
-        [class*="from-green-500"][class*="to-emerald-600"] { background-color: #22c55e !important; }
-        .bg-gradient-to-br.from-indigo-500.to-purple-600,
-        [class*="from-indigo-500"][class*="to-purple-600"] { background-color: #6366f1 !important; }
-        .bg-gradient-to-br.from-teal-500.to-cyan-600,
-        [class*="from-teal-500"][class*="to-cyan-600"] { background-color: #14b8a6 !important; }
-        .bg-gradient-to-br.from-cyan-500.to-blue-600,
-        [class*="from-cyan-500"][class*="to-blue-600"] { background-color: #06b6d4 !important; }
-        [class*="from-blue-500"][class*="to-purple-600"] { background-color: #3b82f6 !important; }
-        [class*="from-purple-500"][class*="to-purple-600"] { background-color: #9333ea !important; }
-        [class*="from-pink-500"][class*="to-pink-600"] { background-color: #ec4899 !important; }
-        [class*="from-indigo-500"][class*="to-indigo-600"] { background-color: #6366f1 !important; }
-        [class*="from-cyan-500"][class*="to-cyan-600"] { background-color: #06b6d4 !important; }
-        [class*="from-teal-500"][class*="to-teal-600"] { background-color: #14b8a6 !important; }
-        
-        .text-blue-600, [class*="text-blue-600"] { color: #2563eb !important; }
-        .text-purple-600, [class*="text-purple-600"] { color: #9333ea !important; }
-        .text-yellow-600, [class*="text-yellow-600"] { color: #ca8a04 !important; }
-        .text-gray-600, [class*="text-gray-600"] { color: #4b5563 !important; }
-        .text-gray-700, [class*="text-gray-700"] { color: #374151 !important; }
-        .text-gray-900, [class*="text-gray-900"] { color: #111827 !important; }
-        .text-green-600, [class*="text-green-600"] { color: #16a34a !important; }
-        .text-blue-700, [class*="text-blue-700"] { color: #1d4ed8 !important; }
-        .text-purple-700, [class*="text-purple-700"] { color: #7e22ce !important; }
-        .text-yellow-700, [class*="text-yellow-700"] { color: #a16207 !important; }
-        .text-yellow-800, [class*="text-yellow-800"] { color: #854d0e !important; }
-        .text-yellow-900, [class*="text-yellow-900"] { color: #713f12 !important; }
-        .text-white, [class*="text-white"] { color: #ffffff !important; }
-        
-        .border-blue-600, [class*="border-blue-600"] { border-color: #2563eb !important; }
-        .border-purple-600, [class*="border-purple-600"] { border-color: #9333ea !important; }
-        .border-indigo-600, [class*="border-indigo-600"] { border-color: #6366f1 !important; }
-        .border-teal-600, [class*="border-teal-600"] { border-color: #14b8a6 !important; }
-        .border-cyan-600, [class*="border-cyan-600"] { border-color: #06b6d4 !important; }
-        .border-blue-200, [class*="border-blue-200"] { border-color: #bfdbfe !important; }
-        .border-purple-200, [class*="border-purple-200"] { border-color: #e9d5ff !important; }
-        .border-yellow-200, [class*="border-yellow-200"] { border-color: #fef08a !important; }
-        .border-gray-200, [class*="border-gray-200"] { border-color: #e5e7eb !important; }
-        .border-gray-300, [class*="border-gray-300"] { border-color: #d1d5db !important; }
-        .border-green-200, [class*="border-green-200"] { border-color: #bbf7d0 !important; }
-        .border-orange-200, [class*="border-orange-200"] { border-color: #fed7aa !important; }
-        
-        /* Handle gradients by converting to solid colors */
-        [class*="from-blue-50"][class*="to-purple-50"],
-        [class*="from-blue-50"].to-purple-50 {
-          background-color: #eff6ff !important;
-        }
-        [class*="from-blue-50"][class*="via-purple-50"][class*="to-pink-50"] {
-          background-color: #eff6ff !important;
-        }
-        
-        /* Hide buttons in PDF */
-        button { display: none !important; }
-      `;
-      clonedElement.insertBefore(styleOverride, clonedElement.firstChild);
-      
-      // Temporarily append to body (hidden) for rendering
-      clonedElement.style.position = 'absolute';
-      clonedElement.style.left = '-9999px';
-      clonedElement.style.top = '0';
-      clonedElement.style.width = element.offsetWidth + 'px';
-      clonedElement.style.backgroundColor = '#ffffff';
-      document.body.appendChild(clonedElement);
-      
-      // Wait a moment for styles to apply
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Convert HTML to canvas with options that handle colors better
-      const canvas = await html2canvas(clonedElement, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        onclone: (clonedDoc) => {
-          // Additional processing on cloned document
-          const clonedStyle = clonedDoc.createElement('style');
-          clonedStyle.textContent = `
-            * {
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-              color-adjust: exact !important;
-            }
-          `;
-          clonedDoc.head.appendChild(clonedStyle);
-        }
-      });
-      
-      // Calculate PDF dimensions (A4 format)
-      const imgWidth = 210; // A4 width in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      const pdf = new jsPDF('portrait', 'mm', 'a4');
-      
-      // Add image to PDF
-      const imgData = canvas.toDataURL('image/png', 1.0);
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-      
-      // Handle page breaks if content is too long
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      let heightLeft = imgHeight;
-      let position = 0;
-      
-      while (heightLeft > 0) {
-        position = heightLeft - pageHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+      if (result.cached) {
+        toast.success('Downloading cached CV...');
+      } else {
+        toast.success('CV generated successfully! Downloading...');
       }
       
-      // Save PDF
-      pdf.save(`${candidate.name || 'Candidate'}_Employer_CV.pdf`);
+      // Download PDF from signed URL
+      const response = await fetch(result.cv_url);
+      if (!response.ok) {
+        throw new Error(`Failed to download CV: ${response.statusText}`);
+      }
       
-      // Clean up cloned element
-      document.body.removeChild(clonedElement);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${candidate.name || 'Candidate'}_Employer_CV.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
       
       toast.success('Employer CV downloaded successfully!');
     } catch (err: any) {
-      console.error('[PublicCandidateProfile] Failed to generate Employer CV PDF:', err);
+      console.error('[PublicCandidateProfile] Failed to download Employer CV:', err);
       
-      // Clean up cloned element if it exists
-      const cloned = document.getElementById('pdf-color-override')?.parentElement;
-      if (cloned && cloned.parentElement) {
-        document.body.removeChild(cloned);
-      }
-      
-      // Provide more specific error messages
-      if (err?.message?.includes('oklch') || err?.message?.includes('color') || err?.message?.includes('parse')) {
-        toast.error('PDF generation failed. Please try refreshing the page and try again.');
+      // Provide specific error messages
+      if (err?.message?.includes('404') || err?.message?.includes('not found')) {
+        toast.error('CV not found. Please ensure candidate information is complete.');
       } else if (err?.message?.includes('timeout') || err?.message?.includes('time')) {
-        toast.error('PDF generation timed out. The CV content might be too large. Please try again.');
-      } else if (err?.message?.includes('canvas') || err?.message?.includes('image')) {
-        toast.error('Failed to render CV content. Please ensure all images are loaded and try again.');
+        toast.error('CV generation timed out. Please try again.');
+      } else if (err?.message?.includes('network') || err?.message?.includes('fetch')) {
+        toast.error('Network error. Please check your connection and try again.');
       } else {
-        toast.error(err?.message || 'Failed to generate Employer CV. Please try again or refresh the page.');
+        toast.error(err?.message || 'Failed to download Employer CV. Please try again.');
       }
     } finally {
       setDownloadingCV(false);
