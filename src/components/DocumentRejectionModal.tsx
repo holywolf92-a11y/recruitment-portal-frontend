@@ -147,22 +147,30 @@ export function DocumentRejectionModal({
   onRetry,
   isAdmin = false,
 }: DocumentRejectionModalProps) {
-  const {
-    rejection_code,
-    rejection_reason,
-    mismatch_fields = [],
-    ai_confidence,
-    ocr_confidence,
-    error_stage,
-    retry_possible = false,
-    retry_count = 0,
-    max_retries = 2,
-    document_expiry_date,
-    rejection_context,
-  } = rejectionDetails;
+  const rd = rejectionDetails as Record<string, unknown>;
+  const rejection_code = rd.rejection_code ?? rd.rejectionCode ?? rd.code;
+  const rejection_reason = rd.rejection_reason ?? rd.rejectionReason ?? rd.reason;
+  const mismatch_fields = (rd.mismatch_fields as string[]) ?? [];
+  const ai_confidence = rd.ai_confidence as number | undefined;
+  const ocr_confidence = rd.ocr_confidence as number | undefined;
+  const error_stage = rd.error_stage as string | undefined;
+  const retry_possible = (rd.retry_possible as boolean) ?? false;
+  const retry_count = (rd.retry_count as number) ?? 0;
+  const max_retries = (rd.max_retries as number) ?? 2;
+  const document_expiry_date = rd.document_expiry_date as string | undefined;
+  const rejection_context = rd.rejection_context as { mismatch_fields?: string[] } | undefined;
 
   const categoryDisplayName = getCategoryDisplayName(documentCategory);
-  const rejectionMessage = rejection_reason || getRejectionMessage(rejection_code, categoryDisplayName);
+  const codeStr = typeof rejection_code === 'string' ? rejection_code : undefined;
+  const reasonStr = typeof rejection_reason === 'string' ? rejection_reason : undefined;
+  let rejectionMessage = reasonStr || getRejectionMessage(codeStr, categoryDisplayName);
+  // Never show "Unknown rejection reason": use category-based fallback when backend didn't provide code/reason
+  if (rejectionMessage === 'Unknown rejection reason') {
+    rejectionMessage =
+      categoryDisplayName === 'Passport'
+        ? 'This document was rejected. Please upload a valid passport.'
+        : `This ${categoryDisplayName.toLowerCase()} was rejected. Please upload a valid document of the correct type.`;
+  }
   const canRetry = retry_possible && (retry_count || 0) < (max_retries || 2);
   const isExpired = document_expiry_date && new Date(document_expiry_date) < new Date();
 
