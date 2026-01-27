@@ -57,11 +57,27 @@ export function PublicCandidateProfile() {
         try {
           const docs = await apiClient.listCandidateDocumentsNew(candidateId);
           console.log('[PublicCandidateProfile] All documents:', docs);
-          // Filter only verified/approved documents
-          const verifiedDocs = docs.filter((doc: any) => 
-            doc.verification_status === 'verified' || doc.verification_status === 'approved'
-          );
-          console.log('[PublicCandidateProfile] Verified documents:', verifiedDocs);
+          // Filter only verified/approved documents AND exclude CV/resume documents
+          // (CV should only be accessible via Employer-Safe CV download, not original CV)
+          const verifiedDocs = docs.filter((doc: any) => {
+            const isVerified = doc.verification_status === 'verified' || doc.verification_status === 'approved';
+            if (!isVerified) return false;
+            
+            // Exclude CV/resume documents - these are classified and should not be downloadable
+            const category = (doc.category || '').toLowerCase();
+            const docType = (doc.document_type || '').toLowerCase();
+            const fileName = (doc.file_name || '').toLowerCase();
+            
+            const isCV = category === 'cv' || 
+                        category === 'resume' ||
+                        docType === 'cv' || 
+                        docType === 'resume' ||
+                        fileName.includes('cv') ||
+                        fileName.includes('resume');
+            
+            return !isCV; // Only include non-CV documents
+          });
+          console.log('[PublicCandidateProfile] Verified documents (excluding CV):', verifiedDocs);
           setDocuments(verifiedDocs);
           console.log('[PublicCandidateProfile] Documents loaded:', verifiedDocs.length);
         } catch (docError: any) {
