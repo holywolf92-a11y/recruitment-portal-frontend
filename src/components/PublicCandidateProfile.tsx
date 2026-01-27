@@ -291,7 +291,7 @@ export function PublicCandidateProfile() {
                     </div>
                   </div>
                 )}
-                {candidate.ai_score !== undefined && (
+                {candidate.ai_score != null && typeof candidate.ai_score === 'number' && (
                   <div>
                     <label className="text-sm font-medium text-gray-500">AI Score</label>
                     <div className="mt-1 flex items-center gap-2">
