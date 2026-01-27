@@ -136,102 +136,140 @@ export function PublicCandidateProfile() {
     try {
       setDownloadingCV(true);
       
-      // Use browser's print functionality with a hidden print window
-      // This is more reliable than html2pdf.js for modern CSS
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        toast.error('Please allow popups to download the CV.');
-        return;
-      }
-
-      // Get the HTML content
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="UTF-8">
-            <title>${candidate.name || 'Candidate'} - Employer CV</title>
-            <style>
-              @media print {
-                @page {
-                  margin: 10mm;
-                }
-                body {
-                  margin: 0;
-                  padding: 0;
-                }
-              }
-              body {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-                line-height: 1.6;
-                color: #111827;
-                background: white;
-                padding: 20px;
-                max-width: 210mm;
-                margin: 0 auto;
-              }
-              /* Convert all Tailwind colors to hex */
-              .bg-blue-50 { background-color: #eff6ff !important; }
-              .bg-purple-50 { background-color: #faf5ff !important; }
-              .bg-yellow-50 { background-color: #fefce8 !important; }
-              .bg-gray-50 { background-color: #f9fafb !important; }
-              .bg-green-100 { background-color: #dcfce7 !important; }
-              .bg-blue-100 { background-color: #dbeafe !important; }
-              .bg-purple-100 { background-color: #f3e8ff !important; }
-              .bg-yellow-100 { background-color: #fef9c3 !important; }
-              .text-blue-600 { color: #2563eb !important; }
-              .text-purple-600 { color: #9333ea !important; }
-              .text-yellow-600 { color: #ca8a04 !important; }
-              .text-gray-600 { color: #4b5563 !important; }
-              .text-gray-700 { color: #374151 !important; }
-              .text-gray-900 { color: #111827 !important; }
-              .text-green-600 { color: #16a34a !important; }
-              .text-blue-700 { color: #1d4ed8 !important; }
-              .text-purple-700 { color: #7e22ce !important; }
-              .text-yellow-700 { color: #a16207 !important; }
-              .text-yellow-800 { color: #854d0e !important; }
-              .text-yellow-900 { color: #713f12 !important; }
-              .border-blue-600 { border-color: #2563eb !important; }
-              .border-blue-200 { border-color: #bfdbfe !important; }
-              .border-yellow-200 { border-color: #fef08a !important; }
-              .border-gray-200 { border-color: #e5e7eb !important; }
-              .border-gray-300 { border-color: #d1d5db !important; }
-              /* Handle gradients */
-              [class*="from-blue-50"][class*="to-purple-50"] {
-                background: linear-gradient(to right, #eff6ff, #faf5ff) !important;
-              }
-              [class*="from-blue-500"][class*="to-purple-600"] {
-                background: linear-gradient(to bottom right, #3b82f6, #9333ea) !important;
-              }
-              /* Hide download button in print */
-              button { display: none !important; }
-            </style>
-          </head>
-          <body>
-            ${element.innerHTML}
-            <script>
-              window.onload = function() {
-                window.print();
-                window.onafterprint = function() {
-                  window.close();
-                };
-              };
-            </script>
-          </body>
-        </html>
+      // Import html2canvas and jsPDF separately for better control
+      const html2canvas = (await import('html2canvas')).default;
+      const { jsPDF } = await import('jspdf');
+      
+      // Create a clone of the element to avoid modifying the original
+      const clonedElement = element.cloneNode(true) as HTMLElement;
+      
+      // Add a comprehensive style override to convert all colors to hex
+      const styleOverride = document.createElement('style');
+      styleOverride.id = 'pdf-color-override';
+      styleOverride.textContent = `
+        /* Force all colors to hex format to avoid oklch issues */
+        * {
+          /* Override Tailwind color classes with hex values */
+        }
+        .bg-blue-50, [class*="bg-blue-50"] { background-color: #eff6ff !important; }
+        .bg-purple-50, [class*="bg-purple-50"] { background-color: #faf5ff !important; }
+        .bg-yellow-50, [class*="bg-yellow-50"] { background-color: #fefce8 !important; }
+        .bg-gray-50, [class*="bg-gray-50"] { background-color: #f9fafb !important; }
+        .bg-green-100, [class*="bg-green-100"] { background-color: #dcfce7 !important; }
+        .bg-blue-100, [class*="bg-blue-100"] { background-color: #dbeafe !important; }
+        .bg-purple-100, [class*="bg-purple-100"] { background-color: #f3e8ff !important; }
+        .bg-yellow-100, [class*="bg-yellow-100"] { background-color: #fef9c3 !important; }
+        .text-blue-600, [class*="text-blue-600"] { color: #2563eb !important; }
+        .text-purple-600, [class*="text-purple-600"] { color: #9333ea !important; }
+        .text-yellow-600, [class*="text-yellow-600"] { color: #ca8a04 !important; }
+        .text-gray-600, [class*="text-gray-600"] { color: #4b5563 !important; }
+        .text-gray-700, [class*="text-gray-700"] { color: #374151 !important; }
+        .text-gray-900, [class*="text-gray-900"] { color: #111827 !important; }
+        .text-green-600, [class*="text-green-600"] { color: #16a34a !important; }
+        .text-blue-700, [class*="text-blue-700"] { color: #1d4ed8 !important; }
+        .text-purple-700, [class*="text-purple-700"] { color: #7e22ce !important; }
+        .text-yellow-700, [class*="text-yellow-700"] { color: #a16207 !important; }
+        .text-yellow-800, [class*="text-yellow-800"] { color: #854d0e !important; }
+        .text-yellow-900, [class*="text-yellow-900"] { color: #713f12 !important; }
+        .border-blue-600, [class*="border-blue-600"] { border-color: #2563eb !important; }
+        .border-blue-200, [class*="border-blue-200"] { border-color: #bfdbfe !important; }
+        .border-yellow-200, [class*="border-yellow-200"] { border-color: #fef08a !important; }
+        .border-gray-200, [class*="border-gray-200"] { border-color: #e5e7eb !important; }
+        .border-gray-300, [class*="border-gray-300"] { border-color: #d1d5db !important; }
+        /* Handle gradients by converting to solid colors or simpler gradients */
+        [class*="from-blue-50"][class*="to-purple-50"],
+        [class*="from-blue-50"].to-purple-50 {
+          background: linear-gradient(to right, #eff6ff, #faf5ff) !important;
+          background-color: #eff6ff !important;
+        }
+        [class*="from-blue-500"][class*="to-purple-600"],
+        [class*="from-blue-500"].to-purple-600 {
+          background: linear-gradient(to bottom right, #3b82f6, #9333ea) !important;
+          background-color: #3b82f6 !important;
+        }
+        /* Hide buttons in PDF */
+        button { display: none !important; }
       `;
-
-      printWindow.document.write(htmlContent);
-      printWindow.document.close();
+      clonedElement.insertBefore(styleOverride, clonedElement.firstChild);
       
-      // Wait a bit for the print dialog, then show success
-      setTimeout(() => {
-        toast.success('Print dialog opened. Select "Save as PDF" to download.');
-      }, 500);
+      // Temporarily append to body (hidden) for rendering
+      clonedElement.style.position = 'absolute';
+      clonedElement.style.left = '-9999px';
+      clonedElement.style.top = '0';
+      clonedElement.style.width = element.offsetWidth + 'px';
+      clonedElement.style.backgroundColor = '#ffffff';
+      document.body.appendChild(clonedElement);
       
+      // Wait a moment for styles to apply
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Convert HTML to canvas with options that handle colors better
+      const canvas = await html2canvas(clonedElement, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        onclone: (clonedDoc) => {
+          // Additional processing on cloned document
+          const clonedStyle = clonedDoc.createElement('style');
+          clonedStyle.textContent = `
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+          `;
+          clonedDoc.head.appendChild(clonedStyle);
+        }
+      });
+      
+      // Calculate PDF dimensions (A4 format)
+      const imgWidth = 210; // A4 width in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const pdf = new jsPDF('portrait', 'mm', 'a4');
+      
+      // Add image to PDF
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      
+      // Handle page breaks if content is too long
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      let heightLeft = imgHeight;
+      let position = 0;
+      
+      while (heightLeft > 0) {
+        position = heightLeft - pageHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
+      // Save PDF
+      pdf.save(`${candidate.name || 'Candidate'}_Employer_CV.pdf`);
+      
+      // Clean up cloned element
+      document.body.removeChild(clonedElement);
+      
+      toast.success('Employer CV downloaded successfully!');
     } catch (err: any) {
       console.error('[PublicCandidateProfile] Failed to generate Employer CV PDF:', err);
-      toast.error(err?.message || 'Failed to generate Employer CV. Please try again.');
+      
+      // Clean up cloned element if it exists
+      const cloned = document.getElementById('pdf-color-override')?.parentElement;
+      if (cloned && cloned.parentElement) {
+        document.body.removeChild(cloned);
+      }
+      
+      // Provide more specific error messages
+      if (err?.message?.includes('oklch') || err?.message?.includes('color') || err?.message?.includes('parse')) {
+        toast.error('PDF generation failed. Please try refreshing the page and try again.');
+      } else if (err?.message?.includes('timeout') || err?.message?.includes('time')) {
+        toast.error('PDF generation timed out. The CV content might be too large. Please try again.');
+      } else if (err?.message?.includes('canvas') || err?.message?.includes('image')) {
+        toast.error('Failed to render CV content. Please ensure all images are loaded and try again.');
+      } else {
+        toast.error(err?.message || 'Failed to generate Employer CV. Please try again or refresh the page.');
+      }
     } finally {
       setDownloadingCV(false);
     }
