@@ -262,6 +262,10 @@ export interface CandidateFilters {
   position?: string;
   country_of_interest?: string;
   documents?: 'complete' | 'missing' | string;
+  applied_from?: string; // ISO date string (YYYY-MM-DD or full ISO datetime)
+  applied_to?: string; // ISO date string (YYYY-MM-DD or full ISO datetime)
+  sort_by?: string; // Column name to sort by
+  sort_order?: 'asc' | 'desc';
   limit?: number;
   offset?: number;
 }
@@ -392,11 +396,70 @@ class ApiClient {
     if (filters.position && filters.position !== 'all') params.append('position', filters.position);
     if (filters.country_of_interest && filters.country_of_interest !== 'all') params.append('country_of_interest', filters.country_of_interest);
     if (filters.documents && filters.documents !== 'all') params.append('documents', filters.documents);
+    if (filters.applied_from) params.append('applied_from', filters.applied_from);
+    if (filters.applied_to) params.append('applied_to', filters.applied_to);
+    if (filters.sort_by) params.append('sort_by', filters.sort_by);
+    if (filters.sort_order) params.append('sort_order', filters.sort_order);
     if (filters.limit) params.append('limit', filters.limit.toString());
     if (filters.offset) params.append('offset', filters.offset.toString());
 
     const query = params.toString();
     return this.request<CandidatesResponse>(`/candidates${query ? `?${query}` : ''}`);
+  }
+
+  /**
+   * Get daily stats for Excel-style report cards
+   */
+  async getDailyStats(filters: {
+    search?: string;
+    position?: string;
+    country_of_interest?: string;
+    documents?: 'complete' | 'missing' | string;
+    applied_from?: string;
+    applied_to?: string;
+  }): Promise<{
+    total: number;
+    applied: number;
+    verified: number;
+    pending: number;
+    rejected: number;
+    documents_uploaded: number;
+  }> {
+    const params = new URLSearchParams();
+    if (filters.search) params.append('search', filters.search);
+    if (filters.position && filters.position !== 'all') params.append('position', filters.position);
+    if (filters.country_of_interest && filters.country_of_interest !== 'all') params.append('country_of_interest', filters.country_of_interest);
+    if (filters.documents && filters.documents !== 'all') params.append('documents', filters.documents);
+    if (filters.applied_from) params.append('applied_from', filters.applied_from);
+    if (filters.applied_to) params.append('applied_to', filters.applied_to);
+    
+    const query = params.toString();
+    return this.request(`/candidates/daily-stats${query ? `?${query}` : ''}`);
+  }
+
+  /**
+   * Export candidates to CSV or Excel
+   */
+  async exportCandidates(filters: CandidateFilters, format: 'csv' | 'xlsx' = 'csv'): Promise<Blob> {
+    const params = new URLSearchParams();
+    params.append('format', format);
+    if (filters.search) params.append('search', filters.search);
+    if (filters.status && filters.status !== 'all') params.append('status', filters.status);
+    if (filters.position && filters.position !== 'all') params.append('position', filters.position);
+    if (filters.country_of_interest && filters.country_of_interest !== 'all') params.append('country_of_interest', filters.country_of_interest);
+    if (filters.documents && filters.documents !== 'all') params.append('documents', filters.documents);
+    if (filters.applied_from) params.append('applied_from', filters.applied_from);
+    if (filters.applied_to) params.append('applied_to', filters.applied_to);
+    if (filters.sort_by) params.append('sort_by', filters.sort_by);
+    if (filters.sort_order) params.append('sort_order', filters.sort_order);
+
+    const url = `${API_BASE_URL}/candidates/export?${params.toString()}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Export failed: ${response.status} ${error}`);
+    }
+    return response.blob();
   }
 
   async bulkUpdateCandidateStatus(candidateIds: string[], status: string): Promise<{ updated: number; candidates: Array<{ id: string; status: string }> }> {

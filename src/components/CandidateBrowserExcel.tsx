@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   ChevronRight, 
   ChevronDown, 
@@ -16,9 +16,16 @@ import {
   Copy, 
   Play, 
   MessageCircle,
-  Eye
+  Eye,
+  Search,
+  Calendar,
+  X,
+  ChevronUp,
+  ChevronDown as ChevronDownIcon,
+  GripVertical,
+  Settings
 } from 'lucide-react';
-import { apiClient, Candidate } from '../lib/apiClient';
+import { apiClient, Candidate, CandidateFilters } from '../lib/apiClient';
 import { useCandidates } from '../lib/candidateContext';
 
 interface FolderNode {
@@ -261,22 +268,154 @@ function buildFolderStructure(candidates: Candidate[]): FolderNode[] {
 }
 
 export function CandidateBrowserExcel() {
-  // Use shared candidate context
+  // Server-side filtering state
+  const [filters, setFilters] = useState<CandidateFilters>({
+    limit: 50,
+    offset: 0,
+  });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [appliedFrom, setAppliedFrom] = useState<string>('');
+  const [appliedTo, setAppliedTo] = useState<string>('');
+  const [sortBy, setSortBy] = useState<string>('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCandidates, setTotalCandidates] = useState(0);
+  const [dailyStats, setDailyStats] = useState<{
+    total: number;
+    applied: number;
+    verified: number;
+    pending: number;
+    rejected: number;
+    documents_uploaded: number;
+  } | null>(null);
+  const [loadingStats, setLoadingStats] = useState(false);
+  
+  // Column management
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set([
+    'id', 'name', 'position', 'age', 'nationality', 'country', 'phone', 'email', 
+    'experience', 'status', 'ai_score', 'applied'
+  ]));
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+  const [sortColumns, setSortColumns] = useState<Array<{ field: string; order: 'asc' | 'desc' }>>([]);
+  
+  // Use shared candidate context (but we'll override with server-side fetching)
   const { 
-    candidates, 
-    loading, 
-    error, 
-    fetchCandidates,
-    refreshCandidates 
+    candidates: contextCandidates, 
+    loading: contextLoading, 
+    error: contextError, 
+    fetchCandidates: contextFetchCandidates,
   } = useCandidates();
+  
+  // Local state for server-fetched candidates
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [selectedFolder, setSelectedFolder] = useState<FolderNode | null>(null);
   const [selectedCandidates, setSelectedCandidates] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'basic' | 'detailed'>('basic');
 
-  // Build folder structure from candidates
+  // Fetch candidates with server-side filtering
+  const fetchCandidatesWithFilters = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const activeFilters: CandidateFilters = {
+        ...filters,
+        search: searchQuery.trim() || undefined,
+        applied_from: appliedFrom || undefined,
+        applied_to: appliedTo || undefined,
+        sort_by: sortBy,
+        sort_order: sortOrder,
+        limit: 50,
+        offset: (currentPage - 1) * 50,
+      };
+      
+      // Apply folder filters (position, country, status, documents)
+      if (selectedFolder) {
+        if (selectedFolder.type === 'profession' && selectedFolder.name !== 'all') {
+          activeFilters.position = selectedFolder.name;
+        } else if (selectedFolder.type === 'subfolder') {
+          // Extract position from folder path
+          const parent = folderStructure.find(f => 
+            f.children?.some(c => c.id === selectedFolder.id || c.children?.some(sc => sc.id === selectedFolder.id))
+          );
+          if (parent) activeFilters.position = parent.name;
+          
+          // Check if it's a country subfolder
+          if (selectedFolder.name && selectedFolder.name !== 'All') {
+            const isCountry = folderStructure.some(f => 
+              f.children?.find(c => c.name === 'By Country' && c.children?.some(sc => sc.id === selectedFolder.id))
+            );
+            if (isCountry) activeFilters.country_of_interest = selectedFolder.name;
+            
+            // Check if it's a status subfolder
+            const isStatus = folderStructure.some(f => 
+              f.children?.find(c => c.name === 'By Status' && c.children?.some(sc => sc.id === selectedFolder.id))
+            );
+            if (isStatus) activeFilters.status = selectedFolder.name;
+            
+            // Check if it's a documents subfolder
+            const isDocs = folderStructure.some(f => 
+              f.children?.find(c => c.name === 'By Documents' && c.children?.some(sc => sc.id === selectedFolder.id))
+            );
+            if (isDocs) {
+              activeFilters.documents = selectedFolder.name === 'Complete' ? 'complete' : 'missing';
+            }
+          }
+        }
+      }
+      
+      const result = await apiClient.getCandidates(activeFilters);
+      setCandidates(result.candidates || []);
+      setTotalCandidates(result.total || 0);
+    } catch (e: any) {
+      setError(e?.message || 'Failed to load candidates');
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, searchQuery, appliedFrom, appliedTo, sortBy, sortOrder, currentPage, selectedFolder]);
+
+  // Fetch daily stats
+  const fetchDailyStats = useCallback(async () => {
+    setLoadingStats(true);
+    try {
+      const statsFilters: any = {
+        search: searchQuery.trim() || undefined,
+        applied_from: appliedFrom || undefined,
+        applied_to: appliedTo || undefined,
+      };
+      
+      // Apply folder filters
+      if (selectedFolder) {
+        const parent = folderStructure.find(f => 
+          f.children?.some(c => c.id === selectedFolder.id || c.children?.some(sc => sc.id === selectedFolder.id))
+        );
+        if (parent) statsFilters.position = parent.name;
+      }
+      
+      const stats = await apiClient.getDailyStats(statsFilters);
+      setDailyStats(stats);
+    } catch (e) {
+      console.error('Failed to load daily stats:', e);
+    } finally {
+      setLoadingStats(false);
+    }
+  }, [searchQuery, appliedFrom, appliedTo, selectedFolder]);
+
+  // Fetch data when filters change
+  useEffect(() => {
+    fetchCandidatesWithFilters();
+  }, [fetchCandidatesWithFilters]);
+
+  useEffect(() => {
+    fetchDailyStats();
+  }, [fetchDailyStats]);
+
+  // Build folder structure from all candidates (for navigation only)
   const folderStructure = useMemo(() => {
+    // Fetch all positions for folder structure (lightweight query)
     return buildFolderStructure(candidates);
   }, [candidates]);
 
@@ -291,15 +430,6 @@ export function CandidateBrowserExcel() {
     }
   }, [folderStructure, selectedFolder]);
 
-  // Load candidates on mount (only if not already loaded)
-  useEffect(() => {
-    // Only fetch if we don't have candidates yet (to avoid unnecessary refetch)
-    if (candidates.length === 0 && !loading) {
-      fetchCandidates();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run on mount
-
   const toggleFolder = (folderId: string) => {
     const newExpanded = new Set(expandedFolders);
     if (newExpanded.has(folderId)) {
@@ -313,6 +443,7 @@ export function CandidateBrowserExcel() {
   const selectFolder = (folder: FolderNode) => {
     setSelectedFolder(folder);
     setSelectedCandidates(new Set());
+    setCurrentPage(1); // Reset to first page when folder changes
   };
 
   const renderFolder = (folder: FolderNode, level: number = 0) => {
@@ -383,9 +514,60 @@ export function CandidateBrowserExcel() {
     );
   };
 
-  const displayedCandidates = selectedFolder?.filter 
-    ? selectedFolder.filter(candidates) 
-    : [];
+  // Use server-fetched candidates directly (no client-side filtering)
+  const displayedCandidates = candidates;
+  
+  // Quick date filters
+  const setQuickDateFilter = (days: number) => {
+    const today = new Date();
+    const from = new Date(today);
+    from.setDate(from.getDate() - days);
+    setAppliedFrom(from.toISOString().split('T')[0]);
+    setAppliedTo(today.toISOString().split('T')[0]);
+  };
+  
+  // Export function
+  const handleExport = async (format: 'csv' | 'xlsx') => {
+    try {
+      const activeFilters: CandidateFilters = {
+        search: searchQuery.trim() || undefined,
+        applied_from: appliedFrom || undefined,
+        applied_to: appliedTo || undefined,
+        sort_by: sortBy,
+        sort_order: sortOrder,
+      };
+      
+      // Apply folder filters
+      if (selectedFolder) {
+        const parent = folderStructure.find(f => 
+          f.children?.some(c => c.id === selectedFolder.id || c.children?.some(sc => sc.id === selectedFolder.id))
+        );
+        if (parent) activeFilters.position = parent.name;
+      }
+      
+      const blob = await apiClient.exportCandidates(activeFilters, format);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `candidates_${new Date().toISOString().split('T')[0]}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (e: any) {
+      alert(`Export failed: ${e?.message || 'Unknown error'}`);
+    }
+  };
+  
+  // Column sort handler
+  const handleColumnSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
+    }
+  };
 
   const toggleCandidateSelection = (id: string) => {
     const newSelected = new Set(selectedCandidates);
@@ -465,12 +647,127 @@ export function CandidateBrowserExcel() {
 
       {/* Right Side - Excel Table */}
       <div className="flex-1 bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col shadow-sm">
-        {/* Header */}
-        <div className="border-b border-gray-200 p-4 bg-gray-50 flex-shrink-0">
-          <div className="flex items-center justify-between mb-3">
+        {/* Header with Search and Filters */}
+        <div className="border-b border-gray-200 p-4 bg-gray-50 flex-shrink-0 space-y-4">
+          {/* Daily Summary Cards */}
+          {dailyStats && (
+            <div className="grid grid-cols-5 gap-3">
+              <div className="bg-white rounded-lg p-3 border border-gray-200">
+                <p className="text-xs text-gray-500 mb-1">Total Applied</p>
+                <p className="text-2xl font-bold text-gray-900">{dailyStats.total}</p>
+              </div>
+              <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                <p className="text-xs text-blue-600 mb-1">Applied</p>
+                <p className="text-2xl font-bold text-blue-700">{dailyStats.applied}</p>
+              </div>
+              <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                <p className="text-xs text-green-600 mb-1">Verified</p>
+                <p className="text-2xl font-bold text-green-700">{dailyStats.verified}</p>
+              </div>
+              <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+                <p className="text-xs text-yellow-600 mb-1">Pending</p>
+                <p className="text-2xl font-bold text-yellow-700">{dailyStats.pending}</p>
+              </div>
+              <div className="bg-red-50 rounded-lg p-3 border border-red-200">
+                <p className="text-xs text-red-600 mb-1">Rejected</p>
+                <p className="text-2xl font-bold text-red-700">{dailyStats.rejected}</p>
+              </div>
+            </div>
+          )}
+          
+          {/* Global Search Bar */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by name, passport, CNIC, email, phone..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1); // Reset to first page on search
+                }}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setCurrentPage(1);
+                  }}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+          
+          {/* Date Applied Filter */}
+          <div className="flex items-center gap-3">
+            <Calendar className="w-4 h-4 text-gray-500" />
+            <span className="text-sm text-gray-700 font-medium">Date Applied:</span>
+            <input
+              type="date"
+              value={appliedFrom}
+              onChange={(e) => {
+                setAppliedFrom(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+            />
+            <span className="text-gray-500">to</span>
+            <input
+              type="date"
+              value={appliedTo}
+              onChange={(e) => {
+                setAppliedTo(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+            />
+            <div className="flex gap-1 ml-2">
+              <button
+                onClick={() => setQuickDateFilter(0)}
+                className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
+              >
+                Today
+              </button>
+              <button
+                onClick={() => setQuickDateFilter(1)}
+                className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
+              >
+                Yesterday
+              </button>
+              <button
+                onClick={() => setQuickDateFilter(7)}
+                className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
+              >
+                Last 7 days
+              </button>
+              {(appliedFrom || appliedTo) && (
+                <button
+                  onClick={() => {
+                    setAppliedFrom('');
+                    setAppliedTo('');
+                    setCurrentPage(1);
+                  }}
+                  className="px-2 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+          
+          {/* Table Header Actions */}
+          <div className="flex items-center justify-between">
             <div>
               <h3 className="font-semibold text-gray-900">{selectedFolder?.name || 'Select a folder'}</h3>
-              <p className="text-sm text-gray-600">{displayedCandidates.length} candidates</p>
+              <p className="text-sm text-gray-600">
+                Showing {displayedCandidates.length} of {totalCandidates} candidates
+                {searchQuery && ` (filtered by "${searchQuery}")`}
+              </p>
             </div>
             <div className="flex items-center gap-2">
               {selectedCandidates.size > 0 && (
@@ -496,9 +793,21 @@ export function CandidateBrowserExcel() {
                   Detailed View
                 </button>
               </div>
-              <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center gap-2">
+              <div className="relative">
+                <button
+                  onClick={() => handleExport('xlsx')}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Export Excel
+                </button>
+              </div>
+              <button
+                onClick={() => handleExport('csv')}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center gap-2"
+              >
                 <Download className="w-4 h-4" />
-                Export to Excel
+                Export CSV
               </button>
             </div>
           </div>
@@ -520,15 +829,39 @@ export function CandidateBrowserExcel() {
                   </th>
                   {/* Basic columns */}
                   <th className="border border-gray-300 p-2 text-left text-xs font-semibold text-gray-700 bg-gray-100">ID</th>
-                  <th className="border border-gray-300 p-2 text-left text-xs font-semibold text-gray-700 bg-gray-100">Name</th>
-                  <th className="border border-gray-300 p-2 text-left text-xs font-semibold text-gray-700 bg-gray-100">Position</th>
+                  <th 
+                    className="border border-gray-300 p-2 text-left text-xs font-semibold text-gray-700 bg-gray-100 cursor-pointer hover:bg-gray-200 select-none"
+                    onClick={() => handleColumnSort('name')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Name
+                      {sortBy === 'name' && (sortOrder === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDownIcon className="w-3 h-3" />)}
+                    </div>
+                  </th>
+                  <th 
+                    className="border border-gray-300 p-2 text-left text-xs font-semibold text-gray-700 bg-gray-100 cursor-pointer hover:bg-gray-200 select-none"
+                    onClick={() => handleColumnSort('position')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Position
+                      {sortBy === 'position' && (sortOrder === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDownIcon className="w-3 h-3" />)}
+                    </div>
+                  </th>
                   <th className="border border-gray-300 p-2 text-left text-xs font-semibold text-gray-700 bg-gray-100">Age</th>
                   <th className="border border-gray-300 p-2 text-left text-xs font-semibold text-gray-700 bg-gray-100">Nationality</th>
                   <th className="border border-gray-300 p-2 text-left text-xs font-semibold text-gray-700 bg-gray-100">Country</th>
                   <th className="border border-gray-300 p-2 text-left text-xs font-semibold text-gray-700 bg-gray-100">Phone</th>
                   <th className="border border-gray-300 p-2 text-left text-xs font-semibold text-gray-700 bg-gray-100">Email</th>
                   <th className="border border-gray-300 p-2 text-left text-xs font-semibold text-gray-700 bg-gray-100">Experience</th>
-                  <th className="border border-gray-300 p-2 text-left text-xs font-semibold text-gray-700 bg-gray-100">Status</th>
+                  <th 
+                    className="border border-gray-300 p-2 text-left text-xs font-semibold text-gray-700 bg-gray-100 cursor-pointer hover:bg-gray-200 select-none"
+                    onClick={() => handleColumnSort('status')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Status
+                      {sortBy === 'status' && (sortOrder === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDownIcon className="w-3 h-3" />)}
+                    </div>
+                  </th>
                   <th className="border border-gray-300 p-2 text-left text-xs font-semibold text-gray-700 bg-gray-100">AI Score</th>
                   
                   {/* Detailed columns */}
@@ -550,7 +883,15 @@ export function CandidateBrowserExcel() {
                     </>
                   )}
                   
-                  <th className="border border-gray-300 p-2 text-left text-xs font-semibold text-gray-700 bg-gray-100">Applied</th>
+                  <th 
+                    className="border border-gray-300 p-2 text-left text-xs font-semibold text-gray-700 bg-gray-100 cursor-pointer hover:bg-gray-200 select-none"
+                    onClick={() => handleColumnSort('created_at')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Applied
+                      {sortBy === 'created_at' && (sortOrder === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDownIcon className="w-3 h-3" />)}
+                    </div>
+                  </th>
                   
                   {/* Separate columns for each link/action */}
                   <th className="border border-gray-300 p-2 text-center text-xs font-semibold text-gray-700 bg-blue-50">
@@ -753,6 +1094,48 @@ export function CandidateBrowserExcel() {
                 <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <p className="text-lg font-medium">No candidates in this folder</p>
                 <p className="text-sm text-gray-400 mt-1">Try selecting a different folder</p>
+              </div>
+            </div>
+          )}
+          
+          {/* Pagination */}
+          {totalCandidates > 0 && (
+            <div className="border-t border-gray-200 p-4 bg-gray-50 flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                Page {currentPage} of {Math.ceil(totalCandidates / 50)} ({totalCandidates} total)
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  First
+                </button>
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <span className="px-3 py-1 text-sm text-gray-700">
+                  {currentPage}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(Math.ceil(totalCandidates / 50), p + 1))}
+                  disabled={currentPage >= Math.ceil(totalCandidates / 50)}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+                <button
+                  onClick={() => setCurrentPage(Math.ceil(totalCandidates / 50))}
+                  disabled={currentPage >= Math.ceil(totalCandidates / 50)}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Last
+                </button>
               </div>
             </div>
           )}
