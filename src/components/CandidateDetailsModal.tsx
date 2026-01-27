@@ -202,7 +202,6 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
       return () => clearTimeout(timeout);
     }
   }, [uploading]);
-  const [showEmployerCV, setShowEmployerCV] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Fetch real documents from API
@@ -308,8 +307,44 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
     }
   }, [candidate.id, activeTab]);
 
-  const handleShowEmployerCV = () => {
-    setShowEmployerCV(true);
+  const handleShowEmployerCV = async () => {
+    // Use NEW backend CV generation system instead of modal
+    try {
+      const result = await apiClient.generateCandidateCV(candidate.id, 'employer-safe', false);
+      
+      if (result.cached) {
+        toast.success('Downloading cached CV...');
+      } else {
+        toast.success('CV generated successfully! Downloading...');
+      }
+      
+      // Download PDF from signed URL
+      const response = await fetch(result.cv_url);
+      if (!response.ok) {
+        throw new Error(`Failed to download CV: ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${candidate.name || 'Candidate'}_Employer_Safe_CV.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Employer CV downloaded successfully!');
+    } catch (err: any) {
+      console.error('[CandidateDetailsModal] Failed to download Employer CV:', err);
+      if (err?.message?.includes('404') || err?.message?.includes('not found')) {
+        toast.error('CV not found. Please ensure candidate information is complete.');
+      } else if (err?.message?.includes('timeout') || err?.message?.includes('time')) {
+        toast.error('CV generation timed out. Please try again.');
+      } else {
+        toast.error(err?.message || 'Failed to download Employer CV. Please try again.');
+      }
+    }
   };
 
   const handleCopyShareLink = async () => {
@@ -323,9 +358,6 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -1221,7 +1253,10 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                   <MessageSquare className="w-4 h-4" />
                   Send to Employer
                 </button>
-                <button className="px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
+                <button 
+                  onClick={handleShowEmployerCV}
+                  className="px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                >
                   <Download className="w-4 h-4" />
                   Download CV
                 </button>
@@ -1535,381 +1570,6 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
             setExtractedData(null);
           }}
         />
-      )}
-      {showEmployerCV && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 flex items-center justify-between text-white print:hidden">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                  <Shield className="w-6 h-6" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold">Employer-Safe CV</h2>
-                  <p className="text-sm text-blue-100">Contact information hidden for privacy</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowEmployerCV(false)}
-                className="w-10 h-10 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full flex items-center justify-center transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            {/* Action Bar */}
-            <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-b border-purple-200 p-4 flex items-center justify-between gap-4 print:hidden">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">Safe to Share</p>
-                  <p className="text-xs text-gray-600">All sensitive information removed</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleCopyShareLink}
-                  className={`px-4 py-2 rounded-lg transition-all flex items-center gap-2 font-medium ${
-                    copiedLink
-                      ? 'bg-green-600 text-white'
-                      : 'bg-purple-600 text-white hover:bg-purple-700'
-                  }`}
-                >
-                  {copiedLink ? (
-                    <>
-                      <Check className="w-4 h-4" />
-                      Link Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Link2 className="w-4 h-4" />
-                      Copy Share Link
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={handlePrint}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium"
-                >
-                  <Download className="w-4 h-4" />
-                  Download PDF
-                </button>
-              </div>
-            </div>
-
-            {/* CV Content - Scrollable */}
-            <div className="flex-1 overflow-y-auto p-8 print:p-8">
-              <div id="printable-cv" className="max-w-4xl mx-auto bg-white">
-                {/* Logo and Header Section */}
-                <div className="text-center mb-6">
-                  <img 
-                    src="/ChatGPT Image Jan 20, 2026, 05_24_22 PM.png" 
-                    alt="Falisha Manpower" 
-                    className="h-16 mx-auto mb-4"
-                  />
-                </div>
-                
-                {/* Header Section */}
-                <div className="text-center mb-6 pb-4 border-b-2 border-blue-600">
-                  <h1 className="text-3xl font-bold mb-2">{candidate.name || 'Candidate'}</h1>
-                  <p className="text-lg text-gray-600 mb-2">{candidate.position || 'Professional'}</p>
-                  <div className="flex items-center justify-center gap-4 text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <Globe className="w-5 h-5 text-blue-600" />
-                      <span>{candidate.nationality || 'Not specified'}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-5 h-5 text-blue-600" />
-                      <span>Seeking: {candidate.country_of_interest || 'Not specified'}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Contact Information - HIDDEN FOR EMPLOYERS */}
-                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded">
-                  <div className="flex items-start gap-2">
-                    <Shield className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <h3 className="font-bold text-yellow-900 text-sm mb-1">Contact Information Protected</h3>
-                      <p className="text-xs text-yellow-800 mb-2">
-                        For privacy, direct contact details have been removed. Contact Falisha Manpower to reach this candidate.
-                      </p>
-                      <div className="text-xs text-gray-700">
-                        <p>📧 falishamanpower4035@gmail.com</p>
-                        <p>📱 +92330 3333335</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Professional Summary */}
-                <div className="mb-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
-                    <Briefcase className="w-5 h-5 text-blue-600" />
-                    Professional Summary
-                  </h2>
-                  <div className="grid grid-cols-2 gap-3 mb-3">
-                    <div className="bg-blue-50 p-3 rounded">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Calendar className="w-4 h-4 text-blue-600" />
-                        <span className="font-semibold text-gray-900 text-sm">Experience</span>
-                      </div>
-                      <p className="text-xl font-bold text-blue-600">{candidate.experience_years || 0} Years</p>
-                    </div>
-                    <div className="bg-purple-50 p-3 rounded">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Star className="w-4 h-4 text-purple-600" />
-                        <span className="font-semibold text-gray-900 text-sm">AI Match Score</span>
-                      </div>
-                      <p className="text-xl font-bold text-purple-600">{candidate.ai_score?.toFixed(1) || 'N/A'}/10</p>
-                    </div>
-                  </div>
-                  <p className="text-gray-700 text-sm leading-relaxed">
-                    {candidate.professional_summary || `Highly skilled ${candidate.position || 'professional'} with ${candidate.experience_years || 0} years of professional experience. Seeking opportunities in ${candidate.country_of_interest || 'various markets'} to contribute technical expertise and drive operational excellence.`}
-                  </p>
-                </div>
-
-                {/* Work Experience */}
-                {candidate.previous_employment && (
-                  <div className="mb-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
-                      <Briefcase className="w-5 h-5 text-blue-600" />
-                      Work Experience
-                    </h2>
-                    <div className="bg-gray-50 p-3 rounded border-l-4 border-blue-500">
-                      <p className="text-sm whitespace-pre-line text-gray-700">{candidate.previous_employment}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Core Skills */}
-                {safeJsonArray(candidate.skills).length > 0 && (
-                  <div className="mb-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
-                      <Star className="w-5 h-5 text-blue-600" />
-                      Core Skills & Competencies
-                    </h2>
-                    <div className="grid grid-cols-3 gap-2">
-                      {safeJsonArray(candidate.skills).map((skill, index) => (
-                        <div
-                          key={index}
-                          className="px-3 py-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded border border-blue-200 text-gray-800 font-medium text-center text-sm"
-                        >
-                          {skill}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Education */}
-                {candidate.education && (
-                  <div className="mb-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
-                      <FileText className="w-5 h-5 text-blue-600" />
-                      Education
-                    </h2>
-                    <div className="bg-gray-50 p-3 rounded border-l-4 border-purple-500">
-                      <p className="text-sm whitespace-pre-line text-gray-700">{candidate.education}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Certifications */}
-                {candidate.certifications && (
-                  <div className="mb-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
-                      <CheckCircle className="w-5 h-5 text-blue-600" />
-                      Certifications
-                    </h2>
-                    <div className="bg-green-50 p-3 rounded border-l-4 border-green-500">
-                      <p className="text-sm whitespace-pre-line text-gray-700">{candidate.certifications}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Additional Information */}
-                <div className="mb-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-blue-600" />
-                    Additional Information
-                  </h2>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-gray-50 p-3 rounded">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Globe className="w-4 h-4 text-gray-600" />
-                        <span className="font-semibold text-gray-900 text-sm">Nationality</span>
-                      </div>
-                      <p className="text-gray-700 text-sm">{candidate.nationality || 'Not specified'}</p>
-                    </div>
-                    <div className="bg-gray-50 p-3 rounded">
-                      <div className="flex items-center gap-2 mb-1">
-                        <MapPin className="w-4 h-4 text-gray-600" />
-                        <span className="font-semibold text-gray-900 text-sm">Preferred Location</span>
-                      </div>
-                      <p className="text-gray-700 text-sm">{candidate.country_of_interest || 'Not specified'}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Footer Notice */}
-                <div className="mt-6 pt-4 border-t border-gray-300">
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded border border-blue-200">
-                    <div className="flex items-start gap-2">
-                      <Shield className="w-6 h-6 text-blue-600 flex-shrink-0" />
-                      <div>
-                        <h3 className="font-bold text-gray-900 mb-1 text-sm">Protected by Falisha Manpower</h3>
-                        <p className="text-xs text-gray-700 mb-2">
-                          This employer-safe CV protects candidate privacy. Contact information has been secured.
-                        </p>
-                        <p className="text-xs text-gray-600">
-                          <strong>For interviews:</strong> falishamanpower4035@gmail.com | +92330 3333335
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Watermark */}
-                <div className="mt-4 text-center text-xs text-gray-400">
-                  <p>Falisha Manpower AI Recruitment System | Candidate ID: {candidate.id}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Print Styles */}
-          <style>{`
-            @media print {
-              @page {
-                size: A4;
-                margin: 0.5in;
-              }
-              
-              body {
-                print-color-adjust: exact;
-                -webkit-print-color-adjust: exact;
-                margin: 0;
-                padding: 0;
-              }
-              
-              /* Hide everything */
-              * {
-                display: none !important;
-                visibility: hidden !important;
-              }
-              
-              /* Show only the printable CV */
-              #printable-cv {
-                display: block !important;
-                visibility: visible !important;
-                position: relative !important;
-                width: 100% !important;
-                height: auto !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                page-break-after: auto;
-                page-break-inside: avoid;
-              }
-              
-              #printable-cv * {
-                display: block !important;
-                visibility: visible !important;
-                margin-bottom: 0.5rem !important;
-                page-break-inside: avoid !important;
-              }
-              
-              /* Typography */
-              #printable-cv h1 { 
-                font-size: 20px !important; 
-                font-weight: bold !important;
-                margin-bottom: 6px !important; 
-              }
-              #printable-cv h2 { 
-                font-size: 14px !important; 
-                font-weight: bold !important;
-                margin-bottom: 8px !important; 
-              }
-              #printable-cv p { 
-                font-size: 10px !important; 
-                line-height: 1.3 !important;
-                margin-bottom: 4px !important;
-              }
-              #printable-cv img {
-                max-width: 100% !important;
-                height: auto !important;
-                margin-bottom: 8px !important;
-              }
-              
-              /* Reduce all spacing */
-              #printable-cv .mb-6 { margin-bottom: 8px !important; }
-              #printable-cv .mb-4 { margin-bottom: 6px !important; }
-              #printable-cv .mb-3 { margin-bottom: 4px !important; }
-              #printable-cv .mb-2 { margin-bottom: 2px !important; }
-              #printable-cv .mb-1 { margin-bottom: 1px !important; }
-              
-              #printable-cv .pb-2 { padding-bottom: 4px !important; }
-              #printable-cv .pb-4 { padding-bottom: 6px !important; }
-              #printable-cv .pb-6 { padding-bottom: 8px !important; }
-              
-              #printable-cv .p-6 { padding: 6px !important; }
-              #printable-cv .p-4 { padding: 4px !important; }
-              #printable-cv .p-3 { padding: 3px !important; }
-              
-              #printable-cv .gap-2 { gap: 2px !important; }
-              #printable-cv .gap-3 { gap: 3px !important; }
-              #printable-cv .gap-4 { gap: 4px !important; }
-              
-              /* Grid and flexbox */
-              #printable-cv .grid,
-              #printable-cv .flex {
-                display: flex !important;
-              }
-              
-              #printable-cv .grid-cols-2,
-              #printable-cv .grid-cols-3 {
-                flex-direction: row !important;
-                flex-wrap: wrap !important;
-              }
-              
-              #printable-cv .grid-cols-2 > * {
-                flex: 0 0 48% !important;
-              }
-              
-              #printable-cv .grid-cols-3 > * {
-                flex: 0 0 31% !important;
-              }
-              
-              /* Keep colors for branding */
-              #printable-cv .bg-blue-50,
-              #printable-cv .bg-purple-50,
-              #printable-cv .bg-yellow-50,
-              #printable-cv .bg-gray-50,
-              #printable-cv .bg-green-50 {
-                print-color-adjust: exact !important;
-                -webkit-print-color-adjust: exact !important;
-              }
-              
-              #printable-cv .border,
-              #printable-cv .border-b-2,
-              #printable-cv .border-l-4 {
-                border-color: inherit !important;
-                print-color-adjust: exact !important;
-                -webkit-print-color-adjust: exact !important;
-              }
-              
-              #printable-cv .text-sm { font-size: 9px !important; }
-              #printable-cv .text-xs { font-size: 8px !important; }
-              #printable-cv .text-xl { font-size: 12px !important; }
-              #printable-cv .text-2xl { font-size: 14px !important; }
-              #printable-cv .text-3xl { font-size: 16px !important; }
-            }
-          `}</style>
-        </div>
       )}
       
       {/* Document Rejection Modal */}
