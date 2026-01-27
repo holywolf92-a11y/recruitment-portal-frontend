@@ -55,10 +55,12 @@ export function PublicCandidateProfile() {
         setLoadingDocuments(true);
         try {
           const docs = await apiClient.listCandidateDocumentsNew(candidateId);
+          console.log('[PublicCandidateProfile] All documents:', docs);
           // Filter only verified/approved documents
           const verifiedDocs = docs.filter((doc: any) => 
             doc.verification_status === 'verified' || doc.verification_status === 'approved'
           );
+          console.log('[PublicCandidateProfile] Verified documents:', verifiedDocs);
           setDocuments(verifiedDocs);
           console.log('[PublicCandidateProfile] Documents loaded:', verifiedDocs.length);
         } catch (docError: any) {
@@ -100,15 +102,26 @@ export function PublicCandidateProfile() {
     try {
       setDownloadingCV(true);
       
-      // First, try to find CV in the documents list
-      const cvDocument = documents.find((doc) => 
-        doc.category?.toLowerCase() === 'cv' || 
-        doc.document_type?.toLowerCase() === 'cv' ||
-        doc.category?.toLowerCase() === 'resume' ||
-        doc.document_type?.toLowerCase() === 'resume'
-      );
+      console.log('[PublicCandidateProfile] Looking for CV in documents:', documents);
+      
+      // First, try to find CV in the documents list - check multiple fields and variations
+      const cvDocument = documents.find((doc: any) => {
+        const category = (doc.category || '').toLowerCase();
+        const docType = (doc.document_type || '').toLowerCase();
+        const fileName = (doc.file_name || '').toLowerCase();
+        
+        return category === 'cv' || 
+               category === 'resume' ||
+               docType === 'cv' || 
+               docType === 'resume' ||
+               fileName.includes('cv') ||
+               fileName.includes('resume');
+      });
+      
+      console.log('[PublicCandidateProfile] Found CV document:', cvDocument);
       
       if (cvDocument) {
+        console.log('[PublicCandidateProfile] Downloading CV from documents list:', cvDocument.id);
         // Use the document download endpoint
         const result = await apiClient.getCandidateDocumentDownload(cvDocument.id);
         const response = await fetch(result.download_url);
@@ -126,6 +139,7 @@ export function PublicCandidateProfile() {
       }
       
       // If not found in documents list, try the CV download endpoint
+      console.log('[PublicCandidateProfile] CV not found in documents list, trying CV download endpoint');
       const result = await apiClient.getCandidateCVDownload(candidate.id);
       
       // Download the file
@@ -142,8 +156,13 @@ export function PublicCandidateProfile() {
       
       toast.success('CV downloaded successfully!');
     } catch (err: any) {
-      console.error('Failed to download CV:', err);
-      if (err?.message?.includes('404') || err?.message?.includes('not found')) {
+      console.error('[PublicCandidateProfile] Failed to download CV:', err);
+      console.error('[PublicCandidateProfile] Available documents:', documents);
+      
+      // If CV endpoint failed and we have documents, suggest using the documents list
+      if ((err?.message?.includes('404') || err?.message?.includes('not found')) && documents.length > 0) {
+        toast.error('CV not found via CV endpoint. Please download from the Documents section below.');
+      } else if (err?.message?.includes('404') || err?.message?.includes('not found')) {
         toast.error('CV not found. Please ensure a CV document has been uploaded for this candidate.');
       } else {
         toast.error(err?.message || 'Failed to download CV. Please try again.');
