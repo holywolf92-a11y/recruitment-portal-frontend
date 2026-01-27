@@ -153,36 +153,43 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
   
   // Auto-open candidate when candidateIdToOpen is provided
   useEffect(() => {
-    if (candidateIdToOpen && candidates.length > 0) {
-      const candidate = candidates.find(c => c.id === candidateIdToOpen);
-      if (candidate) {
-        setSelectedCandidate(candidate);
-        setDetailsInitialTab('details');
-        setShowDetailsModal(true);
-        // Notify parent that candidate has been opened
-        if (onCandidateOpened) {
-          onCandidateOpened();
-        }
-      } else {
-        // Candidate not found in current list, try fetching it
-        apiClient.getCandidate(candidateIdToOpen)
-          .then((candidate) => {
-            setSelectedCandidate(candidate);
-            setDetailsInitialTab('details');
-            setShowDetailsModal(true);
-            if (onCandidateOpened) {
-              onCandidateOpened();
-            }
-          })
-          .catch((err) => {
-            console.error('Failed to load candidate:', err);
-            if (onCandidateOpened) {
-              onCandidateOpened();
-            }
-          });
-      }
+    // Only proceed if we have a candidateIdToOpen and we're not already showing a modal
+    if (!candidateIdToOpen || showDetailsModal) {
+      return;
     }
-  }, [candidateIdToOpen, candidates, onCandidateOpened]);
+
+    // Try to find candidate in current list first
+    const candidate = candidates.find(c => c.id === candidateIdToOpen);
+    
+    if (candidate) {
+      // Found in current list - open immediately
+      setSelectedCandidate(candidate);
+      setDetailsInitialTab('details');
+      setShowDetailsModal(true);
+      // Notify parent that candidate has been opened (this clears candidateIdToOpen)
+      if (onCandidateOpened) {
+        onCandidateOpened();
+      }
+    } else if (!loading && candidates.length > 0) {
+      // Not found in current list and we've finished loading - fetch it
+      apiClient.getCandidate(candidateIdToOpen)
+        .then((fetchedCandidate) => {
+          setSelectedCandidate(fetchedCandidate);
+          setDetailsInitialTab('details');
+          setShowDetailsModal(true);
+          if (onCandidateOpened) {
+            onCandidateOpened();
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to load candidate:', err);
+          if (onCandidateOpened) {
+            onCandidateOpened();
+          }
+        });
+    }
+    // If loading or candidates not loaded yet, wait for next render
+  }, [candidateIdToOpen, candidates, loading, showDetailsModal, onCandidateOpened]);
   const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
   const [documentAction, setDocumentAction] = useState<{ candidateId: string; docType: string } | null>(null);
   
