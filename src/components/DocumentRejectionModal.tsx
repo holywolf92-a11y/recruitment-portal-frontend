@@ -36,6 +36,25 @@ const getRejectionMessage = (code?: string, category?: string): string => {
   if (!code) return 'Unknown rejection reason';
   
   const messages: Record<string, string> = {
+    // Wrong document type (e.g. not a passport when uploaded as passport)
+    WRONG_DOCUMENT_TYPE: category === 'Passport'
+      ? 'This is not a passport. Please upload a valid passport document.'
+      : category?.toLowerCase().includes('cnic') || category === 'CNIC'
+      ? 'This is not a CNIC / national ID. Please upload a valid CNIC document.'
+      : category?.toLowerCase().includes('driving')
+      ? 'This is not a driving license. Please upload a valid driving license document.'
+      : category?.toLowerCase().includes('character') || category === 'PCC'
+      ? 'This is not a police character certificate. Please upload a valid PCC document.'
+      : category === 'Certificate'
+      ? 'This is not a certificate or degree. Please upload a valid certificate document.'
+      : category === 'Medical Report'
+      ? 'This is not a medical report. Please upload a valid medical certificate.'
+      : category === 'Photo'
+      ? 'This is not a valid photo. Please upload a clear profile photo.'
+      : category === 'CV/Resume'
+      ? 'This is not a CV or resume. Please upload a valid CV/resume document.'
+      : `This document does not appear to be a valid ${(category || 'document').toLowerCase()}. Please upload the correct document type.`,
+    
     // Identity mismatches
     CNIC_MISMATCH: `The CNIC number in this ${category || 'document'} does not match the candidate's CNIC.`,
     PASSPORT_MISMATCH: `The passport number in this ${category || 'document'} does not match the candidate's passport.`,

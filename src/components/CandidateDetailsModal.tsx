@@ -269,10 +269,12 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
           overridden_at: doc.overridden_at || null,
           override_reason: doc.override_reason || null,
           overridden_by_name: doc.rejection?.overridden?.by || doc.overridden_by_name || null,
-          // Map rejection details from API response
+          // Map rejection details from API response (API uses snake_case: rejection_code, rejection_reason)
           rejection: doc.rejection ? {
-            code: doc.rejection.code,
-            reason: doc.rejection.reason,
+            code: doc.rejection.rejection_code ?? doc.rejection.code,
+            reason: doc.rejection.rejection_reason ?? doc.rejection.reason,
+            rejection_code: doc.rejection.rejection_code ?? doc.rejection.code,
+            rejection_reason: doc.rejection.rejection_reason ?? doc.rejection.reason,
             mismatch_fields: doc.rejection.mismatch_fields,
             ai_confidence: doc.rejection.ai_confidence,
             ocr_confidence: doc.rejection.ocr_confidence,
