@@ -99,6 +99,33 @@ export function PublicCandidateProfile() {
     
     try {
       setDownloadingCV(true);
+      
+      // First, try to find CV in the documents list
+      const cvDocument = documents.find((doc) => 
+        doc.category?.toLowerCase() === 'cv' || 
+        doc.document_type?.toLowerCase() === 'cv' ||
+        doc.category?.toLowerCase() === 'resume' ||
+        doc.document_type?.toLowerCase() === 'resume'
+      );
+      
+      if (cvDocument) {
+        // Use the document download endpoint
+        const result = await apiClient.getCandidateDocumentDownload(cvDocument.id);
+        const response = await fetch(result.download_url);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = cvDocument.file_name || `${candidate.name}_CV.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        toast.success('CV downloaded successfully!');
+        return;
+      }
+      
+      // If not found in documents list, try the CV download endpoint
       const result = await apiClient.getCandidateCVDownload(candidate.id);
       
       // Download the file
@@ -116,7 +143,11 @@ export function PublicCandidateProfile() {
       toast.success('CV downloaded successfully!');
     } catch (err: any) {
       console.error('Failed to download CV:', err);
-      toast.error(err?.message || 'Failed to download CV. Please try again.');
+      if (err?.message?.includes('404') || err?.message?.includes('not found')) {
+        toast.error('CV not found. Please ensure a CV document has been uploaded for this candidate.');
+      } else {
+        toast.error(err?.message || 'Failed to download CV. Please try again.');
+      }
     } finally {
       setDownloadingCV(false);
     }
@@ -239,6 +270,15 @@ export function PublicCandidateProfile() {
 
   const profileLink = window.location.href;
   const skillsArray = parseSkills(candidate.skills);
+  
+  // Check if CV is available in documents
+  const cvDocument = documents.find((doc) => 
+    doc.category?.toLowerCase() === 'cv' || 
+    doc.document_type?.toLowerCase() === 'cv' ||
+    doc.category?.toLowerCase() === 'resume' ||
+    doc.document_type?.toLowerCase() === 'resume'
+  );
+  const hasCV = !!cvDocument || candidate.cv_received;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
