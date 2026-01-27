@@ -29,12 +29,18 @@ export function PublicCandidateProfile() {
     const fetchCandidate = async () => {
       try {
         setLoading(true);
+        // apiClient.getCandidate returns the candidate directly
         const data = await apiClient.getCandidate(candidateId);
         setCandidate(data);
         setError(null);
       } catch (err: any) {
         console.error('Failed to load candidate:', err);
-        setError(err?.message || 'Failed to load candidate profile');
+        // If it's a 404 or not found, show friendly message
+        if (err?.message?.includes('404') || err?.message?.includes('not found')) {
+          setError('This candidate profile is not available or has been removed.');
+        } else {
+          setError(err?.message || 'Failed to load candidate profile. Please check the link and try again.');
+        }
       } finally {
         setLoading(false);
       }
