@@ -159,8 +159,6 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
     lastUpdate: number;
   }>>(new Map());
   
-  const pollingIntervalsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
-
   // Fetch candidates using context
   const fetchCandidates = async () => {
     await fetchCandidatesFromContext({
@@ -187,42 +185,59 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
     setStatuses(uniqueStatuses.length ? uniqueStatuses : ['Applied', 'Pending', 'Deployed', 'Cancelled']);
   };
 
-  // Check for documents being processed when candidates load
+  // Backend-driven processing: show "Processing" only when the backend has documents
+  // with verification_status === 'pending_ai' (CV from inbox, split-and-categorize, etc).
+  // No loading on click — no flicker.
+  const POLL_INTERVAL_MS = 5000;
+  const candidateIds = useMemo(() => candidates.map((c) => c.id), [candidates]);
   useEffect(() => {
-    const checkProcessingDocuments = async () => {
-      // Only check candidates that don't already have processing state
-      const candidatesToCheck = candidates.filter(c => !processingDocuments.get(c.id)?.isProcessing);
-      
-      if (candidatesToCheck.length === 0) return;
-      
-      // Check in batches to avoid overwhelming the API
-      for (const candidate of candidatesToCheck.slice(0, 10)) { // Limit to 10 at a time
+    if (candidateIds.length === 0) return;
+
+    const syncProcessingFromBackend = async () => {
+      const updates = new Map<string, { isProcessing: boolean; documentCount: number; startTime: number; lastUpdate: number }>();
+      const resolvedIds = new Set<string>();
+      for (const id of candidateIds) {
         try {
-          const documents = await apiClient.listCandidateDocumentsNew(candidate.id);
-          const pendingDocs = documents.filter((doc: any) => 
-            doc.verification_status === 'pending' || 
-            doc.verification_status === 'processing' ||
-            doc.status === 'pending' ||
-            doc.status === 'processing'
+          const documents = (await apiClient.listCandidateDocumentsNew(id)) as any[];
+          resolvedIds.add(id);
+          const hasPending = documents.some(
+            (d) =>
+              d.verification_status === 'pending_ai' ||
+              d.verification_status === 'pending' ||
+              (typeof d.status === 'string' && (d.status === 'queued' || d.status === 'processing'))
           );
-          
-          if (pendingDocs.length > 0) {
-            // Start polling for this candidate
-            startDocumentPolling(candidate.id);
+          if (hasPending) {
+            updates.set(id, {
+              isProcessing: true,
+              documentCount: documents.length,
+              startTime: Date.now(),
+              lastUpdate: Date.now(),
+            });
           }
-        } catch (error) {
-          // Silently fail - don't spam errors
-          console.debug('Error checking documents for', candidate.id, error);
+        } catch {
+          // On error: do not change this candidate's processing state (avoids flicker)
         }
       }
+      setProcessingDocuments((prev) => {
+        const next = new Map(prev);
+        resolvedIds.forEach((id) => {
+          if (updates.has(id)) {
+            next.set(id, updates.get(id)!);
+          } else {
+            next.delete(id);
+          }
+        });
+        return next;
+      });
     };
-    
-    if (candidates.length > 0) {
-      // Debounce the check slightly to avoid checking on every render
-      const timeoutId = setTimeout(checkProcessingDocuments, 1000);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [candidates.map(c => c.id).join(',')]); // Only re-check when candidate IDs change
+
+    const t = setTimeout(syncProcessingFromBackend, 600);
+    const interval = setInterval(syncProcessingFromBackend, POLL_INTERVAL_MS);
+    return () => {
+      clearTimeout(t);
+      clearInterval(interval);
+    };
+  }, [candidateIds]);
 
   // Fetch candidates on mount and when filters change
   useEffect(() => {
@@ -230,124 +245,6 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.search, filters.position, filters.country, filters.status]);
 
-  // Cleanup polling intervals on unmount
-  useEffect(() => {
-    return () => {
-      pollingIntervalsRef.current.forEach(interval => clearInterval(interval));
-      pollingIntervalsRef.current.clear();
-    };
-  }, []);
-
-  // Start document processing polling for a candidate
-  const startDocumentPolling = (candidateId: string) => {
-    // Clear existing interval if any
-    if (pollingIntervalsRef.current.has(candidateId)) {
-      clearInterval(pollingIntervalsRef.current.get(candidateId)!);
-    }
-
-    // Set initial processing state
-    setProcessingDocuments(prev => {
-      const newMap = new Map(prev);
-      newMap.set(candidateId, {
-        isProcessing: true,
-        documentCount: 0,
-        startTime: Date.now(),
-        lastUpdate: Date.now(),
-      });
-      console.log('[DocumentPolling] Started processing for candidate:', candidateId, 'State:', newMap.get(candidateId));
-      return newMap;
-    });
-
-    // Show initial toast
-    toast.info('Document processing started', {
-      description: 'Extracting documents... This may take 30-60 seconds',
-      duration: 4000,
-    });
-
-    let lastDocumentCount = 0;
-    let pollCount = 0;
-    const maxPolls = 30; // 30 polls * 2 seconds = 60 seconds max
-    const pollInterval = 2000; // 2 seconds
-
-    const interval = setInterval(async () => {
-      pollCount++;
-      
-      try {
-        // Fetch current documents for this candidate
-        const documents = await apiClient.listCandidateDocumentsNew(candidateId);
-        const currentCount = documents.length;
-
-        // Update processing state
-        setProcessingDocuments(prev => {
-          const newMap = new Map(prev);
-          const current = newMap.get(candidateId);
-          if (current) {
-            newMap.set(candidateId, {
-              ...current,
-              documentCount: currentCount,
-              lastUpdate: Date.now(),
-            });
-          }
-          return newMap;
-        });
-
-        // Show toast when new documents are found
-        if (currentCount > lastDocumentCount) {
-          const newDocs = currentCount - lastDocumentCount;
-          toast.success(`Found ${newDocs} document${newDocs > 1 ? 's' : ''}`, {
-            description: `Total: ${currentCount} document${currentCount > 1 ? 's' : ''} extracted`,
-            duration: 3000,
-          });
-          lastDocumentCount = currentCount;
-        }
-
-        // Refresh candidates to update flags
-        await refreshCandidates();
-
-        // Check if processing is complete (no new documents for 3 consecutive polls)
-        if (pollCount >= maxPolls) {
-          // Timeout reached
-          clearInterval(interval);
-          pollingIntervalsRef.current.delete(candidateId);
-          
-          setProcessingDocuments(prev => {
-            const newMap = new Map(prev);
-            newMap.delete(candidateId);
-            return newMap;
-          });
-
-          toast.success('Document extraction complete', {
-            description: `Found ${currentCount} document${currentCount > 1 ? 's' : ''}`,
-            duration: 4000,
-          });
-        } else if (pollCount > 3 && currentCount === lastDocumentCount && currentCount > 0) {
-          // No new documents for 3 polls and we have at least one document
-          // Likely complete, but continue polling a bit more
-          if (pollCount > 10) {
-            clearInterval(interval);
-            pollingIntervalsRef.current.delete(candidateId);
-            
-            setProcessingDocuments(prev => {
-              const newMap = new Map(prev);
-              newMap.delete(candidateId);
-              return newMap;
-            });
-
-            toast.success('Document extraction complete', {
-              description: `Found ${currentCount} document${currentCount > 1 ? 's' : ''}`,
-              duration: 4000,
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Error polling documents:', error);
-        // Continue polling despite errors
-      }
-    }, pollInterval);
-
-    pollingIntervalsRef.current.set(candidateId, interval);
-  };
-  
   // Update filter options when candidates change
   useEffect(() => {
     const uniquePositions = Array.from(
@@ -526,10 +423,34 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
       // For CV, try to link existing CV from inbox first
       if (docType === 'cv') {
         try {
-          const response = await apiClient.linkCandidateCV(candidateId);
-          alert('CV linked successfully from inbox!');
+          await apiClient.linkCandidateCV(candidateId);
           // Refresh candidates from context
           await refreshCandidates();
+          // One-off sync: if backend is now processing this candidate's docs, show Processing on card
+          try {
+            const documents = (await apiClient.listCandidateDocumentsNew(candidateId)) as any[];
+            const hasPending = documents.some(
+              (d: any) =>
+                d.verification_status === 'pending_ai' ||
+                d.verification_status === 'pending' ||
+                (typeof d.status === 'string' && (d.status === 'queued' || d.status === 'processing'))
+            );
+            if (hasPending) {
+              setProcessingDocuments((prev) => {
+                const next = new Map(prev);
+                next.set(candidateId, {
+                  isProcessing: true,
+                  documentCount: documents.length,
+                  startTime: Date.now(),
+                  lastUpdate: Date.now(),
+                });
+                return next;
+              });
+            }
+          } catch {
+            /* ignore */
+          }
+          toast.success('CV linked from inbox. Processing in background.', { duration: 3000 });
         } catch (error: any) {
           // If no CV in inbox, offer to upload
           if (error?.message?.includes('404') || error?.message?.includes('not found')) {
@@ -568,66 +489,45 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
   }
 
   function uploadDocument(candidateId: string, docType: string) {
-    // Start processing state IMMEDIATELY before file picker opens
-    // This ensures UI updates right away
-    startDocumentPolling(candidateId);
-    
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = docType === 'photo' ? 'image/*' : '.pdf,.jpg,.jpeg,.png,.doc,.docx';
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) {
-        // User cancelled - stop processing state
-        if (pollingIntervalsRef.current.has(candidateId)) {
-          clearInterval(pollingIntervalsRef.current.get(candidateId)!);
-          pollingIntervalsRef.current.delete(candidateId);
-        }
-        setProcessingDocuments(prev => {
-          const newMap = new Map(prev);
-          newMap.delete(candidateId);
-          return newMap;
-        });
-        return;
-      }
+      if (!file) return;
 
       try {
         await apiClient.uploadDocument(file, candidateId, docType, false);
-        
-        // Wait for backend flag updates to complete
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Refresh candidates from context to get updated flags
+        await new Promise((r) => setTimeout(r, 1500));
         await refreshCandidates();
-        
-        // For split-and-categorize flow (PDFs), documents are processed asynchronously
-        // The polling mechanism will handle updates
-        
-        // For single document uploads, check flag updates
-        if (docType !== 'cv' && docType !== 'passport' && docType !== 'cnic' && docType !== 'driving_license' && docType !== 'police_character_certificate') {
-          // Simple document uploads - just wait a bit and refresh
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          await refreshCandidates();
+        // One-off sync: if backend now has pending_ai docs for this candidate, show Processing
+        try {
+          const documents = (await apiClient.listCandidateDocumentsNew(candidateId)) as any[];
+          const hasPending = documents.some(
+            (d) =>
+              d.verification_status === 'pending_ai' ||
+              d.verification_status === 'pending' ||
+              (typeof d.status === 'string' && (d.status === 'queued' || d.status === 'processing'))
+          );
+          if (hasPending) {
+            setProcessingDocuments((prev) => {
+              const next = new Map(prev);
+              next.set(candidateId, {
+                isProcessing: true,
+                documentCount: documents.length,
+                startTime: Date.now(),
+                lastUpdate: Date.now(),
+              });
+              return next;
+            });
+          }
+        } catch {
+          /* ignore */
         }
-        
-        toast.success(`${docType} uploaded successfully!`, {
-          description: 'Document is being processed...',
-          duration: 3000,
-        });
+        toast.success(`${docType} uploaded. Processing in background.`, { duration: 3000 });
       } catch (error: any) {
-        // Stop processing on error
-        if (pollingIntervalsRef.current.has(candidateId)) {
-          clearInterval(pollingIntervalsRef.current.get(candidateId)!);
-          pollingIntervalsRef.current.delete(candidateId);
-        }
-        setProcessingDocuments(prev => {
-          const newMap = new Map(prev);
-          newMap.delete(candidateId);
-          return newMap;
-        });
-        
         toast.error(`Failed to upload ${docType}`, {
-          description: error?.message || 'Unknown error occurred',
+          description: error?.message || 'Unknown error',
           duration: 4000,
         });
       }
