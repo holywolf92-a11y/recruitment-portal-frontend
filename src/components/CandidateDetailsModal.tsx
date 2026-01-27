@@ -311,8 +311,8 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
   const handleShowEmployerCV = async () => {
     // Use NEW backend CV generation system instead of modal
     try {
-      // Force regeneration to ensure new colorful template is used
-      const result = await apiClient.generateCandidateCV(candidate.id, 'employer-safe', true);
+      // Use cache for better performance (template version in hash ensures correct version)
+      const result = await apiClient.generateCandidateCV(candidate.id, 'employer-safe', false);
       
       if (result.cached) {
         toast.success('Downloading cached CV...');
