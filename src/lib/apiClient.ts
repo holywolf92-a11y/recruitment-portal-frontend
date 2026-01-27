@@ -472,8 +472,8 @@ class ApiClient {
    */
   async uploadDocument(file: File, candidateId: string, docType: string, isPrimary: boolean = false): Promise<Document> {
     // Use the new unified endpoint instead of old /documents endpoint
-    // This ensures all documents go through AI verification
-    const response = await this.uploadCandidateDocument(file, candidateId, 'web');
+    // This ensures all documents go through AI verification. Pass docType so backend can reject wrong-type uploads (e.g. "not a passport").
+    const response = await this.uploadCandidateDocument(file, candidateId, 'web', docType);
     
     // Return in old format for backward compatibility
     return {
@@ -588,11 +588,12 @@ class ApiClient {
   }
 
   // Candidate Documents API (AI Verification System)
-  async uploadCandidateDocument(file: File, candidateId: string, source: string = 'web'): Promise<{ document: any; request_id: string }> {
+  async uploadCandidateDocument(file: File, candidateId: string, source: string = 'web', documentType?: string): Promise<{ document: any; request_id: string }> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('candidate_id', candidateId);
     formData.append('source', source);
+    if (documentType) formData.append('document_type', documentType);
 
     // Calculate timeout based on file size (120 seconds for files up to 10MB, longer for larger files)
     // Base timeout: 120 seconds, add 10 seconds per MB
