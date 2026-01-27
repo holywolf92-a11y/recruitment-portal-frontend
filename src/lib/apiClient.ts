@@ -823,6 +823,16 @@ class ApiClient {
     return response;
   }
 
+  async quickApproveCandidateDocument(id: string): Promise<{ success: boolean; document: any; message: string }> {
+    const response = await this.request<{ success: boolean; document: any; message: string }>(
+      `/documents/candidate-documents/${id}/approve`,
+      {
+        method: 'POST',
+      }
+    );
+    return response;
+  }
+
   async overrideCandidateDocument(
     documentId: string,
     adminEmail: string,

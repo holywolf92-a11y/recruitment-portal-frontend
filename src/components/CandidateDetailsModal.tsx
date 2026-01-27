@@ -711,6 +711,28 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
     }
   };
 
+  // Handle quick approve (for pending documents - no password needed)
+  const handleQuickApprove = async (doc: Document) => {
+    if (!confirm(`Approve "${doc.fileName}"? This will mark the document as verified.`)) {
+      return;
+    }
+
+    try {
+      console.log('[QuickApprove] Approving document:', doc.id, doc.fileName);
+      await apiClient.quickApproveCandidateDocument(doc.id);
+      console.log('[QuickApprove] Document approved successfully');
+      
+      alert('Document approved successfully!');
+      
+      // Refresh documents to see updated status
+      await fetchDocuments();
+    } catch (error: any) {
+      console.error('[QuickApprove] Error approving document:', error);
+      const errorMessage = error?.message || 'Failed to approve document';
+      alert(`Error approving document: ${errorMessage}`);
+    }
+  };
+
   // Handle admin override request from rejection modal
   const handleRequestOverride = (doc: Document) => {
     setRejectionModalDocument(null);
@@ -1484,14 +1506,24 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                               Download
                             </button>
                             {doc.status === 'pending' && (
-                              <button 
-                                onClick={() => handleReprocessDocument(doc)}
-                                className="px-3 py-1.5 bg-yellow-50 text-yellow-600 rounded-lg hover:bg-yellow-100 transition-colors flex items-center gap-1.5 text-sm"
-                                title="Reprocess AI verification"
-                              >
-                                <RefreshCw className="w-3.5 h-3.5" />
-                                Reprocess
-                              </button>
+                              <>
+                                <button 
+                                  onClick={() => handleQuickApprove(doc)}
+                                  className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1.5 text-sm font-medium"
+                                  title="Approve this document (mark as verified)"
+                                >
+                                  <CheckCircle className="w-3.5 h-3.5" />
+                                  Approve
+                                </button>
+                                <button 
+                                  onClick={() => handleReprocessDocument(doc)}
+                                  className="px-3 py-1.5 bg-yellow-50 text-yellow-600 rounded-lg hover:bg-yellow-100 transition-colors flex items-center gap-1.5 text-sm"
+                                  title="Reprocess AI verification"
+                                >
+                                  <RefreshCw className="w-3.5 h-3.5" />
+                                  Reprocess
+                                </button>
+                              </>
                             )}
                             <button 
                               onClick={() => handleDeleteDocument(doc)}
