@@ -270,11 +270,7 @@ function buildFolderStructure(candidates: Candidate[]): FolderNode[] {
   });
 }
 
-interface CandidateBrowserExcelProps {
-  onOpenCandidate?: (candidateId: string) => void;
-}
-
-export function CandidateBrowserExcel({ onOpenCandidate }: CandidateBrowserExcelProps = {}) {
+export function CandidateBrowserExcel() {
   // Server-side filtering state
   const [filters, setFilters] = useState<CandidateFilters>({
     limit: 50,
