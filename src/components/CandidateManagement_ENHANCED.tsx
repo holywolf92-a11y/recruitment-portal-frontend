@@ -410,22 +410,40 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
 
   async function handleDownloadCV(candidate: Candidate) {
     try {
-      // Use the new dedicated CV download endpoint
-      const { download_url, filename } = await apiClient.getCandidateCVDownload(candidate.id);
+      // Use the NEW backend CV generation service (employer-safe format)
+      const result = await apiClient.generateCandidateCV(candidate.id, 'employer-safe', false);
       
-      // Trigger download
+      if (result.cached) {
+        console.log('Using cached CV');
+      } else {
+        console.log('Generated new CV');
+      }
+      
+      // Download PDF from signed URL
+      const response = await fetch(result.cv_url);
+      if (!response.ok) {
+        throw new Error(`Failed to download CV: ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = download_url;
-      link.download = filename;
+      link.href = url;
+      link.download = `${candidate.name || 'Candidate'}_Employer_Safe_CV.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      alert('Employer-Safe CV downloaded successfully!');
     } catch (error: any) {
-      // Check if it's a 404 (CV not found)
-      if (error?.message?.includes('404')) {
-        alert('No CV found for this candidate. Please upload a CV first.');
+      console.error('Failed to download CV:', error);
+      if (error?.message?.includes('404') || error?.message?.includes('not found')) {
+        alert('CV generation failed. Please ensure candidate information is complete.');
+      } else if (error?.message?.includes('timeout') || error?.message?.includes('time')) {
+        alert('CV generation timed out. Please try again.');
       } else {
-        alert(error?.message || 'Failed to download CV');
+        alert(error?.message || 'Failed to download CV. Please try again.');
       }
     }
   }
