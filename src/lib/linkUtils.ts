@@ -2,20 +2,24 @@ import { Candidate } from './mockData';
 
 // Generate unique profile link for candidate (uses current frontend URL)
 export function generateProfileLink(candidate: Candidate): string {
-  const slug = candidate.name.toLowerCase().replace(/\s+/g, '-');
+  const name = candidate.name || 'candidate';
+  const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  const candidateId = candidate.id || '';
   const baseUrl = typeof window !== 'undefined' 
     ? window.location.origin 
     : 'https://exquisite-surprise-production.up.railway.app';
-  return `${baseUrl}/profile/${candidate.id}/${slug}`;
+  return `${baseUrl}/profile/${candidateId}/${slug}`;
 }
 
 // Generate shareable recruiter CV link (uses current frontend URL)
 export function generateCVShareLink(candidate: Candidate): string {
-  const slug = candidate.name.toLowerCase().replace(/\s+/g, '-');
+  const name = candidate.name || 'candidate';
+  const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  const candidateId = candidate.id || '';
   const baseUrl = typeof window !== 'undefined' 
     ? window.location.origin 
     : 'https://exquisite-surprise-production.up.railway.app';
-  return `${baseUrl}/cv/${candidate.id}/${slug}`;
+  return `${baseUrl}/cv/${candidateId}/${slug}`;
 }
 
 // Copy to clipboard helper
