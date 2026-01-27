@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { apiClient, Candidate } from '../lib/apiClient';
 import { 
   User, Briefcase, Calendar, FileText, 
@@ -23,6 +23,7 @@ export function PublicCandidateProfile() {
   const [downloadingCV, setDownloadingCV] = useState(false);
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const employerCVRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Extract candidate ID from URL path: /profile/:id/:slug
@@ -97,76 +98,42 @@ export function PublicCandidateProfile() {
   };
 
   const handleDownloadCV = async () => {
-    if (!candidate) return;
+    if (!candidate || !employerCVRef.current) return;
     
     try {
       setDownloadingCV(true);
       
-      console.log('[PublicCandidateProfile] Looking for CV in documents:', documents);
+      // Dynamic import html2pdf.js
+      const html2pdf = (await import('html2pdf.js')).default;
       
-      // First, try to find CV in the documents list - check multiple fields and variations
-      const cvDocument = documents.find((doc: any) => {
-        const category = (doc.category || '').toLowerCase();
-        const docType = (doc.document_type || '').toLowerCase();
-        const fileName = (doc.file_name || '').toLowerCase();
-        
-        return category === 'cv' || 
-               category === 'resume' ||
-               docType === 'cv' || 
-               docType === 'resume' ||
-               fileName.includes('cv') ||
-               fileName.includes('resume');
-      });
+      // Get the Employer CV section element
+      const element = employerCVRef.current;
       
-      console.log('[PublicCandidateProfile] Found CV document:', cvDocument);
+      // Configure PDF options
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: `${candidate.name || 'Candidate'}_Employer_CV.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+          scale: 2,
+          useCORS: true,
+          logging: false
+        },
+        jsPDF: { 
+          unit: 'mm', 
+          format: 'a4', 
+          orientation: 'portrait' 
+        },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      };
       
-      if (cvDocument) {
-        console.log('[PublicCandidateProfile] Downloading CV from documents list:', cvDocument.id);
-        // Use the document download endpoint
-        const result = await apiClient.getCandidateDocumentDownload(cvDocument.id);
-        const response = await fetch(result.download_url);
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = cvDocument.file_name || `${candidate.name}_CV.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-        toast.success('CV downloaded successfully!');
-        return;
-      }
+      // Generate and download PDF
+      await html2pdf().set(opt).from(element).save();
       
-      // If not found in documents list, try the CV download endpoint
-      console.log('[PublicCandidateProfile] CV not found in documents list, trying CV download endpoint');
-      const result = await apiClient.getCandidateCVDownload(candidate.id);
-      
-      // Download the file
-      const response = await fetch(result.download_url);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = result.filename || `${candidate.name}_CV.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-      
-      toast.success('CV downloaded successfully!');
+      toast.success('Employer CV downloaded successfully!');
     } catch (err: any) {
-      console.error('[PublicCandidateProfile] Failed to download CV:', err);
-      console.error('[PublicCandidateProfile] Available documents:', documents);
-      
-      // If CV endpoint failed and we have documents, suggest using the documents list
-      if ((err?.message?.includes('404') || err?.message?.includes('not found')) && documents.length > 0) {
-        toast.error('CV not found via CV endpoint. Please download from the Documents section below.');
-      } else if (err?.message?.includes('404') || err?.message?.includes('not found')) {
-        toast.error('CV not found. Please ensure a CV document has been uploaded for this candidate.');
-      } else {
-        toast.error(err?.message || 'Failed to download CV. Please try again.');
-      }
+      console.error('[PublicCandidateProfile] Failed to generate Employer CV PDF:', err);
+      toast.error(err?.message || 'Failed to generate Employer CV. Please try again.');
     } finally {
       setDownloadingCV(false);
     }
@@ -331,7 +298,7 @@ export function PublicCandidateProfile() {
           {/* Left Column - Employer CV Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Employer-Safe CV Section */}
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div ref={employerCVRef} className="bg-white rounded-lg shadow-md p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
@@ -348,7 +315,7 @@ export function PublicCandidateProfile() {
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Download className="w-4 h-4" />
-                  {downloadingCV ? 'Downloading...' : 'Download CV'}
+                  {downloadingCV ? 'Generating PDF...' : 'Download Employer CV'}
                 </button>
               </div>
 
