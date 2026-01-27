@@ -7,6 +7,7 @@ import { MissingDataTab } from './MissingDataTab';
 import { DocumentRejectionModal, DocumentRejectionDetails } from './DocumentRejectionModal';
 import { AdminOverrideModal } from './AdminOverrideModal';
 import { useAuth } from '../lib/authContext';
+import { toast } from 'sonner';
 
 interface CandidateDetailsModalProps {
   candidate: Candidate;
