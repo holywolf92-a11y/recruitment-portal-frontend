@@ -1020,95 +1020,59 @@ export function CandidateBrowserExcel() {
                       <td className="border border-gray-300 p-2 text-sm text-gray-700">{appliedDate}</td>
                       
                       {/* Separate columns for each link/action */}
-                      <td className="border border-gray-300 p-2">
-                        <div className="flex items-center gap-1 justify-center">
-                          <button 
-                            className="p-1 hover:bg-blue-100 rounded group relative transition-colors" 
-                            title={`Open Public Profile: ${generateProfileLink(candidate)}\nRight-click to copy link`}
-                            onClick={(e) => {
-                              if (e.ctrlKey || e.metaKey) {
-                                // Ctrl/Cmd + Click: Copy link
-                                e.preventDefault();
-                                copyToClipboard(generateProfileLink(candidate))
-                                  .then(() => toast.success('Profile link copied to clipboard!'))
-                                  .catch(() => toast.error('Failed to copy link'));
-                              } else {
-                                // Regular click: Open public profile in new tab (shareable with recruiters)
-                                window.open(generateProfileLink(candidate), '_blank', 'noopener,noreferrer');
-                                toast.info('Opening public profile...');
-                              }
-                            }}
-                            onContextMenu={async (e) => {
-                              e.preventDefault();
-                              try {
-                                await copyToClipboard(generateProfileLink(candidate));
-                                toast.success('Profile link copied to clipboard!');
-                              } catch (err) {
-                                toast.error('Failed to copy link');
-                              }
-                            }}
-                          >
-                            <Globe className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform" />
-                          </button>
-                          <a
-                            href={generateProfileLink(candidate)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-0.5 hover:bg-blue-50 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="Open public profile in new tab"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toast.info('Opening public profile...');
-                            }}
-                          >
-                            <ExternalLink className="w-3 h-3 text-blue-500" />
-                          </a>
-                        </div>
+                      <td className="border border-gray-300 p-2 bg-blue-50">
+                        <a
+                          href={generateProfileLink(candidate)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-2 px-3 py-1.5 text-blue-600 hover:text-blue-800 hover:underline transition-colors group"
+                          title="Click to open public profile (Right-click to copy link)"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toast.info('Opening public profile...');
+                          }}
+                          onContextMenu={async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            try {
+                              await copyToClipboard(generateProfileLink(candidate));
+                              toast.success('Profile link copied to clipboard!');
+                            } catch (err) {
+                              toast.error('Failed to copy link');
+                            }
+                          }}
+                        >
+                          <Globe className="w-4 h-4 group-hover:scale-110 transition-transform flex-shrink-0" />
+                          <span className="text-xs font-medium underline">View Profile</span>
+                          <ExternalLink className="w-3 h-3 opacity-60" />
+                        </a>
                       </td>
-                      <td className="border border-gray-300 p-2">
-                        <div className="flex items-center gap-1 justify-center">
-                          <button 
-                            className="p-1 hover:bg-purple-100 rounded group relative transition-colors" 
-                            title={`Open Employer CV: ${generateCVShareLink(candidate)}\nRight-click to copy link`}
-                            onClick={(e) => {
-                              if (e.ctrlKey || e.metaKey) {
-                                // Ctrl/Cmd + Click: Copy link
-                                e.preventDefault();
-                                copyToClipboard(generateCVShareLink(candidate))
-                                  .then(() => toast.success('CV link copied to clipboard!'))
-                                  .catch(() => toast.error('Failed to copy link'));
-                              } else {
-                                // Regular click: Open in new tab
-                                window.open(generateCVShareLink(candidate), '_blank', 'noopener,noreferrer');
-                                toast.info('Opening CV link...');
-                              }
-                            }}
-                            onContextMenu={async (e) => {
-                              e.preventDefault();
-                              try {
-                                await copyToClipboard(generateCVShareLink(candidate));
-                                toast.success('CV link copied to clipboard!');
-                              } catch (err) {
-                                toast.error('Failed to copy link');
-                              }
-                            }}
-                          >
-                            <FileText className="w-4 h-4 text-purple-600 group-hover:scale-110 transition-transform" />
-                          </button>
-                          <a
-                            href={generateCVShareLink(candidate)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-0.5 hover:bg-purple-50 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="Open in new tab"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toast.info('Opening CV...');
-                            }}
-                          >
-                            <ExternalLink className="w-3 h-3 text-purple-500" />
-                          </a>
-                        </div>
+                      <td className="border border-gray-300 p-2 bg-purple-50">
+                        <a
+                          href={generateCVShareLink(candidate)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-2 px-3 py-1.5 text-purple-600 hover:text-purple-800 hover:underline transition-colors group"
+                          title="Click to open employer CV (Right-click to copy link)"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toast.info('Opening Employer CV...');
+                          }}
+                          onContextMenu={async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            try {
+                              await copyToClipboard(generateCVShareLink(candidate));
+                              toast.success('CV link copied to clipboard!');
+                            } catch (err) {
+                              toast.error('Failed to copy link');
+                            }
+                          }}
+                        >
+                          <FileText className="w-4 h-4 group-hover:scale-110 transition-transform flex-shrink-0" />
+                          <span className="text-xs font-medium underline">View CV</span>
+                          <ExternalLink className="w-3 h-3 opacity-60" />
+                        </a>
                       </td>
                       <td className="border border-gray-300 p-2">
                         <span className="text-xs text-gray-400">missing</span>
