@@ -104,18 +104,11 @@ const AppContent = () => {
     }
   };
 
-  // Check if we should show the public form based on URL
+  // Check if we should show the public form based on URL (before auth check)
   if (typeof window !== 'undefined' && window.location.pathname === '/apply') {
     return <PublicApplicationForm />;
   }
 
-  // Check if we should show public candidate profile (no login required)
-  if (typeof window !== 'undefined') {
-    const pathMatch = window.location.pathname.match(/^\/profile\/([^\/]+)(?:\/(.+))?$/);
-    if (pathMatch) {
-      return <PublicCandidateProfile />;
-    }
-  }
 
   // Show loading spinner while checking auth
   if (loading) {
@@ -451,6 +444,26 @@ const AppContent = () => {
 };
 
 export default function App() {
+  // Check for public routes BEFORE auth (no login required)
+  if (typeof window !== 'undefined') {
+    // Public application form
+    if (window.location.pathname === '/apply') {
+      return <PublicApplicationForm />;
+    }
+    
+    // Public candidate profile
+    const profileMatch = window.location.pathname.match(/^\/profile\/([^\/]+)(?:\/(.+))?$/);
+    if (profileMatch) {
+      return (
+        <>
+          <PublicCandidateProfile />
+          <Toaster position="top-right" richColors closeButton />
+        </>
+      );
+    }
+  }
+
+  // Protected routes require auth
   return (
     <AuthProvider>
       <CandidateProvider>

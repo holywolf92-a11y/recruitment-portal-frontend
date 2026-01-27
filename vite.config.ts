@@ -57,5 +57,6 @@
     server: {
       port: 3002,
       open: true,
+      historyApiFallback: true, // Enable client-side routing
     },
   });
