@@ -122,10 +122,10 @@ export function PublicCandidateProfile() {
     
     try {
       setDownloadingCV(true);
-      console.log('[PublicCandidateProfile] Calling backend CV generation API...');
+      console.log('[PublicCandidateProfile] Calling backend CV generation API with force=true...');
       
-      // Use backend CV generation service
-      const result = await apiClient.generateCandidateCV(candidate.id, 'employer-safe', false);
+      // Use backend CV generation service with force=true to bypass old cache
+      const result = await apiClient.generateCandidateCV(candidate.id, 'employer-safe', true);
       console.log('[PublicCandidateProfile] CV generation result:', result);
       
       if (result.cached) {
