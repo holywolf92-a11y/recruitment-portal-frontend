@@ -1018,7 +1018,7 @@ export function CandidateBrowserExcel({ onOpenCandidate }: CandidateBrowserExcel
                         <div className="flex items-center gap-1 justify-center">
                           <button 
                             className="p-1 hover:bg-blue-100 rounded group relative transition-colors" 
-                            title={`Open Profile in Candidate Management\nRight-click to copy link`}
+                            title={`Open Public Profile: ${generateProfileLink(candidate)}\nRight-click to copy link`}
                             onClick={(e) => {
                               if (e.ctrlKey || e.metaKey) {
                                 // Ctrl/Cmd + Click: Copy link
@@ -1027,15 +1027,9 @@ export function CandidateBrowserExcel({ onOpenCandidate }: CandidateBrowserExcel
                                   .then(() => toast.success('Profile link copied to clipboard!'))
                                   .catch(() => toast.error('Failed to copy link'));
                               } else {
-                                // Regular click: Open in Candidate Management
-                                if (onOpenCandidate) {
-                                  onOpenCandidate(candidate.id);
-                                  toast.success('Opening candidate profile...');
-                                } else {
-                                  // Fallback: open external link if callback not available
-                                  window.open(generateProfileLink(candidate), '_blank', 'noopener,noreferrer');
-                                  toast.info('Opening profile link...');
-                                }
+                                // Regular click: Open public profile in new tab (shareable with recruiters)
+                                window.open(generateProfileLink(candidate), '_blank', 'noopener,noreferrer');
+                                toast.info('Opening public profile...');
                               }
                             }}
                             onContextMenu={async (e) => {
@@ -1050,19 +1044,19 @@ export function CandidateBrowserExcel({ onOpenCandidate }: CandidateBrowserExcel
                           >
                             <Globe className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform" />
                           </button>
-                          {onOpenCandidate && (
-                            <button
-                              className="p-0.5 hover:bg-blue-50 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                              title="Open in Candidate Management"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onOpenCandidate(candidate.id);
-                                toast.success('Opening candidate profile...');
-                              }}
-                            >
-                              <ExternalLink className="w-3 h-3 text-blue-500" />
-                            </button>
-                          )}
+                          <a
+                            href={generateProfileLink(candidate)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-0.5 hover:bg-blue-50 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Open public profile in new tab"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toast.info('Opening public profile...');
+                            }}
+                          >
+                            <ExternalLink className="w-3 h-3 text-blue-500" />
+                          </a>
                         </div>
                       </td>
                       <td className="border border-gray-300 p-2">

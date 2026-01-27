@@ -13,6 +13,7 @@ import { UserManagement } from './components/UserManagement';
 import { Login } from './components/Login';
 import { InboxUI } from './components/InboxUI';
 import { CandidateBrowserExcel } from './components/CandidateBrowserExcel';
+import { PublicCandidateProfile } from './components/PublicCandidateProfile';
 import { useAuth, AuthProvider } from './lib/authContext';
 import { CandidateProvider } from './lib/candidateContext';
 import { hasPermission } from './lib/authData';
@@ -27,7 +28,6 @@ const AppContent = () => {
   const [showPublicForm, setShowPublicForm] = useState(false);
   const [selectedProfession, setSelectedProfession] = useState<string>('all');
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [candidateToOpen, setCandidateToOpen] = useState<string | null>(null);
 
   // Mock user data - in production, this would come from user metadata in Supabase
   const user = session ? {
@@ -84,11 +84,7 @@ const AppContent = () => {
           setActiveTab('candidates');
         }} />;
       case 'candidates':
-        return <CandidateManagement 
-          initialProfessionFilter={selectedProfession} 
-          candidateIdToOpen={candidateToOpen}
-          onCandidateOpened={() => setCandidateToOpen(null)}
-        />;
+        return <CandidateManagement initialProfessionFilter={selectedProfession} />;
       case 'employers':
         return <EmployerManagement />;
       case 'jobs':
@@ -111,6 +107,14 @@ const AppContent = () => {
   // Check if we should show the public form based on URL
   if (typeof window !== 'undefined' && window.location.pathname === '/apply') {
     return <PublicApplicationForm />;
+  }
+
+  // Check if we should show public candidate profile (no login required)
+  if (typeof window !== 'undefined') {
+    const pathMatch = window.location.pathname.match(/^\/profile\/([^\/]+)(?:\/(.+))?$/);
+    if (pathMatch) {
+      return <PublicCandidateProfile />;
+    }
   }
 
   // Show loading spinner while checking auth
