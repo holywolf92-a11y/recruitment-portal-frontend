@@ -253,10 +253,10 @@ export function PublicCandidateProfile() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="text-center">
-          <Loader className="w-16 h-16 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 text-lg">Loading candidate profile...</p>
+          <Loader className="w-12 h-12 text-slate-700 animate-spin mx-auto mb-3" />
+          <p className="text-gray-600 text-sm">Loading candidate profile...</p>
         </div>
       </div>
     );
@@ -264,16 +264,16 @@ export function PublicCandidateProfile() {
 
   if (error || !candidate) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-xl p-6 sm:p-8 max-w-md w-full text-center">
-          <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Profile Not Found</h2>
-          <p className="text-gray-600 mb-6">{error || 'The candidate profile you are looking for does not exist.'}</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg border border-gray-200 p-8 max-w-md w-full text-center">
+          <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Profile Not Found</h2>
+          <p className="text-gray-600 text-sm mb-6">{error || 'The candidate profile you are looking for does not exist.'}</p>
           <a
             href="/"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="inline-flex items-center gap-2 px-5 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors font-medium text-sm"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-3.5 h-3.5" />
             Go Back
           </a>
         </div>
@@ -294,215 +294,193 @@ export function PublicCandidateProfile() {
   const hasCV = !!cvDocument || candidate.cv_received;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
-      {/* Header - Mobile Responsive */}
-      <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+    <div className="min-h-screen bg-gray-50">
+      {/* Header - Minimalist */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-            <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg sm:text-xl flex-shrink-0">
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="w-10 h-10 bg-slate-700 rounded-lg flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
                 {candidate.name?.charAt(0) || '?'}
               </div>
               <div className="min-w-0 flex-1">
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">{candidate.name || 'Candidate'}</h1>
-                <p className="text-xs sm:text-sm text-gray-600 truncate">{candidate.candidate_code || 'No Code'}</p>
+                <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 truncate">{candidate.name || 'Candidate'}</h1>
+                <p className="text-xs sm:text-sm text-gray-500 truncate">{candidate.candidate_code || 'No Code'}</p>
               </div>
             </div>
             <button
               onClick={copyProfileLink}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base font-medium"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors text-sm font-medium"
             >
-              <Share2 className="w-4 h-4" />
-              <span className="sm:inline">Share Profile</span>
+              <Share2 className="w-3.5 h-3.5" />
+              <span>Share Profile</span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main Content - Mobile Responsive */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+      {/* Main Content - Minimalist */}
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Employer CV Content */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+          <div className="lg:col-span-2 space-y-6">
             {/* Employer-Safe CV Section */}
-            <div ref={employerCVRef} className="bg-white rounded-xl shadow-lg p-4 sm:p-6 lg:p-8">
-              {/* CV Header Section - Mobile Responsive */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 pb-4 border-b border-gray-200">
+            <div ref={employerCVRef} className="bg-white rounded-lg border border-gray-200 p-6 sm:p-8">
+              {/* CV Header Section - Minimalist */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 pb-6 border-b border-gray-200">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+                  <div className="w-9 h-9 bg-emerald-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Shield className="w-4 h-4 text-emerald-600" />
                   </div>
                   <div>
-                    <h2 className="text-lg sm:text-xl font-bold text-gray-900">Employer-Safe CV</h2>
-                    <p className="text-xs sm:text-sm text-gray-600">Contact information protected</p>
+                    <h2 className="text-lg font-semibold text-gray-900">Employer-Safe CV</h2>
+                    <p className="text-xs text-gray-500">Contact information protected</p>
                   </div>
                 </div>
                 <button
                   onClick={handleDownloadCV}
                   disabled={downloadingCV}
-                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base font-medium shadow-sm"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
                 >
-                  <Download className="w-4 h-4" />
-                  <span>{downloadingCV ? 'Generating PDF...' : 'Download Employer CV'}</span>
+                  <Download className="w-3.5 h-3.5" />
+                  <span>{downloadingCV ? 'Generating...' : 'Download CV'}</span>
                 </button>
               </div>
 
-              {/* Modern CV Header with Infographic Design */}
-              <div className="relative mb-6 sm:mb-8 pb-6 sm:pb-8 border-b-4 border-blue-600 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 rounded-2xl p-6 sm:p-8 overflow-hidden">
-                {/* Decorative background elements */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-200 rounded-full opacity-20 blur-3xl"></div>
-                <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-200 rounded-full opacity-20 blur-2xl"></div>
-                
-                <div className="relative z-10">
-                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
-                    {/* Avatar with modern design */}
-                    <div className="relative">
-                      <div className="w-24 h-24 sm:w-28 sm:h-28 bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500 rounded-2xl flex items-center justify-center text-white shadow-2xl transform hover:scale-105 transition-transform">
-                        <span className="text-4xl sm:text-5xl font-bold">{candidate.name?.charAt(0) || '?'}</span>
-                      </div>
-                      <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
-                        <CheckCircle className="w-5 h-5 text-white" />
-                      </div>
+              {/* Minimalist CV Header */}
+              <div className="mb-8 pb-6 border-b border-gray-200">
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
+                  {/* Simple Avatar */}
+                  <div className="relative">
+                    <div className="w-20 h-20 bg-slate-700 rounded-lg flex items-center justify-center text-white">
+                      <span className="text-3xl font-semibold">{candidate.name?.charAt(0) || '?'}</span>
                     </div>
+                    <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 rounded-md border-2 border-white flex items-center justify-center">
+                      <CheckCircle className="w-3.5 h-3.5 text-white" />
+                    </div>
+                  </div>
+                  
+                  {/* Name and Title */}
+                  <div className="flex-1 text-center sm:text-left">
+                    <h1 className="text-3xl font-semibold text-gray-900 mb-1">
+                      {candidate.name || 'Candidate'}
+                    </h1>
+                    <p className="text-lg text-gray-600 mb-4">{candidate.position || 'Professional'}</p>
                     
-                    {/* Name and Title Section */}
-                    <div className="flex-1 text-center sm:text-left">
-                      <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-                        {candidate.name || 'Candidate'}
-                      </h1>
-                      <p className="text-xl sm:text-2xl text-gray-700 font-semibold mb-3">{candidate.position || 'Professional'}</p>
-                      
-                      {/* Info badges */}
-                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-4">
-                        {candidate.nationality && (
-                          <div className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md border border-blue-200">
-                            <Globe className="w-4 h-4 text-blue-600" />
-                            <span className="text-sm font-medium text-gray-700">{candidate.nationality}</span>
-                          </div>
-                        )}
-                        {candidate.country_of_interest && (
-                          <div className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md border border-purple-200">
-                            <MapPin className="w-4 h-4 text-purple-600" />
-                            <span className="text-sm font-medium text-gray-700">{candidate.country_of_interest}</span>
-                          </div>
-                        )}
-                        {candidate.experience_years && (
-                          <div className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md border border-pink-200">
-                            <Calendar className="w-4 h-4 text-pink-600" />
-                            <span className="text-sm font-medium text-gray-700">{candidate.experience_years} Years Exp</span>
-                          </div>
-                        )}
-                      </div>
+                    {/* Info badges - subtle */}
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                      {candidate.nationality && (
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-md border border-gray-200">
+                          <Globe className="w-3.5 h-3.5 text-gray-500" />
+                          <span className="text-xs text-gray-700">{candidate.nationality}</span>
+                        </div>
+                      )}
+                      {candidate.country_of_interest && (
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-md border border-gray-200">
+                          <MapPin className="w-3.5 h-3.5 text-gray-500" />
+                          <span className="text-xs text-gray-700">{candidate.country_of_interest}</span>
+                        </div>
+                      )}
+                      {candidate.experience_years && (
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-md border border-gray-200">
+                          <Calendar className="w-3.5 h-3.5 text-gray-500" />
+                          <span className="text-xs text-gray-700">{candidate.experience_years} Years</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Modern Contact Protection Notice */}
-              <div className="mb-6 sm:mb-8 p-5 sm:p-6 bg-gradient-to-r from-yellow-50 via-amber-50 to-orange-50 border-l-4 border-yellow-500 rounded-xl shadow-md">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
-                    <Shield className="w-6 h-6 text-yellow-600" />
+              {/* Minimalist Contact Protection Notice */}
+              <div className="mb-8 p-4 bg-amber-50 border-l-2 border-amber-400 rounded">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-amber-100 rounded-md flex items-center justify-center flex-shrink-0">
+                    <Shield className="w-4 h-4 text-amber-600" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-bold text-yellow-900 mb-2 text-base sm:text-lg flex items-center gap-2">
-                      <span>🔒 Contact Information Protected</span>
+                    <h3 className="font-medium text-amber-900 text-sm mb-1">
+                      Contact Information Protected
                     </h3>
-                    <p className="text-sm sm:text-base text-yellow-800 leading-relaxed">
-                      For privacy and security, direct contact details have been removed from this CV. 
-                      To connect with this candidate, please contact <strong>Falisha Manpower</strong> recruitment team.
+                    <p className="text-xs text-amber-800 leading-relaxed">
+                      For privacy, direct contact details have been removed. Please contact Falisha Manpower recruitment team.
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Modern Infographic Stats Section */}
-              <div className="mb-6 sm:mb-8">
-                <div className="mb-4 sm:mb-6 pb-3 border-b-2 border-blue-600 flex items-center gap-2">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
-                    <Briefcase className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              {/* Minimalist Stats Section */}
+              <div className="mb-8">
+                <div className="mb-5 pb-3 border-b border-gray-200 flex items-center gap-2">
+                  <div className="w-7 h-7 bg-slate-700 rounded-md flex items-center justify-center">
+                    <Briefcase className="w-4 h-4 text-white" />
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Professional Overview</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">Professional Overview</h2>
                 </div>
                 
-                {/* Infographic Stats Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-6">
+                {/* Clean Stats Bars */}
+                <div className="space-y-4 mb-6">
                   {candidate.experience_years && (
-                    <div className="relative bg-gradient-to-br from-blue-500 to-blue-600 p-5 sm:p-6 rounded-2xl text-white shadow-xl transform hover:scale-105 transition-transform overflow-hidden">
-                      <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
-                      <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-3">
-                          <Calendar className="w-8 h-8 sm:w-10 sm:h-10 opacity-90" />
-                          <div className="text-right">
-                            <p className="text-3xl sm:text-4xl font-bold">{candidate.experience_years}</p>
-                            <p className="text-sm sm:text-base opacity-90">Years</p>
-                          </div>
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-gray-600" />
+                          <span className="text-sm font-medium text-gray-700">Experience</span>
                         </div>
-                        <p className="text-sm sm:text-base font-semibold opacity-95">Professional Experience</p>
-                        {/* Progress bar */}
-                        <div className="mt-3 h-2 bg-white/20 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-white rounded-full transition-all duration-1000"
-                            style={{ width: `${Math.min((candidate.experience_years / 20) * 100, 100)}%` }}
-                          ></div>
-                        </div>
+                        <span className="text-xl font-semibold text-gray-900">{candidate.experience_years} <span className="text-sm font-normal text-gray-600">years</span></span>
+                      </div>
+                      <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-slate-700 rounded-full"
+                          style={{ width: `${Math.min((candidate.experience_years / 20) * 100, 100)}%` }}
+                        ></div>
                       </div>
                     </div>
                   )}
                   
                   {candidate.ai_score != null && typeof candidate.ai_score === 'number' && (
-                    <div className="relative bg-gradient-to-br from-purple-500 to-pink-600 p-5 sm:p-6 rounded-2xl text-white shadow-xl transform hover:scale-105 transition-transform overflow-hidden">
-                      <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
-                      <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-3">
-                          <Star className="w-8 h-8 sm:w-10 sm:h-10 opacity-90 fill-white" />
-                          <div className="text-right">
-                            <p className="text-3xl sm:text-4xl font-bold">{candidate.ai_score.toFixed(1)}</p>
-                            <p className="text-sm sm:text-base opacity-90">/10</p>
-                          </div>
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Star className="w-4 h-4 text-gray-600" />
+                          <span className="text-sm font-medium text-gray-700">AI Match Score</span>
                         </div>
-                        <p className="text-sm sm:text-base font-semibold opacity-95">AI Match Score</p>
-                        {/* Progress bar */}
-                        <div className="mt-3 h-2 bg-white/20 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-white rounded-full transition-all duration-1000"
-                            style={{ width: `${(candidate.ai_score / 10) * 100}%` }}
-                          ></div>
-                        </div>
+                        <span className="text-xl font-semibold text-gray-900">{candidate.ai_score.toFixed(1)} <span className="text-sm font-normal text-gray-600">/10</span></span>
+                      </div>
+                      <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-slate-700 rounded-full"
+                          style={{ width: `${(candidate.ai_score / 10) * 100}%` }}
+                        ></div>
                       </div>
                     </div>
                   )}
                   
                   {skillsArray.length > 0 && (
-                    <div className="relative bg-gradient-to-br from-green-500 to-emerald-600 p-5 sm:p-6 rounded-2xl text-white shadow-xl transform hover:scale-105 transition-transform overflow-hidden">
-                      <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
-                      <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-3">
-                          <Award className="w-8 h-8 sm:w-10 sm:h-10 opacity-90" />
-                          <div className="text-right">
-                            <p className="text-3xl sm:text-4xl font-bold">{skillsArray.length}</p>
-                            <p className="text-sm sm:text-base opacity-90">Skills</p>
-                          </div>
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Award className="w-4 h-4 text-gray-600" />
+                          <span className="text-sm font-medium text-gray-700">Core Skills</span>
                         </div>
-                        <p className="text-sm sm:text-base font-semibold opacity-95">Core Competencies</p>
-                        {/* Progress bar */}
-                        <div className="mt-3 h-2 bg-white/20 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-white rounded-full transition-all duration-1000"
-                            style={{ width: `${Math.min((skillsArray.length / 15) * 100, 100)}%` }}
-                          ></div>
-                        </div>
+                        <span className="text-xl font-semibold text-gray-900">{skillsArray.length} <span className="text-sm font-normal text-gray-600">skills</span></span>
+                      </div>
+                      <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-slate-700 rounded-full"
+                          style={{ width: `${Math.min((skillsArray.length / 15) * 100, 100)}%` }}
+                        ></div>
                       </div>
                     </div>
                   )}
                 </div>
                 
-                {/* Professional Summary Text */}
-                <div className="bg-gradient-to-r from-gray-50 to-blue-50 p-5 sm:p-6 rounded-xl border-l-4 border-blue-500">
+                {/* Professional Summary */}
+                <div className="bg-gray-50 p-5 rounded-lg border border-gray-200">
                   {candidate.professional_summary ? (
-                    <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-sm sm:text-base">{candidate.professional_summary}</p>
+                    <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-sm">{candidate.professional_summary}</p>
                   ) : (
-                    <p className="text-gray-700 leading-relaxed text-sm sm:text-base">
+                    <p className="text-gray-700 leading-relaxed text-sm">
                       Highly skilled <strong>{candidate.position || 'professional'}</strong> with <strong>{candidate.experience_years || 'extensive'}</strong> years of professional experience.
                       {skillsArray.length > 0 && ` Demonstrates strong expertise in ${skillsArray.slice(0, 3).join(', ')}, and more.`}
                       {candidate.country_of_interest && ` Seeking opportunities in ${candidate.country_of_interest} to contribute technical expertise and drive operational excellence.`}
@@ -511,207 +489,179 @@ export function PublicCandidateProfile() {
                 </div>
               </div>
 
-              {/* Modern Skills Infographic */}
+              {/* Minimalist Skills Section */}
               {skillsArray.length > 0 && (
-                <div className="mb-6 sm:mb-8">
-                  <div className="mb-4 sm:mb-6 pb-3 border-b-2 border-purple-600 flex items-center gap-2">
-                    <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center shadow-md">
-                      <Award className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                <div className="mb-8">
+                  <div className="mb-5 pb-3 border-b border-gray-200 flex items-center gap-2">
+                    <div className="w-7 h-7 bg-slate-700 rounded-md flex items-center justify-center">
+                      <Award className="w-4 h-4 text-white" />
                     </div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Core Skills & Competencies</h2>
+                    <h2 className="text-lg font-semibold text-gray-900">Core Skills</h2>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                    {skillsArray.map((skill, index) => {
-                      const colorClasses = [
-                        'from-blue-500 to-blue-600',
-                        'from-purple-500 to-purple-600',
-                        'from-pink-500 to-pink-600',
-                        'from-indigo-500 to-indigo-600',
-                        'from-cyan-500 to-cyan-600',
-                        'from-teal-500 to-teal-600'
-                      ];
-                      const colorClass = colorClasses[index % colorClasses.length];
-                      return (
-                        <div
-                          key={index}
-                          className={`group relative bg-gradient-to-br ${colorClass} p-4 rounded-xl text-white shadow-lg transform hover:scale-105 hover:shadow-xl transition-all duration-300 overflow-hidden`}
-                        >
-                          <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                          <div className="relative z-10 flex items-center justify-between">
-                            <span className="font-semibold text-sm sm:text-base">{skill}</span>
-                            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                              <CheckCircle className="w-4 h-4" />
-                            </div>
-                          </div>
-                          {/* Skill level indicator */}
-                          <div className="mt-3 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-white rounded-full transition-all duration-1000"
-                              style={{ width: `${75 + (index % 3) * 8}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div className="flex flex-wrap gap-2">
+                    {skillsArray.map((skill, index) => (
+                      <div
+                        key={index}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 transition-colors"
+                      >
+                        <span className="text-sm text-gray-700">{skill}</span>
+                        <CheckCircle className="w-3 h-3 text-emerald-600" />
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
 
-              {/* Modern Timeline-Style Experience */}
+              {/* Minimalist Experience Section */}
               {candidate.position && (
-                <div className="mb-6 sm:mb-8">
-                  <div className="mb-4 sm:mb-6 pb-3 border-b-2 border-indigo-600 flex items-center gap-2">
-                    <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
-                      <Briefcase className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                <div className="mb-8">
+                  <div className="mb-5 pb-3 border-b border-gray-200 flex items-center gap-2">
+                    <div className="w-7 h-7 bg-slate-700 rounded-md flex items-center justify-center">
+                      <Briefcase className="w-4 h-4 text-white" />
                     </div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Professional Experience</h2>
+                    <h2 className="text-lg font-semibold text-gray-900">Professional Experience</h2>
                   </div>
                   <div className="relative">
-                    {/* Timeline line */}
-                    <div className="absolute left-6 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 via-purple-500 to-pink-500 hidden sm:block"></div>
+                    {/* Clean timeline line */}
+                    <div className="absolute left-3 top-0 bottom-0 w-px bg-gray-200 hidden sm:block"></div>
                     
-                    <div className="space-y-6">
-                      <div className="relative bg-white border-2 border-gray-200 rounded-2xl p-5 sm:p-6 shadow-lg hover:shadow-xl transition-shadow ml-0 sm:ml-8">
-                        {/* Timeline dot */}
-                        <div className="absolute -left-11 top-6 hidden sm:flex">
-                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full border-4 border-white shadow-lg flex items-center justify-center">
-                            <Briefcase className="w-6 h-6 text-white" />
-                          </div>
+                    <div className="relative bg-gray-50 border border-gray-200 rounded-lg p-5 ml-0 sm:ml-6">
+                      {/* Simple timeline dot */}
+                      <div className="absolute -left-8 top-5 hidden sm:flex">
+                        <div className="w-6 h-6 bg-slate-700 rounded-full border-2 border-white flex items-center justify-center">
+                          <Briefcase className="w-3 h-3 text-white" />
                         </div>
-                        
-                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
-                          <div className="flex-1">
-                            <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-                              {candidate.position}
-                            </h3>
-                            <p className="text-gray-600 text-sm sm:text-base flex items-center gap-2">
-                              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                              Various Companies
-                            </p>
-                          </div>
-                          {candidate.experience_years && (
-                            <div className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-bold text-sm sm:text-base shadow-md">
-                              {candidate.experience_years} Years
-                            </div>
-                          )}
+                      </div>
+                      
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-4">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                            {candidate.position}
+                          </h3>
+                          <p className="text-sm text-gray-600">Various Companies</p>
                         </div>
-                        
-                        {skillsArray.length > 0 && (
-                          <div className="space-y-2">
-                            {[
-                              `Executed complex ${candidate.position.toLowerCase()} projects with high precision and quality`,
-                              'Collaborated with cross-functional teams to deliver optimal solutions',
-                              'Maintained strict adherence to safety protocols and industry standards',
-                              `Demonstrated expertise in ${skillsArray.slice(0, 2).join(' and ')}`,
-                              'Consistently exceeded performance targets and quality benchmarks'
-                            ].map((item, idx) => (
-                              <div key={idx} className="flex items-start gap-3 text-gray-700 text-sm sm:text-base">
-                                <div className="w-2 h-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mt-2 flex-shrink-0"></div>
-                                <span>{item}</span>
-                              </div>
-                            ))}
+                        {candidate.experience_years && (
+                          <div className="px-3 py-1 bg-slate-700 text-white rounded-md text-xs font-medium self-start">
+                            {candidate.experience_years} Years
                           </div>
                         )}
                       </div>
+                      
+                      {skillsArray.length > 0 && (
+                        <ul className="space-y-2">
+                          {[
+                            `Executed complex ${candidate.position.toLowerCase()} projects with high precision and quality`,
+                            'Collaborated with cross-functional teams to deliver optimal solutions',
+                            'Maintained strict adherence to safety protocols and industry standards',
+                            `Demonstrated expertise in ${skillsArray.slice(0, 2).join(' and ')}`,
+                            'Consistently exceeded performance targets and quality benchmarks'
+                          ].map((item, idx) => (
+                            <li key={idx} className="flex items-start gap-2 text-gray-700 text-sm">
+                              <span className="text-gray-400 mt-1">•</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Modern Infographic Info Cards */}
-              <div className="mb-6 sm:mb-8">
-                <div className="mb-4 sm:mb-6 pb-3 border-b-2 border-teal-600 flex items-center gap-2">
-                  <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-lg flex items-center justify-center shadow-md">
-                    <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              {/* Minimalist Info Cards */}
+              <div className="mb-8">
+                <div className="mb-5 pb-3 border-b border-gray-200 flex items-center gap-2">
+                  <div className="w-7 h-7 bg-slate-700 rounded-md flex items-center justify-center">
+                    <FileText className="w-4 h-4 text-white" />
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Additional Information</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">Additional Information</h2>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {candidate.nationality && (
-                    <div className="group relative bg-gradient-to-br from-blue-50 to-indigo-50 p-5 rounded-xl border-2 border-blue-200 hover:border-blue-400 transition-all shadow-md hover:shadow-lg">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
-                          <Globe className="w-6 h-6 text-white" />
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-slate-100 rounded-md flex items-center justify-center">
+                          <Globe className="w-4 h-4 text-slate-600" />
                         </div>
                         <div className="flex-1">
-                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Nationality</p>
-                          <p className="text-base sm:text-lg font-bold text-gray-900">{candidate.nationality}</p>
+                          <p className="text-xs font-medium text-gray-500 mb-0.5">Nationality</p>
+                          <p className="text-sm font-medium text-gray-900">{candidate.nationality}</p>
                         </div>
                       </div>
                     </div>
                   )}
                   {candidate.country_of_interest && (
-                    <div className="group relative bg-gradient-to-br from-purple-50 to-pink-50 p-5 rounded-xl border-2 border-purple-200 hover:border-purple-400 transition-all shadow-md hover:shadow-lg">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
-                          <MapPin className="w-6 h-6 text-white" />
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-slate-100 rounded-md flex items-center justify-center">
+                          <MapPin className="w-4 h-4 text-slate-600" />
                         </div>
                         <div className="flex-1">
-                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Preferred Location</p>
-                          <p className="text-base sm:text-lg font-bold text-gray-900">{candidate.country_of_interest}</p>
+                          <p className="text-xs font-medium text-gray-500 mb-0.5">Preferred Location</p>
+                          <p className="text-sm font-medium text-gray-900">{candidate.country_of_interest}</p>
                         </div>
                       </div>
                     </div>
                   )}
                   {candidate.passport_received && (
-                    <div className="group relative bg-gradient-to-br from-green-50 to-emerald-50 p-5 rounded-xl border-2 border-green-200 hover:border-green-400 transition-all shadow-md hover:shadow-lg">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
-                          <Shield className="w-6 h-6 text-white" />
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-emerald-50 rounded-md flex items-center justify-center">
+                          <Shield className="w-4 h-4 text-emerald-600" />
                         </div>
                         <div className="flex-1">
-                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Passport Status</p>
-                          <p className="text-base sm:text-lg font-bold text-green-600 flex items-center gap-2">
-                            <CheckCircle className="w-5 h-5" />
+                          <p className="text-xs font-medium text-gray-500 mb-0.5">Passport Status</p>
+                          <p className="text-sm font-medium text-emerald-600 flex items-center gap-1">
+                            <CheckCircle className="w-3.5 h-3.5" />
                             Available & Valid
                           </p>
                         </div>
                       </div>
                     </div>
                   )}
-                  <div className="group relative bg-gradient-to-br from-orange-50 to-amber-50 p-5 rounded-xl border-2 border-orange-200 hover:border-orange-400 transition-all shadow-md hover:shadow-lg">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
-                        <Calendar className="w-6 h-6 text-white" />
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-slate-100 rounded-md flex items-center justify-center">
+                        <Calendar className="w-4 h-4 text-slate-600" />
                       </div>
                       <div className="flex-1">
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Availability</p>
-                        <p className="text-base sm:text-lg font-bold text-gray-900">Immediate</p>
+                        <p className="text-xs font-medium text-gray-500 mb-0.5">Availability</p>
+                        <p className="text-sm font-medium text-gray-900">Immediate</p>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Modern Languages Section */}
+              {/* Minimalist Languages Section */}
               {candidate.languages && (
-                <div className="mb-6 sm:mb-8">
-                  <div className="mb-4 sm:mb-6 pb-3 border-b-2 border-cyan-600 flex items-center gap-2">
-                    <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md">
-                      <Languages className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                <div className="mb-8">
+                  <div className="mb-5 pb-3 border-b border-gray-200 flex items-center gap-2">
+                    <div className="w-7 h-7 bg-slate-700 rounded-md flex items-center justify-center">
+                      <Languages className="w-4 h-4 text-white" />
                     </div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Languages</h2>
+                    <h2 className="text-lg font-semibold text-gray-900">Languages</h2>
                   </div>
-                  <div className="bg-gradient-to-r from-cyan-50 via-blue-50 to-indigo-50 p-5 sm:p-6 rounded-xl border-l-4 border-cyan-500 shadow-md">
-                    <p className="text-gray-800 text-base sm:text-lg font-medium leading-relaxed">{candidate.languages}</p>
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <p className="text-gray-700 text-sm leading-relaxed">{candidate.languages}</p>
                   </div>
                 </div>
               )}
 
-              {/* Footer Notice - Mobile Responsive */}
-              <div className="mt-8 sm:mt-12 pt-4 sm:pt-6 border-t-2 border-gray-300">
-                <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 sm:p-6 rounded-lg border-2 border-blue-200">
+              {/* Minimalist Footer Notice */}
+              <div className="mt-10 pt-6 border-t border-gray-200">
+                <div className="bg-gray-50 p-5 rounded-lg border border-gray-200">
                   <div className="flex items-start gap-3">
-                    <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 flex-shrink-0" />
+                    <Shield className="w-5 h-5 text-slate-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Protected by Falisha Manpower</h3>
-                      <p className="text-xs sm:text-sm text-gray-700 mb-3 leading-relaxed">
+                      <h3 className="text-sm font-semibold text-gray-900 mb-2">Protected by Falisha Manpower</h3>
+                      <p className="text-xs text-gray-600 mb-3 leading-relaxed">
                         This is an employer-safe CV generated by Falisha Manpower recruitment system. 
                         Contact information has been protected to prevent unauthorized direct contact and ensure 
                         proper recruitment procedures are followed.
                       </p>
-                      <div className="mt-3 text-xs sm:text-sm text-gray-600">
-                        <p><strong>For more information or to arrange interviews:</strong></p>
+                      <div className="text-xs text-gray-600">
+                        <p className="font-medium text-gray-700">For more information or to arrange interviews:</p>
                         <p>Contact Falisha Manpower at recruitment@falisha.com</p>
                       </div>
                     </div>
@@ -721,24 +671,24 @@ export function PublicCandidateProfile() {
             </div>
           </div>
 
-          {/* Right Column - Status & Documents - Mobile Responsive */}
-          <div className="space-y-4 sm:space-y-6">
-            {/* Status Card - Mobile Responsive */}
-            <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-blue-600" />
+          {/* Right Column - Status & Documents - Minimalist */}
+          <div className="space-y-6">
+            {/* Status Card - Minimalist */}
+            <div className="bg-white rounded-lg border border-gray-200 p-5">
+              <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-slate-600" />
                 <span>Status</span>
               </h2>
               <div className="space-y-3">
                 {candidate.status && (
                   <div>
-                    <label className="text-xs sm:text-sm font-medium text-gray-500">Application Status</label>
+                    <label className="text-xs font-medium text-gray-500">Application Status</label>
                     <div className="mt-1">
-                      <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${
-                        candidate.status === 'Applied' ? 'bg-blue-100 text-blue-700' :
-                        candidate.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
-                        candidate.status === 'Deployed' ? 'bg-green-100 text-green-700' :
-                        'bg-red-100 text-red-700'
+                      <span className={`inline-block px-2.5 py-1 rounded-md text-xs font-medium ${
+                        candidate.status === 'Applied' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+                        candidate.status === 'Pending' ? 'bg-yellow-50 text-yellow-700 border border-yellow-200' :
+                        candidate.status === 'Deployed' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                        'bg-red-50 text-red-700 border border-red-200'
                       }`}>
                         {candidate.status}
                       </span>
@@ -747,55 +697,55 @@ export function PublicCandidateProfile() {
                 )}
                 {candidate.ai_score != null && typeof candidate.ai_score === 'number' && (
                   <div>
-                    <label className="text-xs sm:text-sm font-medium text-gray-500">AI Score</label>
+                    <label className="text-xs font-medium text-gray-500">AI Score</label>
                     <div className="mt-1 flex items-center gap-2">
-                      <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                      <span className="text-gray-900 font-medium text-sm sm:text-base">{candidate.ai_score.toFixed(1)}/10</span>
+                      <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                      <span className="text-gray-900 font-medium text-sm">{candidate.ai_score.toFixed(1)}/10</span>
                     </div>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Documents Section - Mobile Responsive */}
-            <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4">
-                <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-blue-600" />
-                  <span>Verified Documents</span>
+            {/* Documents Section - Minimalist */}
+            <div className="bg-white rounded-lg border border-gray-200 p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-slate-600" />
+                  <span>Documents</span>
                 </h2>
                 {documents.length > 0 && (
                   <button
                     onClick={handleDownloadAll}
                     disabled={downloadingAll}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white text-xs sm:text-sm rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                    className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 py-1.5 bg-slate-700 text-white text-xs rounded-md hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                   >
-                    <Download className="w-3 h-3 sm:w-4 sm:h-4" />
-                    {downloadingAll ? 'Creating ZIP...' : 'Download All'}
+                    <Download className="w-3 h-3" />
+                    {downloadingAll ? 'Creating...' : 'Download All'}
                   </button>
                 )}
               </div>
               
               {loadingDocuments ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader className="w-6 h-6 text-blue-600 animate-spin" />
+                  <Loader className="w-5 h-5 text-slate-600 animate-spin" />
                 </div>
               ) : documents.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <FileText className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                  <p className="text-xs sm:text-sm">No verified documents available</p>
+                <div className="text-center py-8 text-gray-400">
+                  <FileText className="w-10 h-10 mx-auto mb-2" />
+                  <p className="text-xs">No verified documents</p>
                 </div>
               ) : (
                 <div className="space-y-2">
                   {documents.map((doc) => (
                     <div
                       key={doc.id}
-                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-gray-50 rounded-md border border-gray-200 hover:border-gray-300 transition-colors"
                     >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <FileText className="w-4 h-4 text-slate-600 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
+                          <p className="text-xs font-medium text-gray-900 truncate">
                             {doc.file_name || `Document ${doc.category}`}
                           </p>
                           <p className="text-xs text-gray-500 capitalize">
@@ -805,7 +755,7 @@ export function PublicCandidateProfile() {
                       </div>
                       <button
                         onClick={() => handleDownloadDocument(doc.id, doc.file_name || `document_${doc.id}`)}
-                        className="w-full sm:w-auto flex items-center justify-center gap-1 px-3 py-2 bg-blue-600 text-white text-xs sm:text-sm rounded hover:bg-blue-700 transition-colors font-medium"
+                        className="w-full sm:w-auto flex items-center justify-center gap-1 px-3 py-1.5 bg-slate-700 text-white text-xs rounded-md hover:bg-slate-800 transition-colors font-medium"
                       >
                         <Download className="w-3 h-3" />
                         Download
@@ -816,22 +766,22 @@ export function PublicCandidateProfile() {
               )}
             </div>
 
-            {/* Share Link - Mobile Responsive */}
-            <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-              <p className="text-xs sm:text-sm font-medium text-blue-900 mb-2">Share this profile</p>
+            {/* Share Link - Minimalist */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <p className="text-xs font-medium text-gray-700 mb-2">Share this profile</p>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
                   value={profileLink}
                   readOnly
-                  className="flex-1 px-2 sm:px-3 py-2 bg-white border border-blue-200 rounded text-xs sm:text-sm text-gray-700 min-w-0"
+                  className="flex-1 px-2 py-1.5 bg-white border border-gray-200 rounded-md text-xs text-gray-700 min-w-0 focus:outline-none focus:ring-1 focus:ring-slate-400"
                 />
                 <button
                   onClick={copyProfileLink}
-                  className="p-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex-shrink-0"
+                  className="p-2 bg-slate-700 text-white rounded-md hover:bg-slate-800 transition-colors flex-shrink-0"
                   title="Copy link"
                 >
-                  <Copy className="w-4 h-4" />
+                  <Copy className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
