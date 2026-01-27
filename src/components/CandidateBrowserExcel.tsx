@@ -270,7 +270,11 @@ function buildFolderStructure(candidates: Candidate[]): FolderNode[] {
   });
 }
 
-export function CandidateBrowserExcel() {
+interface CandidateBrowserExcelProps {
+  onOpenCandidate?: (candidateId: string) => void;
+}
+
+export function CandidateBrowserExcel({ onOpenCandidate }: CandidateBrowserExcelProps = {}) {
   // Server-side filtering state
   const [filters, setFilters] = useState<CandidateFilters>({
     limit: 50,
@@ -1014,7 +1018,7 @@ export function CandidateBrowserExcel() {
                         <div className="flex items-center gap-1 justify-center">
                           <button 
                             className="p-1 hover:bg-blue-100 rounded group relative transition-colors" 
-                            title={`Open Profile: ${generateProfileLink(candidate)}\nRight-click to copy link`}
+                            title={`Open Profile in Candidate Management\nRight-click to copy link`}
                             onClick={(e) => {
                               if (e.ctrlKey || e.metaKey) {
                                 // Ctrl/Cmd + Click: Copy link
@@ -1023,9 +1027,15 @@ export function CandidateBrowserExcel() {
                                   .then(() => toast.success('Profile link copied to clipboard!'))
                                   .catch(() => toast.error('Failed to copy link'));
                               } else {
-                                // Regular click: Open in new tab
-                                window.open(generateProfileLink(candidate), '_blank', 'noopener,noreferrer');
-                                toast.info('Opening profile link...');
+                                // Regular click: Open in Candidate Management
+                                if (onOpenCandidate) {
+                                  onOpenCandidate(candidate.id);
+                                  toast.success('Opening candidate profile...');
+                                } else {
+                                  // Fallback: open external link if callback not available
+                                  window.open(generateProfileLink(candidate), '_blank', 'noopener,noreferrer');
+                                  toast.info('Opening profile link...');
+                                }
                               }
                             }}
                             onContextMenu={async (e) => {
@@ -1040,19 +1050,19 @@ export function CandidateBrowserExcel() {
                           >
                             <Globe className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform" />
                           </button>
-                          <a
-                            href={generateProfileLink(candidate)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-0.5 hover:bg-blue-50 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="Open in new tab"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toast.info('Opening profile...');
-                            }}
-                          >
-                            <ExternalLink className="w-3 h-3 text-blue-500" />
-                          </a>
+                          {onOpenCandidate && (
+                            <button
+                              className="p-0.5 hover:bg-blue-50 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Open in Candidate Management"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenCandidate(candidate.id);
+                                toast.success('Opening candidate profile...');
+                              }}
+                            >
+                              <ExternalLink className="w-3 h-3 text-blue-500" />
+                            </button>
+                          )}
                         </div>
                       </td>
                       <td className="border border-gray-300 p-2">

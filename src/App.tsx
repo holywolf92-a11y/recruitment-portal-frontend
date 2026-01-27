@@ -27,6 +27,7 @@ const AppContent = () => {
   const [showPublicForm, setShowPublicForm] = useState(false);
   const [selectedProfession, setSelectedProfession] = useState<string>('all');
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [candidateToOpen, setCandidateToOpen] = useState<string | null>(null);
 
   // Mock user data - in production, this would come from user metadata in Supabase
   const user = session ? {
@@ -78,9 +79,16 @@ const AppContent = () => {
       case 'inbox-ui':
         return <InboxUI apiBaseUrl={(import.meta as any).env?.VITE_API_BASE_URL || '/api'} />;
       case 'candidate-excel-browser':
-        return <CandidateBrowserExcel />;
+        return <CandidateBrowserExcel onOpenCandidate={(candidateId) => {
+          setCandidateToOpen(candidateId);
+          setActiveTab('candidates');
+        }} />;
       case 'candidates':
-        return <CandidateManagement initialProfessionFilter={selectedProfession} />;
+        return <CandidateManagement 
+          initialProfessionFilter={selectedProfession} 
+          candidateIdToOpen={candidateToOpen}
+          onCandidateOpened={() => setCandidateToOpen(null)}
+        />;
       case 'employers':
         return <EmployerManagement />;
       case 'jobs':

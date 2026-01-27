@@ -37,6 +37,8 @@ import { CandidateDetailsModal } from './CandidateDetailsModal';
 
 interface CandidateManagementProps {
   initialProfessionFilter?: string;
+  candidateIdToOpen?: string | null;
+  onCandidateOpened?: () => void;
 }
 
 interface FilterState {
@@ -120,7 +122,7 @@ function ProgressDots() {
   );
 }
 
-export function CandidateManagement({ initialProfessionFilter = 'all' }: CandidateManagementProps) {
+export function CandidateManagement({ initialProfessionFilter = 'all', candidateIdToOpen, onCandidateOpened }: CandidateManagementProps) {
   // Use shared candidate context
   const { 
     candidates, 
@@ -148,6 +150,39 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [detailsInitialTab, setDetailsInitialTab] = useState<'details' | 'documents'>('details');
+  
+  // Auto-open candidate when candidateIdToOpen is provided
+  useEffect(() => {
+    if (candidateIdToOpen && candidates.length > 0) {
+      const candidate = candidates.find(c => c.id === candidateIdToOpen);
+      if (candidate) {
+        setSelectedCandidate(candidate);
+        setDetailsInitialTab('details');
+        setShowDetailsModal(true);
+        // Notify parent that candidate has been opened
+        if (onCandidateOpened) {
+          onCandidateOpened();
+        }
+      } else {
+        // Candidate not found in current list, try fetching it
+        apiClient.getCandidate(candidateIdToOpen)
+          .then((candidate) => {
+            setSelectedCandidate(candidate);
+            setDetailsInitialTab('details');
+            setShowDetailsModal(true);
+            if (onCandidateOpened) {
+              onCandidateOpened();
+            }
+          })
+          .catch((err) => {
+            console.error('Failed to load candidate:', err);
+            if (onCandidateOpened) {
+              onCandidateOpened();
+            }
+          });
+      }
+    }
+  }, [candidateIdToOpen, candidates, onCandidateOpened]);
   const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
   const [documentAction, setDocumentAction] = useState<{ candidateId: string; docType: string } | null>(null);
   
