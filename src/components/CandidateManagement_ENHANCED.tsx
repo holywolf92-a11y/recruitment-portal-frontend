@@ -151,18 +151,22 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [detailsInitialTab, setDetailsInitialTab] = useState<'details' | 'documents'>('details');
   
+  // Track if we've already processed this candidateIdToOpen to prevent reopening
+  const processedCandidateIdRef = useRef<string | null>(null);
+  
   // Auto-open candidate when candidateIdToOpen is provided
   useEffect(() => {
-    // Only proceed if we have a candidateIdToOpen and we're not already showing a modal
-    if (!candidateIdToOpen || showDetailsModal) {
+    // Only proceed if we have a candidateIdToOpen, not already showing a modal, and haven't processed this ID yet
+    if (!candidateIdToOpen || showDetailsModal || processedCandidateIdRef.current === candidateIdToOpen) {
       return;
     }
 
-    // Try to find candidate in current list first
+    // Try to find candidate in current list first (match by id, not candidate_code)
     const candidate = candidates.find(c => c.id === candidateIdToOpen);
     
     if (candidate) {
       // Found in current list - open immediately
+      processedCandidateIdRef.current = candidateIdToOpen; // Mark as processed
       setSelectedCandidate(candidate);
       setDetailsInitialTab('details');
       setShowDetailsModal(true);
@@ -170,8 +174,9 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
       if (onCandidateOpened) {
         onCandidateOpened();
       }
-    } else if (!loading && candidates.length > 0) {
-      // Not found in current list and we've finished loading - fetch it
+    } else if (!loading) {
+      // Not found in current list - fetch it directly by ID
+      processedCandidateIdRef.current = candidateIdToOpen; // Mark as processed to prevent duplicate fetches
       apiClient.getCandidate(candidateIdToOpen)
         .then((fetchedCandidate) => {
           setSelectedCandidate(fetchedCandidate);
@@ -183,13 +188,21 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
         })
         .catch((err) => {
           console.error('Failed to load candidate:', err);
+          processedCandidateIdRef.current = null; // Reset on error so it can retry
           if (onCandidateOpened) {
             onCandidateOpened();
           }
         });
     }
-    // If loading or candidates not loaded yet, wait for next render
   }, [candidateIdToOpen, candidates, loading, showDetailsModal, onCandidateOpened]);
+  
+  // Reset processed ref when candidateIdToOpen changes to a new value
+  useEffect(() => {
+    if (candidateIdToOpen && processedCandidateIdRef.current !== candidateIdToOpen) {
+      // New candidate ID - reset the ref
+      processedCandidateIdRef.current = null;
+    }
+  }, [candidateIdToOpen]);
   const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
   const [documentAction, setDocumentAction] = useState<{ candidateId: string; docType: string } | null>(null);
   
@@ -1220,6 +1233,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
           onClose={() => {
             setShowDetailsModal(false);
             setSelectedCandidate(null);
+            processedCandidateIdRef.current = null; // Reset so same candidate can be opened again later
           }}
           onDocumentChange={() => {
             // Refresh candidates from context to update document flags on cards
