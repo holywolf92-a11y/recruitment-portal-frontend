@@ -612,12 +612,9 @@ class ApiClient {
     return response.download_url;
   }
 
-  async getCandidateCVDownload(candidateId: string): Promise<{ download_url: string; filename: string }> {
-    return await this.request<{ download_url: string; filename: string }>(`/candidates/${candidateId}/documents/cv/download`);
-  }
-
   /**
-   * Generate employer-safe CV for a candidate (new unified system)
+   * Generate employer-safe CV for a candidate (new unified server-side system)
+   * This replaces the old getCandidateCVDownload method
    * GET /api/cv-generator/:candidateId?format=employer-safe&force=true
    */
   async generateCandidateCV(
