@@ -878,6 +878,26 @@ class ApiClient {
     return response.documents || [];
   }
 
+  async extractCandidateProfilePhotoAI(
+    candidateId: string,
+    args: { documentId: string; maxPages?: number }
+  ): Promise<{ success: boolean; signedUrl?: string; storagePath?: string; pageUsed?: number; confidence?: number; error?: string }> {
+    const token = (import.meta as any).env?.VITE_EXTRACT_PHOTO_TOKEN;
+    const headers: Record<string, string> = {};
+    if (token && String(token).trim()) {
+      headers['x-extract-photo-token'] = String(token).trim();
+    }
+
+    return this.request(`/documents/candidates/${candidateId}/extract-photo-ai`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        documentId: args.documentId,
+        maxPages: args.maxPages,
+      }),
+    });
+  }
+
   // Verification Logs API
   async getVerificationLogsByDocument(documentId: string): Promise<{ logs: any[] }> {
     const response = await this.request<{ logs: any[] }>(`/verification-logs/document/${documentId}`);
