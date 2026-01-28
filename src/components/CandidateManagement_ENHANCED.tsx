@@ -263,7 +263,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
           const url = (c.profile_photo_signed_url || photoUrls[c.id] || c.profile_photo_url || '').toString();
           return { id: c.id, url };
         })
-        .filter(({ id, url }) => url && url.toLowerCase().includes('.pdf') && !pdfThumbs[id] && !pdfThumbStatus[id]);
+        .filter(({ id, url }) => url && url.toLowerCase().includes('.pdf') && !pdfThumbs[id]);
 
       if (!targets.length) return;
 
@@ -319,7 +319,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
     return () => {
       cancelled = true;
     };
-  }, [filteredCandidates, photoUrls, pdfThumbs, pdfThumbStatus]);
+  }, [filteredCandidates, photoUrls, pdfThumbs]);
   
   // Fetch candidates using context
   const fetchCandidates = async () => {
