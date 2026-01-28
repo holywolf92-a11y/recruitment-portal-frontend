@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from 'react';
-import { X, Edit2, Save, Phone, Mail, MapPin, Briefcase, Calendar, FileText, Globe, CheckCircle, XCircle, Star, Video, MessageSquare, Upload, Download, Eye, Trash2, File, Image as ImageIcon, AlertCircle, Sparkles, Loader, Shield, Check, Link2, RefreshCw } from 'lucide-react';
+import { X, Edit2, Save, Phone, Mail, MapPin, Briefcase, Calendar, FileText, Globe, CheckCircle, XCircle, Star, Video, MessageSquare, Upload, Download, Eye, Trash2, File, Image as ImageIcon, AlertCircle, Loader, Shield, Check, Link2, RefreshCw } from 'lucide-react';
 import { Candidate } from '../lib/apiClient';
 import { ExtractionReviewModal } from './ExtractionReviewModal';
 import { apiClient } from '../lib/apiClient';
@@ -167,8 +167,6 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
   const isPdfProfilePhoto = !!resolvedProfilePhotoUrl && resolvedProfilePhotoUrl.toLowerCase().includes('.pdf');
   const [profilePdfThumb, setProfilePdfThumb] = useState<string | null>(null);
   const [profilePdfThumbStatus, setProfilePdfThumbStatus] = useState<'idle' | 'pending' | 'failed'>('idle');
-
-  const [aiExtractingDocId, setAiExtractingDocId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -579,36 +577,6 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
     } catch (error: any) {
       console.error('Error deleting document:', error);
       alert(error?.message || 'Failed to delete document');
-    }
-  };
-
-  const handleExtractProfilePhotoAI = async (doc: Document) => {
-    const isPdf = (doc.fileType || '').toUpperCase() === 'PDF' || (doc.fileName || '').toLowerCase().endsWith('.pdf');
-    if (!isPdf) {
-      alert('AI extraction only works for PDF documents.');
-      return;
-    }
-
-    if (!confirm(`Extract candidate profile photo from "${doc.fileName}" using AI? This may take up to ~30 seconds and uses OpenAI credits.`)) {
-      return;
-    }
-
-    try {
-      setAiExtractingDocId(doc.id);
-      const result = await apiClient.extractCandidateProfilePhotoAI(candidate.id, { documentId: doc.id, maxPages: 5 });
-      if (!(result as any)?.success) {
-        throw new Error((result as any)?.error || 'AI extraction failed');
-      }
-
-      // Refresh the candidate so the new profile_photo_* is reflected.
-      const refreshed = await apiClient.getCandidate(candidate.id);
-      setEditedCandidate(refreshed);
-      alert('Profile photo extracted and saved successfully.');
-    } catch (error: any) {
-      console.error('[AI Extract Photo] Error:', error);
-      alert(error?.message || 'Failed to extract profile photo');
-    } finally {
-      setAiExtractingDocId(null);
     }
   };
 
@@ -1306,23 +1274,6 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                               <Download className="w-3.5 h-3.5" />
                               Download
                             </button>
-
-                            {/* AI extraction only for photo documents (PDFs containing photos) */}
-                            {(doc.category === 'Photo' || doc.category === 'Passport') && ((doc.fileType || '').toUpperCase() === 'PDF' || (doc.fileName || '').toLowerCase().endsWith('.pdf')) && (
-                              <button
-                                onClick={() => handleExtractProfilePhotoAI(doc)}
-                                disabled={aiExtractingDocId === doc.id}
-                                className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-sm ${
-                                  aiExtractingDocId === doc.id
-                                    ? 'bg-purple-100 text-purple-400 cursor-not-allowed'
-                                    : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
-                                }`}
-                                title="Extract a real headshot/profile photo from this PDF"
-                              >
-                                <Sparkles className="w-3.5 h-3.5" />
-                                {aiExtractingDocId === doc.id ? 'Extracting…' : 'Extract Photo (AI)'}
-                              </button>
-                            )}
                             
                             {/* Approve/Reprocess buttons for pending documents */}
                             {(doc.status === 'pending' || doc.verification_status === 'pending_ai' || doc.verification_status === 'needs_review') && (
