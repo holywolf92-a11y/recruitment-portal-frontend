@@ -622,7 +622,7 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
             <div>
               <h2 className="text-2xl font-bold text-gray-900">{candidate.name || 'Unknown'}</h2>
               <p className="text-sm text-gray-600 mt-0.5">
-                {candidate.position || 'Candidate'} ΓÇó {candidate.email || 'No email'}
+                {candidate.position || 'Candidate'} • {candidate.email || 'No email'}
               </p>
             </div>
           </div>
@@ -1126,9 +1126,9 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                               <h4 className="font-medium text-gray-900 truncate">{doc.fileName}</h4>
                               <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
                                 <span>{doc.fileType}</span>
-                                <span>ΓÇó</span>
+                                <span>•</span>
                                 <span>{doc.fileSize}</span>
-                                <span>ΓÇó</span>
+                                <span>•</span>
                                 <span className={`px-2 py-0.5 rounded-full ${
                                   doc.category === 'CV' ? 'bg-blue-100 text-blue-700' :
                                   doc.category === 'Passport' ? 'bg-purple-100 text-purple-700' :
