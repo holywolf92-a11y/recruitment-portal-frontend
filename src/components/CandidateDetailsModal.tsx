@@ -481,11 +481,24 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
 
   // Handle document view
   const handleViewDocument = async (doc: Document) => {
+    const newWindow = window.open('', '_blank');
+
     try {
       const response = await apiClient.getCandidateDocumentDownload(doc.id);
-      window.open(response.download_url, '_blank');
+
+      if (newWindow) {
+        newWindow.location.href = response.download_url;
+      } else {
+        // Fallback if popup was blocked
+        window.open(response.download_url, '_blank');
+      }
     } catch (error: any) {
       console.error('Error viewing document:', error);
+
+      if (newWindow) {
+        newWindow.close();
+      }
+
       alert(error?.message || 'Failed to view document');
     }
   };
