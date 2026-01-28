@@ -296,7 +296,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
     return () => {
       cancelled = true;
     };
-  }, [filteredCandidates, photoUrls, pdfThumbs]);
+  }, [candidates, filters, photoUrls, pdfThumbs]);
   
   // Fetch candidates using context
   const fetchCandidates = async () => {
