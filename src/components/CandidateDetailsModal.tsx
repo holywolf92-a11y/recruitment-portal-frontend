@@ -161,6 +161,7 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
   const resolvedProfilePhotoUrl = ((candidate as any).profile_photo_signed_url || candidate.profile_photo_url || '').toString();
   const isPdfProfilePhoto = !!resolvedProfilePhotoUrl && resolvedProfilePhotoUrl.toLowerCase().includes('.pdf');
   const [profilePdfThumb, setProfilePdfThumb] = useState<string | null>(null);
+  const [profilePdfThumbStatus, setProfilePdfThumbStatus] = useState<'idle' | 'pending' | 'failed'>('idle');
 
   useEffect(() => {
     let cancelled = false;
@@ -168,15 +169,24 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
     const run = async () => {
       if (!isPdfProfilePhoto) {
         setProfilePdfThumb(null);
+        setProfilePdfThumbStatus('idle');
         return;
       }
       if (!resolvedProfilePhotoUrl) return;
 
       try {
+        setProfilePdfThumbStatus('pending');
         const thumb = await renderPdfFirstPageToDataUrl(resolvedProfilePhotoUrl);
-        if (!cancelled) setProfilePdfThumb(thumb);
-      } catch {
-        if (!cancelled) setProfilePdfThumb(null);
+        if (!cancelled) {
+          setProfilePdfThumb(thumb);
+          setProfilePdfThumbStatus('idle');
+        }
+      } catch (e) {
+        console.warn('[PDF Thumb] Failed to render profile PDF thumbnail', { url: resolvedProfilePhotoUrl, error: e });
+        if (!cancelled) {
+          setProfilePdfThumb(null);
+          setProfilePdfThumbStatus('failed');
+        }
       }
     };
 
@@ -755,7 +765,14 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                           <div className="text-3xl font-bold text-blue-600">
                             {((candidate.name || 'UK').trim() || 'UK').substring(0, 2).toUpperCase()}
                           </div>
-                          <div className="mt-1 text-[10px] px-2 py-0.5 rounded-full bg-white/70 text-gray-700">PDF</div>
+                          {profilePdfThumbStatus === 'pending' ? (
+                            <div className="mt-1 flex items-center gap-2">
+                              <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                              <div className="text-[10px] px-2 py-0.5 rounded-full bg-white/70 text-gray-700">Generating…</div>
+                            </div>
+                          ) : (
+                            <div className="mt-1 text-[10px] px-2 py-0.5 rounded-full bg-white/70 text-gray-700">PDF</div>
+                          )}
                         </div>
                       )
                     ) : (

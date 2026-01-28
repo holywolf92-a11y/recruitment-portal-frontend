@@ -151,6 +151,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   // Cache of rendered PDF thumbnails (id -> dataUrl)
   const [pdfThumbs, setPdfThumbs] = useState<Record<string, string>>({});
+  // Track PDF thumbnail generation status to avoid infinite retries
+  const [pdfThumbStatus, setPdfThumbStatus] = useState<Record<string, 'pending' | 'failed'>>({});
   
   // Modal states
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
@@ -251,28 +253,40 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
     fetchMissingPhotoUrls();
   }, [candidates, photoUrls]);
 
-  // Render PDF first-page thumbnails for photo URLs that are PDFs
+  // Render PDF thumbnails for photo URLs that are PDFs
   useEffect(() => {
     let cancelled = false;
 
     const run = async () => {
-      const targets = candidates
+      const targets = filteredCandidates
         .map((c) => {
           const url = (c.profile_photo_signed_url || photoUrls[c.id] || c.profile_photo_url || '').toString();
           return { id: c.id, url };
         })
-        .filter(({ id, url }) => url && url.toLowerCase().includes('.pdf') && !pdfThumbs[id]);
+        .filter(({ id, url }) => url && url.toLowerCase().includes('.pdf') && !pdfThumbs[id] && !pdfThumbStatus[id]);
 
       if (!targets.length) return;
 
       // Render a few at a time to avoid locking the UI
-      const slice = targets.slice(0, 6);
+      const slice = targets.slice(0, 2);
+
+      // Mark as pending so we don't retry repeatedly on slow/failed PDFs
+      setPdfThumbStatus((prev) => {
+        const next = { ...prev };
+        for (const { id } of slice) {
+          if (!next[id]) next[id] = 'pending';
+        }
+        return next;
+      });
+
       const rendered = await Promise.all(
         slice.map(async ({ id, url }) => {
           try {
-            const dataUrl = await renderPdfFirstPageToDataUrl(url);
+            // Scan more pages because the photo is not always on page 1
+            const dataUrl = await renderPdfFirstPageToDataUrl(url, { maxPagesToScan: 10 });
             return [id, dataUrl] as const;
-          } catch {
+          } catch (e) {
+            console.warn('[PDF Thumb] Failed to render thumbnail', { id, url, error: e });
             return [id, ''] as const;
           }
         })
@@ -287,13 +301,25 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
         }
         return next;
       });
+
+      setPdfThumbStatus((prev) => {
+        const next = { ...prev };
+        for (const [id, dataUrl] of rendered) {
+          if (dataUrl) {
+            delete next[id];
+          } else {
+            next[id] = 'failed';
+          }
+        }
+        return next;
+      });
     };
 
     run();
     return () => {
       cancelled = true;
     };
-  }, [candidates, photoUrls, pdfThumbs]);
+  }, [filteredCandidates, photoUrls, pdfThumbs, pdfThumbStatus]);
   
   // Fetch candidates using context
   const fetchCandidates = async () => {
@@ -900,6 +926,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
               const resolvedPhotoUrl = (c.profile_photo_signed_url || photoUrls[c.id] || c.profile_photo_url || '').toString();
               const isPdfPhoto = !!resolvedPhotoUrl && resolvedPhotoUrl.toLowerCase().includes('.pdf');
               const pdfThumb = pdfThumbs[c.id];
+              const pdfStatus = pdfThumbStatus[c.id];
 
               return (
                 <div
@@ -931,7 +958,14 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
                                   style={{ cursor: 'pointer' }}
                                 >
                                   <div className="text-4xl font-bold text-blue-600">{getInitials(c.name)}</div>
-                                  <div className="mt-1 text-[10px] px-2 py-0.5 rounded-full bg-white/70 text-gray-700">PDF</div>
+                                  {pdfStatus === 'pending' ? (
+                                    <div className="mt-1 flex items-center gap-2">
+                                      <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                                      <div className="text-[10px] px-2 py-0.5 rounded-full bg-white/70 text-gray-700">Generating…</div>
+                                    </div>
+                                  ) : (
+                                    <div className="mt-1 text-[10px] px-2 py-0.5 rounded-full bg-white/70 text-gray-700">PDF</div>
+                                  )}
                                 </div>
                               )
                             ) : (
