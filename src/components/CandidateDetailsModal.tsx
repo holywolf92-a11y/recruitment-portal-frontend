@@ -1110,13 +1110,13 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                   Document Categories
                 </h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-700">
-                  <div>≡ƒôä CV / Resume</div>
-                  <div>≡ƒ¢é Passport</div>
-                  <div>≡ƒô£ Certificates</div>
-                  <div>≡ƒô¥ Contracts</div>
-                  <div>≡ƒÅÑ Medical Reports</div>
-                  <div>≡ƒô╖ Photos</div>
-                  <div>≡ƒôü Other Documents</div>
+                  <div>📄 CV / Resume</div>
+                  <div>🛂 Passport</div>
+                  <div>🎓 Certificates</div>
+                  <div>📋 Contracts</div>
+                  <div>🏥 Medical Reports</div>
+                  <div>📷 Photos</div>
+                  <div>📂 Other Documents</div>
                 </div>
               </div>
             </div>
@@ -1244,8 +1244,8 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                         For privacy, direct contact details have been removed. Contact Falisha Manpower to reach this candidate.
                       </p>
                       <div className="text-xs text-gray-700">
-                        <p>≡ƒôº falishamanpower4035@gmail.com</p>
-                        <p>≡ƒô▒ +92330 3333335</p>
+                        <p>✉️ falishamanpower4035@gmail.com</p>
+                        <p>📱 +92330 3333335</p>
                       </div>
                     </div>
                   </div>
