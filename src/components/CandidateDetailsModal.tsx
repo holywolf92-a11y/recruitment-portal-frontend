@@ -1,19 +1,13 @@
-import { useState, useEffect, ChangeEvent } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { X, Edit2, Save, Phone, Mail, MapPin, Briefcase, Calendar, FileText, Globe, CheckCircle, XCircle, Star, Video, MessageSquare, Upload, Download, Eye, Trash2, File, Image as ImageIcon, AlertCircle, Sparkles, Loader, Shield, Check, Link2, RefreshCw } from 'lucide-react';
 import { Candidate } from '../lib/apiClient';
 import { ExtractionReviewModal } from './ExtractionReviewModal';
 import { apiClient } from '../lib/apiClient';
-import { MissingDataTab } from './MissingDataTab';
-import { DocumentRejectionModal, DocumentRejectionDetails } from './DocumentRejectionModal';
-import { AdminOverrideModal } from './AdminOverrideModal';
-import { useAuth } from '../lib/authContext';
-import { toast } from 'sonner';
 
 interface CandidateDetailsModalProps {
   candidate: Candidate;
   onClose: () => void;
-  initialTab?: 'details' | 'documents' | 'missing-data';
-  onDocumentChange?: () => void; // Callback when documents are added/deleted
+  initialTab?: 'details' | 'documents';
 }
 
 interface Document {
@@ -26,13 +20,6 @@ interface Document {
   fileSize: string;
   status: 'verified' | 'pending' | 'expired';
   expiryDate?: string;
-  verification_status?: 'verified' | 'pending_ai' | 'needs_review' | 'rejected_mismatch' | 'failed';
-  verification_source?: string | null; // 'ai_verification' | 'admin_override' | 'manual_review'
-  overridden_by?: string | null;
-  overridden_at?: string | null;
-  override_reason?: string | null;
-  overridden_by_name?: string | null; // From API response rejection.overridden.by
-  rejection?: DocumentRejectionDetails;
 }
 
 // Mock documents for this candidate
@@ -142,30 +129,17 @@ function safeJsonArray(value: unknown): string[] {
   return [];
 }
 
-export function CandidateDetailsModal({ candidate, onClose, initialTab = 'details', onDocumentChange }: CandidateDetailsModalProps) {
+export function CandidateDetailsModal({ candidate, onClose, initialTab = 'details' }: CandidateDetailsModalProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedCandidate, setEditedCandidate] = useState(candidate);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [documentsLoading, setDocumentsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'details' | 'documents' | 'missing-data'>(initialTab || 'details');
+  const [activeTab, setActiveTab] = useState<'details' | 'documents'>(initialTab);
   const [extractionInProgress, setExtractionInProgress] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showExtractionModal, setShowExtractionModal] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [extractionError, setExtractionError] = useState<string | null>(null);
-  
-  // Rejection modal state
-  const [rejectionModalDocument, setRejectionModalDocument] = useState<Document | null>(null);
-  const [overrideModalDocument, setOverrideModalDocument] = useState<Document | null>(null);
-  const [overrideLoading, setOverrideLoading] = useState(false);
-  
-  // Auth context for admin check
-  const auth = useAuth();
-  // Get user info from session
-  const userEmail = auth?.session?.user?.email || '';
-  // For now, assume admin if logged in (you may need to fetch user role from backend)
-  const isAdmin = !!userEmail; // Simplified - you may need to check actual role
-  const isSuperAdmin = false; // Simplified - you may need to check actual role
 
   // Safety: Reset uploading state if it's been stuck for too long
   useEffect(() => {
@@ -179,33 +153,8 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
       return () => clearTimeout(timeout);
     }
   }, [uploading]);
+  const [showEmployerCV, setShowEmployerCV] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [rejectionModalDocument, setRejectionModalDocument] = useState<Document | null>(null);
-  const [overrideModalDocument, setOverrideModalDocument] = useState<Document | null>(null);
-  const [overrideLoading, setOverrideLoading] = useState(false);
-
-  // Get user role from auth context
-  const { session } = useAuth();
-  const userRole = session?.user?.user_metadata?.role?.toLowerCase() || 'viewer';
-  const isAdmin = userRole === 'admin' || userRole === 'super_admin';
-  const isSuperAdmin = userRole === 'super_admin';
-
-  // Helper function to check if rejection code is overridable
-  const isRejectionOverridable = (rejectionCode?: string): boolean => {
-    if (!rejectionCode) return true; // Default to overridable if no code
-    
-    // Non-overridable codes (require super_admin)
-    const nonOverridableCodes = ['DOCUMENT_TAMPERED', 'PHOTO_MISMATCH'];
-    return !nonOverridableCodes.includes(rejectionCode);
-  };
-
-  // Helper function to get required override role
-  const getRequiredOverrideRole = (rejectionCode?: string): 'admin' | 'super_admin' => {
-    if (!rejectionCode) return 'admin';
-    
-    const superAdminCodes = ['DOCUMENT_TAMPERED', 'PHOTO_MISMATCH'];
-    return superAdminCodes.includes(rejectionCode) ? 'super_admin' : 'admin';
-  };
 
   // Fetch real documents from API
   const fetchDocuments = async () => {
@@ -225,35 +174,10 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
         else if (doc.category === 'photos') category = 'Photo';
         
         // Map verification status
-        // First, check if passport is actually expired based on expiry date
         let status: Document['status'] = 'pending';
-        const isPassport = category === 'Passport';
-        const passportExpiry = candidate.passport_expiry || doc.expiry_date;
-        
-        // Check if passport is expired (only for passport documents)
-        if (isPassport && passportExpiry) {
-          const expiryDate = new Date(passportExpiry);
-          const today = new Date();
-          today.setHours(0, 0, 0, 0); // Reset time to compare dates only
-          if (expiryDate < today) {
-            status = 'expired';
-          } else if (doc.verification_status === 'verified') {
-            status = 'verified';
-          } else if (doc.verification_status === 'needs_review' || doc.verification_status === 'pending_ai') {
-            status = 'pending';
-          } else if (doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed') {
-            // For rejected/failed passports that aren't expired, show as pending (needs review)
-            status = 'pending';
-          }
-        } else {
-          // For non-passport documents or passports without expiry date, use verification status
-          if (doc.verification_status === 'verified') status = 'verified';
-          else if (doc.verification_status === 'needs_review' || doc.verification_status === 'pending_ai') status = 'pending';
-          else if (doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed') {
-            // Rejected/failed documents should show as pending (needs manual review)
-            status = 'pending';
-          }
-        }
+        if (doc.verification_status === 'verified') status = 'verified';
+        else if (doc.verification_status === 'needs_review' || doc.verification_status === 'pending_ai') status = 'pending';
+        else if (doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed') status = 'expired';
         
         return {
           id: doc.id,
@@ -264,43 +188,7 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
           uploadedDate: doc.created_at ? new Date(doc.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           fileSize: doc.file_size ? `${(doc.file_size / 1024).toFixed(0)} KB` : '0 KB',
           status,
-          expiryDate: passportExpiry || doc.expiry_date,
-          verification_status: doc.verification_status,
-          verification_source: doc.verification_source || null,
-          overridden_by: doc.overridden_by || null,
-          overridden_at: doc.overridden_at || null,
-          override_reason: doc.override_reason || null,
-<<<<<<< HEAD
-          overridden_by_name: doc.rejection?.overridden?.by || doc.overridden_by_name || null,
-          // Map rejection details from API response (API uses snake_case: rejection_code, rejection_reason)
-          rejection: doc.rejection ? {
-            code: doc.rejection.rejection_code ?? doc.rejection.code,
-            reason: doc.rejection.rejection_reason ?? doc.rejection.reason,
-            rejection_code: doc.rejection.rejection_code ?? doc.rejection.code,
-            rejection_reason: doc.rejection.rejection_reason ?? doc.rejection.reason,
-            mismatch_fields: doc.rejection.mismatch_fields,
-=======
-          overridden_by_name: doc.rejection?.overridden?.by || null,
-          rejection: doc.rejection ? {
-            rejection_code: doc.rejection.rejection_code,
-            rejection_reason: doc.rejection.rejection_reason,
-            mismatch_fields: doc.rejection.mismatch_fields || [],
->>>>>>> a94476f (feat(frontend): prefer profile_photo_signed_url when rendering candidate photos)
-            ai_confidence: doc.rejection.ai_confidence,
-            ocr_confidence: doc.rejection.ocr_confidence,
-            error_stage: doc.rejection.error_stage,
-            retry_possible: doc.rejection.retry_possible,
-            retry_count: doc.rejection.retry_count,
-            max_retries: doc.rejection.max_retries,
-            document_expiry_date: doc.rejection.document_expiry_date,
-            rejection_context: doc.rejection.rejection_context,
-<<<<<<< HEAD
-            is_overridable: doc.rejection.is_overridable,
-            required_role: doc.rejection.required_role,
-            overridden: doc.rejection.overridden,
-=======
->>>>>>> a94476f (feat(frontend): prefer profile_photo_signed_url when rendering candidate photos)
-          } : undefined,
+          expiryDate: doc.expiry_date,
         };
       });
       
@@ -321,45 +209,8 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
     }
   }, [candidate.id, activeTab]);
 
-  const handleShowEmployerCV = async () => {
-    // Use NEW backend CV generation system instead of modal
-    try {
-      // Use cache for better performance (template version in hash ensures correct version)
-      const result = await apiClient.generateCandidateCV(candidate.id, 'employer-safe', false);
-      
-      if (result.cached) {
-        toast.success('Downloading cached CV...');
-      } else {
-        toast.success('CV generated successfully! Downloading...');
-      }
-      
-      // Download PDF from signed URL
-      const response = await fetch(result.cv_url);
-      if (!response.ok) {
-        throw new Error(`Failed to download CV: ${response.statusText}`);
-      }
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${candidate.name || 'Candidate'}_Employer_Safe_CV.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-      toast.success('Employer CV downloaded successfully!');
-    } catch (err: any) {
-      console.error('[CandidateDetailsModal] Failed to download Employer CV:', err);
-      if (err?.message?.includes('404') || err?.message?.includes('not found')) {
-        toast.error('CV not found. Please ensure candidate information is complete.');
-      } else if (err?.message?.includes('timeout') || err?.message?.includes('time')) {
-        toast.error('CV generation timed out. Please try again.');
-      } else {
-        toast.error(err?.message || 'Failed to download Employer CV. Please try again.');
-      }
-    }
+  const handleShowEmployerCV = () => {
+    setShowEmployerCV(true);
   };
 
   const handleCopyShareLink = async () => {
@@ -373,6 +224,9 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
     }
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -385,7 +239,7 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
     setEditedCandidate(editedCandidate);
   };
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setEditedCandidate({
       ...editedCandidate,
@@ -427,7 +281,7 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
         setUploading(true); // Show loading during upload
         
         // Safety timeout: Always reset uploading state after 5 minutes max
-        let safetyTimeout: ReturnType<typeof setTimeout> | null = setTimeout(() => {
+        let safetyTimeout: NodeJS.Timeout | null = setTimeout(() => {
           console.warn('Upload safety timeout: Resetting uploading state');
           setUploading(false);
         }, 300000); // 5 minutes
@@ -625,188 +479,6 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
     await fetchDocuments();
   };
 
-  // Handle document view
-  const handleViewDocument = async (doc: Document) => {
-    try {
-      const response = await apiClient.getCandidateDocumentDownload(doc.id);
-      window.open(response.download_url, '_blank');
-    } catch (error: any) {
-      console.error('Error viewing document:', error);
-      alert(error?.message || 'Failed to view document');
-    }
-  };
-
-  // Handle document download
-  const handleDownloadDocument = async (doc: Document) => {
-    try {
-      const response = await apiClient.getCandidateDocumentDownload(doc.id);
-      const link = document.createElement('a');
-      link.href = response.download_url;
-      link.download = doc.fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (error: any) {
-      console.error('Error downloading document:', error);
-      alert(error?.message || 'Failed to download document');
-    }
-  };
-
-  // Handle document delete
-  const handleDeleteDocument = async (doc: Document) => {
-    if (!confirm(`Are you sure you want to delete "${doc.fileName}"? This action cannot be undone.`)) {
-      return;
-    }
-
-    try {
-      console.log('[DeleteDocument] Deleting document:', doc.id, doc.fileName, doc.category);
-      await apiClient.deleteCandidateDocument(doc.id);
-      console.log('[DeleteDocument] Document deleted successfully');
-      
-      // Wait a moment for backend to finish updating flags
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Refresh documents after deletion
-      await fetchDocuments();
-      console.log('[DeleteDocument] Documents refreshed');
-      
-      // Notify parent component to refresh candidate list (to update flags on card)
-      if (onDocumentChange) {
-        console.log('[DeleteDocument] Calling onDocumentChange callback');
-        // Add a small delay to ensure backend has updated flags
-        setTimeout(() => {
-          onDocumentChange();
-        }, 300);
-      } else {
-        console.warn('[DeleteDocument] onDocumentChange callback not provided');
-      }
-    } catch (error: any) {
-      console.error('[DeleteDocument] Error deleting document:', error);
-      alert(error?.message || 'Failed to delete document');
-    }
-  };
-
-  // Handle document reprocess (for stuck "Pending" documents)
-  const handleReprocessDocument = async (doc: Document) => {
-    // Check retry limits before reprocessing
-    if (doc.rejection?.retry_count !== undefined && doc.rejection?.max_retries !== undefined) {
-      if (doc.rejection.retry_count >= doc.rejection.max_retries) {
-        alert(`Maximum retry limit reached (${doc.rejection.retry_count}/${doc.rejection.max_retries}). Document cannot be reprocessed automatically. Please contact an administrator for manual review.`);
-        return;
-      }
-    }
-
-    if (!confirm(`Reprocess verification for "${doc.fileName}"? This will trigger AI verification again.`)) {
-      return;
-    }
-
-    try {
-      console.log('[ReprocessDocument] Reprocessing document:', doc.id, doc.fileName);
-      await apiClient.reprocessCandidateDocument(doc.id);
-      console.log('[ReprocessDocument] Document reprocessing initiated');
-      
-      alert('Document verification reprocessing initiated. Status will update shortly.');
-      
-      // Refresh documents after a delay to see status update
-      setTimeout(async () => {
-        await fetchDocuments();
-      }, 2000);
-    } catch (error: any) {
-      console.error('[ReprocessDocument] Error reprocessing document:', error);
-      const errorMessage = error?.message || 'Failed to reprocess document';
-      
-      // Check if error is about max retries
-      if (errorMessage.includes('Maximum retry limit')) {
-        alert(`Cannot reprocess: ${errorMessage}`);
-      } else {
-        alert(`Error reprocessing document: ${errorMessage}`);
-      }
-    }
-  };
-
-  // Handle quick approve (for pending documents - no password needed)
-  const handleQuickApprove = async (doc: Document) => {
-    if (!confirm(`Approve "${doc.fileName}"? This will mark the document as verified.`)) {
-      return;
-    }
-
-    try {
-      console.log('[QuickApprove] Approving document:', doc.id, doc.fileName);
-      await apiClient.quickApproveCandidateDocument(doc.id);
-      console.log('[QuickApprove] Document approved successfully');
-      
-      alert('Document approved successfully!');
-      
-      // Refresh documents to see updated status
-      await fetchDocuments();
-    } catch (error: any) {
-      console.error('[QuickApprove] Error approving document:', error);
-      const errorMessage = error?.message || 'Failed to approve document';
-      alert(`Error approving document: ${errorMessage}`);
-    }
-  };
-
-  // Handle admin override request from rejection modal
-  const handleRequestOverride = (doc: Document) => {
-    setRejectionModalDocument(null);
-    setOverrideModalDocument(doc);
-  };
-
-  // Handle admin override confirmation
-  const handleConfirmOverride = async (password: string, justification: string) => {
-    if (!overrideModalDocument) return;
-
-    try {
-      setOverrideLoading(true);
-      const adminEmail = auth?.session?.user?.email || '';
-      if (!adminEmail) {
-        throw new Error('Admin email not found. Please log in again.');
-      }
-
-      await apiClient.overrideCandidateDocument(
-        overrideModalDocument.id,
-        adminEmail,
-        password,
-        justification
-      );
-
-      // Success - close modals and refresh documents
-      setOverrideModalDocument(null);
-      setOverrideLoading(false);
-      alert('Document override successful. The document is now marked as verified.');
-      
-      // Refresh documents to show updated status
-      await fetchDocuments();
-      if (onDocumentChange) {
-        onDocumentChange();
-      }
-    } catch (error: any) {
-      setOverrideLoading(false);
-      throw error; // Let AdminOverrideModal handle the error display
-    }
-  };
-
-  // Helper function to check if rejection is overridable
-  const isRejectionOverridable = (doc: Document): boolean => {
-    if (!doc.rejection) return false;
-    // Check if rejection code is non-overridable
-    const nonOverridableCodes = ['DOCUMENT_TAMPERED', 'PHOTO_MISMATCH'];
-    if (doc.rejection.code && nonOverridableCodes.includes(doc.rejection.code)) {
-      return false;
-    }
-    return doc.rejection.is_overridable !== false; // Default to true if not specified
-  };
-
-  // Helper function to get required role for override
-  const getRequiredOverrideRole = (doc: Document): 'admin' | 'super_admin' => {
-    if (!doc.rejection) return 'admin';
-    const superAdminCodes = ['DOCUMENT_TAMPERED', 'PHOTO_MISMATCH'];
-    if (doc.rejection.code && superAdminCodes.includes(doc.rejection.code)) {
-      return 'super_admin';
-    }
-    return doc.rejection.required_role || 'admin';
-  };
-
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'CV': return <FileText className="w-4 h-4" />;
@@ -847,7 +519,7 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
             <div>
               <h2 className="text-2xl font-bold text-gray-900">{candidate.name || 'Unknown'}</h2>
               <p className="text-sm text-gray-600 mt-0.5">
-                {candidate.position || 'Candidate'} • {candidate.email || 'No email'}
+                {candidate.position || 'Candidate'} ΓÇó {candidate.email || 'No email'}
               </p>
             </div>
           </div>
@@ -908,22 +580,6 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                 </span>
               )}
             </button>
-            <button
-              onClick={() => setActiveTab('missing-data')}
-              className={`py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-                activeTab === 'missing-data'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <AlertCircle className="w-4 h-4" />
-              Missing Data
-              {candidate.missing_fields && Array.isArray(candidate.missing_fields) && candidate.missing_fields.length > 0 && (
-                <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs font-medium">
-                  {candidate.missing_fields.length}
-                </span>
-              )}
-            </button>
           </div>
         </div>
 
@@ -932,11 +588,11 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
           {activeTab === 'details' ? (
             <div className="p-6 space-y-6">
               {/* Profile Photo */}
-              {(candidate.profile_photo_signed_url || candidate.profile_photo_url) && (
+              {candidate.profile_photo_url && (
                 <div className="flex justify-center">
                   <div className="relative">
                     <img
-                      src={candidate.profile_photo_signed_url || candidate.profile_photo_url}
+                      src={candidate.profile_photo_url}
                       alt={candidate.name}
                       className="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-lg"
                       onError={(e) => {
@@ -1073,39 +729,6 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                       <p className="text-sm">{candidate.passport_received ? 'Received' : 'Not Received'}</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3">
-                    {candidate.cnic_received ? (
-                      <CheckCircle className="w-5 h-5 text-green-500 mt-1" />
-                    ) : (
-                      <XCircle className="w-5 h-5 text-red-500 mt-1" />
-                    )}
-                    <div>
-                      <p className="text-sm text-gray-600">CNIC Status</p>
-                      <p className="text-sm">{candidate.cnic_received ? 'Received' : 'Not Received'}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    {candidate.driving_license_received ? (
-                      <CheckCircle className="w-5 h-5 text-green-500 mt-1" />
-                    ) : (
-                      <XCircle className="w-5 h-5 text-red-500 mt-1" />
-                    )}
-                    <div>
-                      <p className="text-sm text-gray-600">Driving License Status</p>
-                      <p className="text-sm">{candidate.driving_license_received ? 'Received' : 'Not Received'}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    {candidate.police_character_received ? (
-                      <CheckCircle className="w-5 h-5 text-green-500 mt-1" />
-                    ) : (
-                      <XCircle className="w-5 h-5 text-red-500 mt-1" />
-                    )}
-                    <div>
-                      <p className="text-sm text-gray-600">Police Character Certificate Status</p>
-                      <p className="text-sm">{candidate.police_character_received ? 'Received' : 'Not Received'}</p>
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -1201,11 +824,11 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
               )}
 
               {/* Video Link */}
-              {(candidate as any).videoLink && (
+              {candidate.videoLink && (
                 <div>
                   <h3 className="mb-4">Video Profile</h3>
                   <a
-                    href={(candidate as any).videoLink}
+                    href={candidate.videoLink}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
@@ -1217,11 +840,11 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
               )}
 
               {/* Notes */}
-              {(candidate as any).notes && (
+              {candidate.notes && (
                 <div>
                   <h3 className="mb-4">Notes & Remarks</h3>
                   <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-                    <p className="text-sm">{(candidate as any).notes}</p>
+                    <p className="text-sm">{candidate.notes}</p>
                   </div>
                 </div>
               )}
@@ -1246,9 +869,6 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                       <p className="text-sm">
                         <strong>Recommendation:</strong> Highly suitable for {candidate.country_of_interest} market.
                         {candidate.passport_received ? ' Passport ready - can deploy quickly.' : ' Passport needed - estimated 2-3 weeks.'}
-                        {candidate.cnic_received ? ' CNIC ready.' : ' CNIC needed.'}
-                        {candidate.driving_license_received ? ' Driving License ready.' : ' Driving License needed (if required).'}
-                        {candidate.police_character_received ? ' Police Character Certificate ready.' : ' Police Character Certificate needed (if required).'}
                       </p>
                     )}
                     {candidate.ai_score && (
@@ -1290,16 +910,13 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                   <MessageSquare className="w-4 h-4" />
                   Send to Employer
                 </button>
-                <button 
-                  onClick={handleShowEmployerCV}
-                  className="px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
-                >
+                <button className="px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
                   <Download className="w-4 h-4" />
                   Download CV
                 </button>
               </div>
             </div>
-          ) : activeTab === 'documents' ? (
+          ) : (
             <div className="p-6 space-y-4">
               {/* Upload Status */}
               {uploading && (
@@ -1406,9 +1023,9 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                               <h4 className="font-medium text-gray-900 truncate">{doc.fileName}</h4>
                               <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
                                 <span>{doc.fileType}</span>
-                                <span>•</span>
+                                <span>ΓÇó</span>
                                 <span>{doc.fileSize}</span>
-                                <span>•</span>
+                                <span>ΓÇó</span>
                                 <span className={`px-2 py-0.5 rounded-full ${
                                   doc.category === 'CV' ? 'bg-blue-100 text-blue-700' :
                                   doc.category === 'Passport' ? 'bg-purple-100 text-purple-700' :
@@ -1422,88 +1039,17 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                               </div>
                             </div>
                             
-                            {/* Status Badge - Clickable for rejected/failed documents */}
-                            <div className="flex items-center gap-2 flex-shrink-0">
-<<<<<<< HEAD
-                              {(doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed') ? (
-                                <button
-                                  onClick={() => setRejectionModalDocument(doc)}
-                                  className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity ${
-                                    'bg-red-100 text-red-700'
-                                  }`}
-                                  title="Click to view rejection details"
-                                >
-                                  <AlertCircle className="w-3 h-3" />
-                                  {doc.verification_status === 'rejected_mismatch' ? 'Rejected' : 'Failed'}
-                                </button>
-                              ) : (
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
-                                  doc.status === 'verified' ? 'bg-green-100 text-green-700' :
-                                  doc.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                                  'bg-red-100 text-red-700'
-=======
-                              <span 
-                                onClick={() => {
-                                  if (doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed') {
-                                    setRejectionModalDocument(doc);
-                                  }
-                                }}
-                                className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
-                                  doc.status === 'verified' ? 'bg-green-100 text-green-700' :
-                                  doc.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                                  'bg-red-100 text-red-700'
-                                } ${
-                                  (doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed')
-                                    ? 'cursor-pointer hover:opacity-80 transition-opacity'
-                                    : ''
-                                }`}
-                                title={
-                                  (doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed')
-                                    ? 'Click to view rejection details'
-                                    : undefined
-                                }
-                              >
-                                {doc.status === 'verified' && <CheckCircle className="w-3 h-3" />}
-                                {doc.status === 'expired' && <AlertCircle className="w-3 h-3" />}
-                                {doc.status === 'pending' && <AlertCircle className="w-3 h-3" />}
-                                {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
-                              </span>
-
-                              {/* Admin Override Badge */}
-                              {doc.verification_source === 'admin_override' && (
-                                <div className="relative group">
-                                  <span className="px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 bg-purple-100 text-purple-700 border border-purple-200">
-                                    <Shield className="w-3 h-3" />
-                                    Overridden
-                                  </span>
-                                  
-                                  {/* Tooltip */}
-                                  <div className="absolute left-0 bottom-full mb-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
-                                    <div className="absolute bottom-0 left-4 transform translate-y-1/2 rotate-45 w-2 h-2 bg-gray-900"></div>
-                                    <div className="font-semibold mb-2 flex items-center gap-1">
-                                      <Shield className="w-3 h-3" />
-                                      Admin Override
-                                    </div>
-                                    {doc.overridden_by_name && (
-                                      <div className="mb-1">
-                                        <span className="text-gray-400">Admin:</span> {doc.overridden_by_name}
-                                      </div>
-                                    )}
-                                    {doc.overridden_at && (
-                                      <div className="mb-1">
-                                        <span className="text-gray-400">Date:</span> {new Date(doc.overridden_at).toLocaleString()}
-                                      </div>
-                                    )}
-                                    {doc.override_reason && (
-                                      <div className="mt-2 pt-2 border-t border-gray-700">
-                                        <span className="text-gray-400 block mb-1">Justification:</span>
-                                        <span className="text-white">{doc.override_reason}</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
+                            {/* Status Badge */}
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 flex-shrink-0 ${
+                              doc.status === 'verified' ? 'bg-green-100 text-green-700' :
+                              doc.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                              {doc.status === 'verified' && <CheckCircle className="w-3 h-3" />}
+                              {doc.status === 'expired' && <AlertCircle className="w-3 h-3" />}
+                              {doc.status === 'pending' && <AlertCircle className="w-3 h-3" />}
+                              {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
+                            </span>
                           </div>
 
                           {/* Metadata */}
@@ -1525,34 +1071,15 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
 
                           {/* Action Buttons */}
                           <div className="flex items-center gap-2">
-                            <button 
-                              onClick={() => handleViewDocument(doc)}
-                              className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1.5 text-sm"
-                            >
+                            <button className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1.5 text-sm">
                               <Eye className="w-3.5 h-3.5" />
                               View
                             </button>
-                            <button 
-                              onClick={() => handleDownloadDocument(doc)}
-                              className="px-3 py-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors flex items-center gap-1.5 text-sm"
-                            >
+                            <button className="px-3 py-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors flex items-center gap-1.5 text-sm">
                               <Download className="w-3.5 h-3.5" />
                               Download
                             </button>
-                            {doc.status === 'pending' && (
-                              <button 
-                                onClick={() => handleReprocessDocument(doc)}
-                                className="px-3 py-1.5 bg-yellow-50 text-yellow-600 rounded-lg hover:bg-yellow-100 transition-colors flex items-center gap-1.5 text-sm"
-                                title="Reprocess AI verification"
-                              >
-                                <RefreshCw className="w-3.5 h-3.5" />
-                                Reprocess
-                              </button>
-                            )}
-                            <button 
-                              onClick={() => handleDeleteDocument(doc)}
-                              className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-1.5 text-sm"
-                            >
+                            <button className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-1.5 text-sm">
                               <Trash2 className="w-3.5 h-3.5" />
                               Delete
                             </button>
@@ -1583,349 +1110,17 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                   Document Categories
                 </h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-700">
-                  <div>📄 CV / Resume</div>
-                  <div>🛂 Passport</div>
-                  <div>📜 Certificates</div>
-                  <div>📝 Contracts</div>
-                  <div>🏥 Medical Reports</div>
-                  <div>📷 Photos</div>
-                  <div>📁 Other Documents</div>
+                  <div>≡ƒôä CV / Resume</div>
+                  <div>≡ƒ¢é Passport</div>
+                  <div>≡ƒô£ Certificates</div>
+                  <div>≡ƒô¥ Contracts</div>
+                  <div>≡ƒÅÑ Medical Reports</div>
+                  <div>≡ƒô╖ Photos</div>
+                  <div>≡ƒôü Other Documents</div>
                 </div>
               </div>
             </div>
-          ) : activeTab === 'documents' ? (
-            <div className="p-6 space-y-4">
-              {/* Auto-Extraction Status */}
-              {extractionInProgress && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
-                  <Loader className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5 animate-spin" />
-                  <div>
-                    <p className="text-sm font-medium text-blue-800">Extracting CV Data</p>
-                    <p className="text-sm text-blue-700 mt-1">Processing your CV with AI... This may take a moment.</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Error Message */}
-              {extractionError && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-red-800">Extraction Error</p>
-                    <p className="text-sm text-red-700 mt-1">{extractionError}</p>
-                    <button
-                      onClick={() => setExtractionError(null)}
-                      className="text-xs text-red-600 hover:text-red-700 mt-2 underline"
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Documents Header */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Candidate Documents</h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {documentsLoading ? 'Loading...' : `${documents.length} files uploaded`}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={fetchDocuments}
-                    disabled={documentsLoading}
-                    className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
-                    title="Refresh documents"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${documentsLoading ? 'animate-spin' : ''}`} />
-                    Refresh
-                  </button>
-                  <button
-                    onClick={handleUploadDocument}
-                    disabled={extractionInProgress || uploading}
-                    className={`${
-                      extractionInProgress || uploading
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    } px-4 py-2 rounded-lg transition-colors flex items-center gap-2`}
-                  >
-                    <Upload className={`w-4 h-4 ${uploading ? 'animate-pulse' : ''}`} />
-                    {uploading ? 'Uploading...' : extractionInProgress ? 'Extracting...' : 'Upload Document'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Documents Grid */}
-              {documentsLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader className="w-6 h-6 animate-spin text-blue-600" />
-                  <span className="ml-2 text-gray-600">Loading documents...</span>
-                </div>
-              ) : documents.length > 0 ? (
-                <div className="grid grid-cols-1 gap-3">
-                  {documents.map(doc => (
-                    <div
-                      key={doc.id}
-                      className="bg-white border-2 border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all"
-                    >
-                      <div className="flex items-start gap-4">
-                        {/* Icon */}
-                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                          doc.category === 'CV' ? 'bg-blue-100 text-blue-600' :
-                          doc.category === 'Passport' ? 'bg-purple-100 text-purple-600' :
-                          doc.category === 'Certificate' ? 'bg-green-100 text-green-600' :
-                          doc.category === 'Medical' ? 'bg-red-100 text-red-600' :
-                          doc.category === 'Photo' ? 'bg-pink-100 text-pink-600' :
-                          'bg-gray-100 text-gray-600'
-                        }`}>
-                          {getCategoryIcon(doc.category)}
-                        </div>
-
-                        {/* File Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-gray-900 truncate">{doc.fileName}</h4>
-                              <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                                <span>{doc.fileType}</span>
-                                <span>•</span>
-                                <span>{doc.fileSize}</span>
-                                <span>•</span>
-                                <span className={`px-2 py-0.5 rounded-full ${
-                                  doc.category === 'CV' ? 'bg-blue-100 text-blue-700' :
-                                  doc.category === 'Passport' ? 'bg-purple-100 text-purple-700' :
-                                  doc.category === 'Certificate' ? 'bg-green-100 text-green-700' :
-                                  doc.category === 'Medical' ? 'bg-red-100 text-red-700' :
-                                  doc.category === 'Photo' ? 'bg-pink-100 text-pink-700' :
-                                  'bg-gray-100 text-gray-700'
->>>>>>> a94476f (feat(frontend): prefer profile_photo_signed_url when rendering candidate photos)
-                                }`}>
-                                  {doc.status === 'verified' && <CheckCircle className="w-3 h-3" />}
-                                  {doc.status === 'expired' && <AlertCircle className="w-3 h-3" />}
-                                  {doc.status === 'pending' && <AlertCircle className="w-3 h-3" />}
-                                  {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
-                                </span>
-                              )}
-
-                              {/* Admin Override Badge */}
-                              {doc.verification_source === 'admin_override' && (
-                                <div className="relative group">
-                                  <span className="px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 bg-purple-100 text-purple-700 border border-purple-200">
-                                    <Shield className="w-3 h-3" />
-                                    Overridden
-                                  </span>
-                                  
-                                  {/* Tooltip */}
-                                  <div className="absolute left-0 bottom-full mb-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
-                                    <div className="absolute bottom-0 left-4 transform translate-y-1/2 rotate-45 w-2 h-2 bg-gray-900"></div>
-                                    <div className="font-semibold mb-2 flex items-center gap-1">
-                                      <Shield className="w-3 h-3" />
-                                      Admin Override
-                                    </div>
-                                    {doc.overridden_by_name && (
-                                      <div className="mb-1">
-                                        <span className="text-gray-400">Admin:</span> {doc.overridden_by_name}
-                                      </div>
-                                    )}
-                                    {doc.overridden_at && (
-                                      <div className="mb-1">
-                                        <span className="text-gray-400">Date:</span> {new Date(doc.overridden_at).toLocaleString()}
-                                      </div>
-                                    )}
-                                    {doc.override_reason && (
-                                      <div className="mt-2 pt-2 border-t border-gray-700">
-                                        <span className="text-gray-400 block mb-1">Justification:</span>
-                                        <span className="text-white">{doc.override_reason}</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-<<<<<<< HEAD
-=======
-                            
-                            {/* Status Badge - Clickable for rejected/failed documents */}
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                              <span 
-                                onClick={() => {
-                                  if (doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed') {
-                                    setRejectionModalDocument(doc);
-                                  }
-                                }}
-                                className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
-                                  doc.status === 'verified' ? 'bg-green-100 text-green-700' :
-                                  doc.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                                  'bg-red-100 text-red-700'
-                                } ${
-                                  (doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed')
-                                    ? 'cursor-pointer hover:opacity-80 transition-opacity'
-                                    : ''
-                                }`}
-                                title={
-                                  (doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed')
-                                    ? 'Click to view rejection details'
-                                    : undefined
-                                }
-                              >
-                                {doc.status === 'verified' && <CheckCircle className="w-3 h-3" />}
-                                {doc.status === 'expired' && <AlertCircle className="w-3 h-3" />}
-                                {doc.status === 'pending' && <AlertCircle className="w-3 h-3" />}
-                                {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
-                              </span>
-
-                              {/* Admin Override Badge */}
-                              {doc.verification_source === 'admin_override' && (
-                                <div className="relative group">
-                                  <span className="px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 bg-purple-100 text-purple-700 border border-purple-200">
-                                    <Shield className="w-3 h-3" />
-                                    Overridden
-                                  </span>
-                                  
-                                  {/* Tooltip */}
-                                  <div className="absolute left-0 bottom-full mb-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
-                                    <div className="absolute bottom-0 left-4 transform translate-y-1/2 rotate-45 w-2 h-2 bg-gray-900"></div>
-                                    <div className="font-semibold mb-2 flex items-center gap-1">
-                                      <Shield className="w-3 h-3" />
-                                      Admin Override
-                                    </div>
-                                    {doc.overridden_by_name && (
-                                      <div className="mb-1">
-                                        <span className="text-gray-400">Admin:</span> {doc.overridden_by_name}
-                                      </div>
-                                    )}
-                                    {doc.overridden_at && (
-                                      <div className="mb-1">
-                                        <span className="text-gray-400">Date:</span> {new Date(doc.overridden_at).toLocaleString()}
-                                      </div>
-                                    )}
-                                    {doc.override_reason && (
-                                      <div className="mt-2 pt-2 border-t border-gray-700">
-                                        <span className="text-gray-400 block mb-1">Justification:</span>
-                                        <span className="text-white">{doc.override_reason}</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
->>>>>>> a94476f (feat(frontend): prefer profile_photo_signed_url when rendering candidate photos)
-                          </div>
-
-                          {/* Metadata */}
-                          <div className="flex items-center gap-4 text-xs text-gray-600 mb-3">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              <span>Uploaded {doc.uploadedDate}</span>
-                            </div>
-                            <div>
-                              By {doc.uploadedBy}
-                            </div>
-                            {doc.expiryDate && (
-                              <div className="flex items-center gap-1">
-                                <AlertCircle className="w-3 h-3" />
-                                <span>Expires: {doc.expiryDate}</span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Action Buttons */}
-                          <div className="flex items-center gap-2">
-                            <button 
-                              onClick={() => handleViewDocument(doc)}
-                              className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1.5 text-sm"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              View
-                            </button>
-                            <button 
-                              onClick={() => handleDownloadDocument(doc)}
-                              className="px-3 py-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors flex items-center gap-1.5 text-sm"
-                            >
-                              <Download className="w-3.5 h-3.5" />
-                              Download
-                            </button>
-                            {doc.status === 'pending' && (
-                              <>
-                                <button 
-                                  onClick={() => handleQuickApprove(doc)}
-                                  className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1.5 text-sm font-medium"
-                                  title="Approve this document (mark as verified)"
-                                >
-                                  <CheckCircle className="w-3.5 h-3.5" />
-                                  Approve
-                                </button>
-                                <button 
-                                  onClick={() => handleReprocessDocument(doc)}
-                                  className="px-3 py-1.5 bg-yellow-50 text-yellow-600 rounded-lg hover:bg-yellow-100 transition-colors flex items-center gap-1.5 text-sm"
-                                  title="Reprocess AI verification"
-                                >
-                                  <RefreshCw className="w-3.5 h-3.5" />
-                                  Reprocess
-                                </button>
-                              </>
-                            )}
-                            <button 
-                              onClick={() => handleDeleteDocument(doc)}
-                              className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-1.5 text-sm"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-600 mb-4">No documents uploaded yet</p>
-                  <button
-                    onClick={handleUploadDocument}
-                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
-                  >
-                    <Upload className="w-4 h-4" />
-                    Upload First Document
-                  </button>
-                </div>
-              )}
-
-              {/* Document Categories Info */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
-                <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-blue-600" />
-                  Document Categories
-                </h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-700">
-                  <div>📄 CV / Resume</div>
-                  <div>🛂 Passport</div>
-                  <div>📜 Certificates</div>
-                  <div>📝 Contracts</div>
-                  <div>🏥 Medical Reports</div>
-                  <div>📷 Photos</div>
-                  <div>📁 Other Documents</div>
-                </div>
-              </div>
-            </div>
-          ) : activeTab === 'missing-data' ? (
-            <MissingDataTab candidate={candidate} onFieldUpdate={async (field, value) => {
-              try {
-                await apiClient.updateCandidateFieldManually(candidate.id, field, value);
-                // Refresh candidate data
-                const updated = await apiClient.getCandidate(candidate.id);
-                setEditedCandidate(updated);
-                if (onDocumentChange) {
-                  onDocumentChange();
-                }
-              } catch (error: any) {
-                console.error('Error updating field:', error);
-                alert(error?.message || 'Failed to update field');
-              }
-            }} />
-          ) : null}
+          )}
         </div>
       </div>
 
@@ -1944,88 +1139,6 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
             setShowExtractionModal(false);
             setExtractedData(null);
           }}
-        />
-      )}
-<<<<<<< HEAD
-      
-=======
-
->>>>>>> a94476f (feat(frontend): prefer profile_photo_signed_url when rendering candidate photos)
-      {/* Document Rejection Modal */}
-      {rejectionModalDocument && (
-        <DocumentRejectionModal
-          documentId={rejectionModalDocument.id}
-          documentName={rejectionModalDocument.fileName}
-          documentCategory={rejectionModalDocument.category}
-          rejectionDetails={rejectionModalDocument.rejection || {}}
-          verificationStatus={rejectionModalDocument.verification_status === 'rejected_mismatch' ? 'rejected_mismatch' : 'failed'}
-          onClose={() => setRejectionModalDocument(null)}
-<<<<<<< HEAD
-          onRetry={() => handleReprocessDocument(rejectionModalDocument)}
-          onRequestOverride={() => handleRequestOverride(rejectionModalDocument)}
-          isAdmin={isAdmin}
-        />
-      )}
-=======
-          onRequestOverride={() => {
-            // Check if override is allowed
-            const rejectionCode = rejectionModalDocument.rejection?.rejection_code;
-            const overridable = isRejectionOverridable(rejectionCode);
-            
-            if (!overridable && !isSuperAdmin) {
-              alert('You do not have permission to override this rejection. Super Admin privileges are required.');
-              return;
-            }
-            
-            if (!isAdmin) {
-              alert('You do not have admin privileges to override document verification.');
-              return;
-            }
-            
-            // Show override modal
-            setOverrideModalDocument(rejectionModalDocument);
-            setRejectionModalDocument(null);
-          }}
-          isAdmin={isAdmin}
-        />
-      )}
-
-      {/* Admin Override Modal */}
-      {overrideModalDocument && (
-        <AdminOverrideModal
-          documentId={overrideModalDocument.id}
-          documentName={overrideModalDocument.fileName}
-          documentCategory={overrideModalDocument.category}
-          rejectionCode={overrideModalDocument.rejection?.rejection_code}
-          rejectionReason={overrideModalDocument.rejection?.rejection_reason}
-          isOverridable={isRejectionOverridable(overrideModalDocument.rejection?.rejection_code)}
-          requiredRole={getRequiredOverrideRole(overrideModalDocument.rejection?.rejection_code)}
-          onClose={() => setOverrideModalDocument(null)}
-          onConfirm={async (adminPassword: string, justification: string) => {
-            try {
-              setOverrideLoading(true);
-              await apiClient.overrideCandidateDocument(
-                overrideModalDocument.id,
-                adminPassword,
-                justification,
-                session?.user?.email || '' // Pass admin email from auth context
-              );
-              
-              // Refresh documents after override
-              await fetchDocuments();
-              if (onDocumentChange) {
-                onDocumentChange();
-              }
-              
-              setOverrideModalDocument(null);
-              alert('Document verification override successful. The document is now marked as verified.');
-            } catch (error: any) {
-              throw new Error(error?.message || 'Failed to override document verification');
-            } finally {
-              setOverrideLoading(false);
-            }
-          }}
-          loading={overrideLoading}
         />
       )}
       {showEmployerCV && (
@@ -2049,25 +1162,359 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                 <X className="w-6 h-6" />
               </button>
             </div>
->>>>>>> a94476f (feat(frontend): prefer profile_photo_signed_url when rendering candidate photos)
 
-      {/* Admin Override Modal */}
-      {overrideModalDocument && (
-        <AdminOverrideModal
-          documentId={overrideModalDocument.id}
-          documentName={overrideModalDocument.fileName}
-          documentCategory={overrideModalDocument.category}
-          rejectionCode={overrideModalDocument.rejection?.code}
-          rejectionReason={overrideModalDocument.rejection?.reason}
-          isOverridable={isRejectionOverridable(overrideModalDocument)}
-          requiredRole={getRequiredOverrideRole(overrideModalDocument)}
-          onClose={() => {
-            setOverrideModalDocument(null);
-            setOverrideLoading(false);
-          }}
-          onConfirm={handleConfirmOverride}
-          loading={overrideLoading}
-        />
+            {/* Action Bar */}
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-b border-purple-200 p-4 flex items-center justify-between gap-4 print:hidden">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">Safe to Share</p>
+                  <p className="text-xs text-gray-600">All sensitive information removed</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleCopyShareLink}
+                  className={`px-4 py-2 rounded-lg transition-all flex items-center gap-2 font-medium ${
+                    copiedLink
+                      ? 'bg-green-600 text-white'
+                      : 'bg-purple-600 text-white hover:bg-purple-700'
+                  }`}
+                >
+                  {copiedLink ? (
+                    <>
+                      <Check className="w-4 h-4" />
+                      Link Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Link2 className="w-4 h-4" />
+                      Copy Share Link
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handlePrint}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium"
+                >
+                  <Download className="w-4 h-4" />
+                  Download PDF
+                </button>
+              </div>
+            </div>
+
+            {/* CV Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-8 print:p-8">
+              <div id="printable-cv" className="max-w-4xl mx-auto bg-white">
+                {/* Logo and Header Section */}
+                <div className="text-center mb-6">
+                  <img 
+                    src="/ChatGPT Image Jan 20, 2026, 05_24_22 PM.png" 
+                    alt="Falisha Manpower" 
+                    className="h-16 mx-auto mb-4"
+                  />
+                </div>
+                
+                {/* Header Section */}
+                <div className="text-center mb-6 pb-4 border-b-2 border-blue-600">
+                  <h1 className="text-3xl font-bold mb-2">{candidate.name || 'Candidate'}</h1>
+                  <p className="text-lg text-gray-600 mb-2">{candidate.position || 'Professional'}</p>
+                  <div className="flex items-center justify-center gap-4 text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-5 h-5 text-blue-600" />
+                      <span>{candidate.nationality || 'Not specified'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-blue-600" />
+                      <span>Seeking: {candidate.country || 'Not specified'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact Information - HIDDEN FOR EMPLOYERS */}
+                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded">
+                  <div className="flex items-start gap-2">
+                    <Shield className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h3 className="font-bold text-yellow-900 text-sm mb-1">Contact Information Protected</h3>
+                      <p className="text-xs text-yellow-800 mb-2">
+                        For privacy, direct contact details have been removed. Contact Falisha Manpower to reach this candidate.
+                      </p>
+                      <div className="text-xs text-gray-700">
+                        <p>≡ƒôº falishamanpower4035@gmail.com</p>
+                        <p>≡ƒô▒ +92330 3333335</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Professional Summary */}
+                <div className="mb-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
+                    <Briefcase className="w-5 h-5 text-blue-600" />
+                    Professional Summary
+                  </h2>
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div className="bg-blue-50 p-3 rounded">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Calendar className="w-4 h-4 text-blue-600" />
+                        <span className="font-semibold text-gray-900 text-sm">Experience</span>
+                      </div>
+                      <p className="text-xl font-bold text-blue-600">{candidate.experience_years || 0} Years</p>
+                    </div>
+                    <div className="bg-purple-50 p-3 rounded">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Star className="w-4 h-4 text-purple-600" />
+                        <span className="font-semibold text-gray-900 text-sm">AI Match Score</span>
+                      </div>
+                      <p className="text-xl font-bold text-purple-600">{candidate.ai_score?.toFixed(1) || 'N/A'}/10</p>
+                    </div>
+                  </div>
+                  <p className="text-gray-700 text-sm leading-relaxed">
+                    {candidate.professional_summary || `Highly skilled ${candidate.position || 'professional'} with ${candidate.experience_years || 0} years of professional experience. Seeking opportunities in ${candidate.country || 'various markets'} to contribute technical expertise and drive operational excellence.`}
+                  </p>
+                </div>
+
+                {/* Work Experience */}
+                {candidate.previous_employment && (
+                  <div className="mb-6">
+                    <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
+                      <Briefcase className="w-5 h-5 text-blue-600" />
+                      Work Experience
+                    </h2>
+                    <div className="bg-gray-50 p-3 rounded border-l-4 border-blue-500">
+                      <p className="text-sm whitespace-pre-line text-gray-700">{candidate.previous_employment}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Core Skills */}
+                {safeJsonArray(candidate.skills).length > 0 && (
+                  <div className="mb-6">
+                    <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
+                      <Star className="w-5 h-5 text-blue-600" />
+                      Core Skills & Competencies
+                    </h2>
+                    <div className="grid grid-cols-3 gap-2">
+                      {safeJsonArray(candidate.skills).map((skill, index) => (
+                        <div
+                          key={index}
+                          className="px-3 py-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded border border-blue-200 text-gray-800 font-medium text-center text-sm"
+                        >
+                          {skill}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Education */}
+                {candidate.education && (
+                  <div className="mb-6">
+                    <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-blue-600" />
+                      Education
+                    </h2>
+                    <div className="bg-gray-50 p-3 rounded border-l-4 border-purple-500">
+                      <p className="text-sm whitespace-pre-line text-gray-700">{candidate.education}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Certifications */}
+                {candidate.certifications && (
+                  <div className="mb-6">
+                    <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-blue-600" />
+                      Certifications
+                    </h2>
+                    <div className="bg-green-50 p-3 rounded border-l-4 border-green-500">
+                      <p className="text-sm whitespace-pre-line text-gray-700">{candidate.certifications}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Additional Information */}
+                <div className="mb-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-blue-600" />
+                    Additional Information
+                  </h2>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-gray-50 p-3 rounded">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Globe className="w-4 h-4 text-gray-600" />
+                        <span className="font-semibold text-gray-900 text-sm">Nationality</span>
+                      </div>
+                      <p className="text-gray-700 text-sm">{candidate.nationality || 'Not specified'}</p>
+                    </div>
+                    <div className="bg-gray-50 p-3 rounded">
+                      <div className="flex items-center gap-2 mb-1">
+                        <MapPin className="w-4 h-4 text-gray-600" />
+                        <span className="font-semibold text-gray-900 text-sm">Preferred Location</span>
+                      </div>
+                      <p className="text-gray-700 text-sm">{candidate.country || 'Not specified'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer Notice */}
+                <div className="mt-6 pt-4 border-t border-gray-300">
+                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded border border-blue-200">
+                    <div className="flex items-start gap-2">
+                      <Shield className="w-6 h-6 text-blue-600 flex-shrink-0" />
+                      <div>
+                        <h3 className="font-bold text-gray-900 mb-1 text-sm">Protected by Falisha Manpower</h3>
+                        <p className="text-xs text-gray-700 mb-2">
+                          This employer-safe CV protects candidate privacy. Contact information has been secured.
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          <strong>For interviews:</strong> falishamanpower4035@gmail.com | +92330 3333335
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Watermark */}
+                <div className="mt-4 text-center text-xs text-gray-400">
+                  <p>Falisha Manpower AI Recruitment System | Candidate ID: {candidate.id}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Print Styles */}
+          <style>{`
+            @media print {
+              @page {
+                size: A4;
+                margin: 0.5in;
+              }
+              
+              body {
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+                margin: 0;
+                padding: 0;
+              }
+              
+              /* Hide everything */
+              * {
+                display: none !important;
+                visibility: hidden !important;
+              }
+              
+              /* Show only the printable CV */
+              #printable-cv {
+                display: block !important;
+                visibility: visible !important;
+                position: relative !important;
+                width: 100% !important;
+                height: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                page-break-after: auto;
+                page-break-inside: avoid;
+              }
+              
+              #printable-cv * {
+                display: block !important;
+                visibility: visible !important;
+                margin-bottom: 0.5rem !important;
+                page-break-inside: avoid !important;
+              }
+              
+              /* Typography */
+              #printable-cv h1 { 
+                font-size: 20px !important; 
+                font-weight: bold !important;
+                margin-bottom: 6px !important; 
+              }
+              #printable-cv h2 { 
+                font-size: 14px !important; 
+                font-weight: bold !important;
+                margin-bottom: 8px !important; 
+              }
+              #printable-cv p { 
+                font-size: 10px !important; 
+                line-height: 1.3 !important;
+                margin-bottom: 4px !important;
+              }
+              #printable-cv img {
+                max-width: 100% !important;
+                height: auto !important;
+                margin-bottom: 8px !important;
+              }
+              
+              /* Reduce all spacing */
+              #printable-cv .mb-6 { margin-bottom: 8px !important; }
+              #printable-cv .mb-4 { margin-bottom: 6px !important; }
+              #printable-cv .mb-3 { margin-bottom: 4px !important; }
+              #printable-cv .mb-2 { margin-bottom: 2px !important; }
+              #printable-cv .mb-1 { margin-bottom: 1px !important; }
+              
+              #printable-cv .pb-2 { padding-bottom: 4px !important; }
+              #printable-cv .pb-4 { padding-bottom: 6px !important; }
+              #printable-cv .pb-6 { padding-bottom: 8px !important; }
+              
+              #printable-cv .p-6 { padding: 6px !important; }
+              #printable-cv .p-4 { padding: 4px !important; }
+              #printable-cv .p-3 { padding: 3px !important; }
+              
+              #printable-cv .gap-2 { gap: 2px !important; }
+              #printable-cv .gap-3 { gap: 3px !important; }
+              #printable-cv .gap-4 { gap: 4px !important; }
+              
+              /* Grid and flexbox */
+              #printable-cv .grid,
+              #printable-cv .flex {
+                display: flex !important;
+              }
+              
+              #printable-cv .grid-cols-2,
+              #printable-cv .grid-cols-3 {
+                flex-direction: row !important;
+                flex-wrap: wrap !important;
+              }
+              
+              #printable-cv .grid-cols-2 > * {
+                flex: 0 0 48% !important;
+              }
+              
+              #printable-cv .grid-cols-3 > * {
+                flex: 0 0 31% !important;
+              }
+              
+              /* Keep colors for branding */
+              #printable-cv .bg-blue-50,
+              #printable-cv .bg-purple-50,
+              #printable-cv .bg-yellow-50,
+              #printable-cv .bg-gray-50,
+              #printable-cv .bg-green-50 {
+                print-color-adjust: exact !important;
+                -webkit-print-color-adjust: exact !important;
+              }
+              
+              #printable-cv .border,
+              #printable-cv .border-b-2,
+              #printable-cv .border-l-4 {
+                border-color: inherit !important;
+                print-color-adjust: exact !important;
+                -webkit-print-color-adjust: exact !important;
+              }
+              
+              #printable-cv .text-sm { font-size: 9px !important; }
+              #printable-cv .text-xs { font-size: 8px !important; }
+              #printable-cv .text-xl { font-size: 12px !important; }
+              #printable-cv .text-2xl { font-size: 14px !important; }
+              #printable-cv .text-3xl { font-size: 16px !important; }
+            }
+          `}</style>
+        </div>
       )}
     </div>
   );
