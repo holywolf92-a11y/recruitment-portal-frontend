@@ -522,6 +522,66 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
     }
   };
 
+  // Handle document reprocess (for stuck "Pending" documents)
+  const handleReprocessDocument = async (doc: Document) => {
+    // Check retry limits before reprocessing
+    if (doc.rejection?.retry_count !== undefined && doc.rejection?.max_retries !== undefined) {
+      if (doc.rejection.retry_count >= doc.rejection.max_retries) {
+        alert(`Maximum retry limit reached (${doc.rejection.retry_count}/${doc.rejection.max_retries}). Document cannot be reprocessed automatically. Please contact an administrator for manual review.`);
+        return;
+      }
+    }
+
+    if (!confirm(`Reprocess verification for "${doc.fileName}"? This will trigger AI verification again.`)) {
+      return;
+    }
+
+    try {
+      console.log('[ReprocessDocument] Reprocessing document:', doc.id, doc.fileName);
+      await apiClient.reprocessCandidateDocument(doc.id);
+      console.log('[ReprocessDocument] Document reprocessing initiated');
+
+      alert('Document verification reprocessing initiated. Status will update shortly.');
+
+      // Refresh documents after a delay to see status update
+      setTimeout(async () => {
+        await fetchDocuments();
+      }, 2000);
+    } catch (error: any) {
+      console.error('[ReprocessDocument] Error reprocessing document:', error);
+      const errorMessage = error?.message || 'Failed to reprocess document';
+
+      // Check if error is about max retries
+      if (errorMessage.includes('Maximum retry limit')) {
+        alert(`Cannot reprocess: ${errorMessage}`);
+      } else {
+        alert(`Error reprocessing document: ${errorMessage}`);
+      }
+    }
+  };
+
+  // Handle quick approve (for pending documents - no password needed)
+  const handleQuickApprove = async (doc: Document) => {
+    if (!confirm(`Approve "${doc.fileName}"? This will mark the document as verified.`)) {
+      return;
+    }
+
+    try {
+      console.log('[QuickApprove] Approving document:', doc.id, doc.fileName);
+      await apiClient.quickApproveCandidateDocument(doc.id);
+      console.log('[QuickApprove] Document approved successfully');
+
+      alert('Document approved successfully!');
+
+      // Refresh documents to see updated status
+      await fetchDocuments();
+    } catch (error: any) {
+      console.error('[QuickApprove] Error approving document:', error);
+      const errorMessage = error?.message || 'Failed to approve document';
+      alert(`Error approving document: ${errorMessage}`);
+    }
+  };
+
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'CV': return <FileText className="w-4 h-4" />;
@@ -1126,6 +1186,27 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                               <Download className="w-3.5 h-3.5" />
                               Download
                             </button>
+                            
+                            {/* Approve/Reprocess buttons for pending documents */}
+                            {(doc.status === 'pending' || doc.verification_status === 'pending_ai' || doc.verification_status === 'needs_review') && (
+                              <>
+                                <button 
+                                  onClick={() => handleQuickApprove(doc)}
+                                  className="px-3 py-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors flex items-center gap-1.5 text-sm">
+                                  <CheckCircle className="w-3.5 h-3.5" />
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => handleReprocessDocument(doc)}
+                                  className="px-3 py-1.5 bg-yellow-50 text-yellow-600 rounded-lg hover:bg-yellow-100 transition-colors flex items-center gap-1.5 text-sm"
+                                  title="Reprocess AI verification"
+                                >
+                                  <RefreshCw className="w-3.5 h-3.5" />
+                                  Reprocess
+                                </button>
+                              </>
+                            )}
+                            
                             <button 
                               onClick={() => handleDeleteDocument(doc)}
                               className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-1.5 text-sm">
