@@ -146,6 +146,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
   const [positions, setPositions] = useState<string[]>([]);
   const [countries, setCountries] = useState<string[]>([]);
   const [statuses, setStatuses] = useState<string[]>([]);
+  // Cache of signed photo URLs fetched on-demand (id -> url)
+  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   
   // Modal states
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
@@ -214,6 +216,35 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
     startTime: number;
     lastUpdate: number;
   }>>(new Map());
+
+  // Fetch signed photo URLs for candidates missing them in list response
+  useEffect(() => {
+    const fetchMissingPhotoUrls = async () => {
+      const toFetch = candidates.filter(c => c.photo_received && !c.profile_photo_signed_url && !photoUrls[c.id]);
+      if (!toFetch.length) return;
+      try {
+        const entries = await Promise.all(
+          toFetch.map(async (c) => {
+            try {
+              const full = await apiClient.getCandidate(c.id);
+              const url = (full as any).profile_photo_signed_url || full.profile_photo_url || '';
+              return [c.id, url] as const;
+            } catch {
+              return [c.id, ''] as const;
+            }
+          })
+        );
+        const map: Record<string, string> = { ...photoUrls };
+        for (const [id, url] of entries) {
+          if (url) map[id] = url;
+        }
+        setPhotoUrls(map);
+      } catch (e) {
+        console.warn('Failed to fetch some photo URLs', e);
+      }
+    };
+    fetchMissingPhotoUrls();
+  }, [candidates]);
   
   // Fetch candidates using context
   const fetchCandidates = async () => {
