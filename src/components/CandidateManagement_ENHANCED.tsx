@@ -138,6 +138,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = useState<'Applied' | 'Pending' | 'Deployed' | 'Cancelled'>('Pending');
   const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [slowLoadWarning, setSlowLoadWarning] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     position: initialProfessionFilter || 'all',
@@ -381,8 +382,27 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
   // Fetch candidates on mount and when filters change
   useEffect(() => {
     fetchCandidates();
+    
+    // Add a slow-load warning if loading takes more than 15 seconds
+    const warningTimer = setTimeout(() => {
+      if (loading) {
+        setSlowLoadWarning(true);
+      }
+    }, 15000);
+    
+    return () => {
+      clearTimeout(warningTimer);
+      if (!loading) setSlowLoadWarning(false); // Clear warning when loading finishes
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.search, filters.position, filters.country, filters.status]);
+  
+  // Clear slow-load warning when loading finishes
+  useEffect(() => {
+    if (!loading) {
+      setSlowLoadWarning(false);
+    }
+  }, [loading]);
 
   // Update filter options when candidates change
   useEffect(() => {
@@ -699,6 +719,19 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading candidates...</p>
+          {slowLoadWarning && (
+            <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-w-md">
+              <p className="text-yellow-800 text-sm">
+                <strong>Still loading?</strong> The backend might be slow. Try refreshing the page or come back in a few moments.
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-3 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm"
+              >
+                Refresh Now
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );

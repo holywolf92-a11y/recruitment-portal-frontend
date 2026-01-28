@@ -43,13 +43,18 @@ export const CandidateProvider: React.FC<CandidateProviderProps> = ({ children }
     setError(null);
     try {
       console.log('[CandidateContext] Fetching candidates with filters:', filters);
+      const startTime = performance.now();
       const response = await apiClient.getCandidates(filters);
-      console.log('[CandidateContext] Fetched candidates:', response.candidates?.length || 0);
+      const elapsed = performance.now() - startTime;
+      console.log('[CandidateContext] Fetched candidates:', response.candidates?.length || 0, `(${elapsed.toFixed(0)}ms)`);
       setCandidates(response.candidates || []);
       setCurrentFilters(filters);
     } catch (e: any) {
       console.error('[CandidateContext] Error fetching candidates:', e);
       setError(e?.message || 'Failed to load candidates');
+      // Also clear loading state if error happens
+      setLoading(false);
+      throw e; // Re-throw so caller knows fetch failed
     } finally {
       setLoading(false);
     }
