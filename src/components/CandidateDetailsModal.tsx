@@ -3,11 +3,13 @@ import { X, Edit2, Save, Phone, Mail, MapPin, Briefcase, Calendar, FileText, Glo
 import { Candidate } from '../lib/apiClient';
 import { ExtractionReviewModal } from './ExtractionReviewModal';
 import { apiClient } from '../lib/apiClient';
+import { renderPdfFirstPageToDataUrl } from '../lib/pdfThumb';
 
 interface CandidateDetailsModalProps {
   candidate: Candidate;
   onClose: () => void;
   initialTab?: 'details' | 'documents';
+  onDocumentChange?: () => void;
 }
 
 interface Document {
@@ -155,6 +157,34 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
   }, [uploading]);
   const [showEmployerCV, setShowEmployerCV] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+
+  const resolvedProfilePhotoUrl = ((candidate as any).profile_photo_signed_url || candidate.profile_photo_url || '').toString();
+  const isPdfProfilePhoto = !!resolvedProfilePhotoUrl && resolvedProfilePhotoUrl.toLowerCase().includes('.pdf');
+  const [profilePdfThumb, setProfilePdfThumb] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      if (!isPdfProfilePhoto) {
+        setProfilePdfThumb(null);
+        return;
+      }
+      if (!resolvedProfilePhotoUrl) return;
+
+      try {
+        const thumb = await renderPdfFirstPageToDataUrl(resolvedProfilePhotoUrl);
+        if (!cancelled) setProfilePdfThumb(thumb);
+      } catch {
+        if (!cancelled) setProfilePdfThumb(null);
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedProfilePhotoUrl, isPdfProfilePhoto]);
 
   // Fetch real documents from API
   const fetchDocuments = async () => {
@@ -704,18 +734,41 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
           {activeTab === 'details' ? (
             <div className="p-6 space-y-6">
               {/* Profile Photo */}
-              {candidate.profile_photo_url && (
+              {resolvedProfilePhotoUrl && (
                 <div className="flex justify-center">
                   <div className="relative">
-                    <img
-                      src={candidate.profile_photo_url}
-                      alt={candidate.name}
-                      className="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-lg"
-                      onError={(e) => {
-                        // Fallback if image fails to load
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
+                    {isPdfProfilePhoto ? (
+                      profilePdfThumb ? (
+                        <img
+                          src={profilePdfThumb}
+                          alt={candidate.name}
+                          className="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-lg cursor-pointer"
+                          onClick={() => window.open(resolvedProfilePhotoUrl, '_blank')}
+                          title="Click to open PDF"
+                        />
+                      ) : (
+                        <div
+                          className="w-32 h-32 rounded-full border-4 border-gray-200 shadow-lg bg-gradient-to-br from-blue-100 to-purple-100 flex flex-col items-center justify-center cursor-pointer"
+                          onClick={() => window.open(resolvedProfilePhotoUrl, '_blank')}
+                          title="Click to open PDF"
+                        >
+                          <div className="text-3xl font-bold text-blue-600">
+                            {((candidate.name || 'UK').trim() || 'UK').substring(0, 2).toUpperCase()}
+                          </div>
+                          <div className="mt-1 text-[10px] px-2 py-0.5 rounded-full bg-white/70 text-gray-700">PDF</div>
+                        </div>
+                      )
+                    ) : (
+                      <img
+                        src={resolvedProfilePhotoUrl}
+                        alt={candidate.name}
+                        className="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-lg"
+                        onError={(e) => {
+                          // Fallback if image fails to load
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    )}
                   </div>
                 </div>
               )}

@@ -35,6 +35,7 @@ import { toast } from 'sonner';
 import { apiClient, Candidate } from '../lib/apiClient';
 import { useCandidates } from '../lib/candidateContext';
 import { CandidateDetailsModal } from './CandidateDetailsModal';
+import { renderPdfFirstPageToDataUrl } from '../lib/pdfThumb';
 
 interface CandidateManagementProps {
   initialProfessionFilter?: string;
@@ -148,6 +149,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
   const [statuses, setStatuses] = useState<string[]>([]);
   // Cache of signed photo URLs fetched on-demand (id -> url)
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
+  // Cache of rendered PDF thumbnails (id -> dataUrl)
+  const [pdfThumbs, setPdfThumbs] = useState<Record<string, string>>({});
   
   // Modal states
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
@@ -234,17 +237,63 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
             }
           })
         );
-        const map: Record<string, string> = { ...photoUrls };
-        for (const [id, url] of entries) {
-          if (url) map[id] = url;
-        }
-        setPhotoUrls(map);
+        setPhotoUrls((prev) => {
+          const next: Record<string, string> = { ...prev };
+          for (const [id, url] of entries) {
+            if (url) next[id] = url;
+          }
+          return next;
+        });
       } catch (e) {
         console.warn('Failed to fetch some photo URLs', e);
       }
     };
     fetchMissingPhotoUrls();
-  }, [candidates]);
+  }, [candidates, photoUrls]);
+
+  // Render PDF first-page thumbnails for photo URLs that are PDFs
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      const targets = candidates
+        .map((c) => {
+          const url = (c.profile_photo_signed_url || photoUrls[c.id] || c.profile_photo_url || '').toString();
+          return { id: c.id, url };
+        })
+        .filter(({ id, url }) => url && url.toLowerCase().includes('.pdf') && !pdfThumbs[id]);
+
+      if (!targets.length) return;
+
+      // Render a few at a time to avoid locking the UI
+      const slice = targets.slice(0, 6);
+      const rendered = await Promise.all(
+        slice.map(async ({ id, url }) => {
+          try {
+            const dataUrl = await renderPdfFirstPageToDataUrl(url);
+            return [id, dataUrl] as const;
+          } catch {
+            return [id, ''] as const;
+          }
+        })
+      );
+
+      if (cancelled) return;
+
+      setPdfThumbs((prev) => {
+        const next = { ...prev };
+        for (const [id, dataUrl] of rendered) {
+          if (dataUrl) next[id] = dataUrl;
+        }
+        return next;
+      });
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [candidates, photoUrls, pdfThumbs]);
   
   // Fetch candidates using context
   const fetchCandidates = async () => {
@@ -848,6 +897,9 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
               const medicalOk = !!c.medical_received;
               const docCount = [cvOk, passportOk, cnicOk, drivingLicenseOk, policeCharacterOk, certificateOk, photoOk, medicalOk].filter(Boolean).length;
               const allDocsOk = docCount === 8;
+              const resolvedPhotoUrl = (c.profile_photo_signed_url || photoUrls[c.id] || c.profile_photo_url || '').toString();
+              const isPdfPhoto = !!resolvedPhotoUrl && resolvedPhotoUrl.toLowerCase().includes('.pdf');
+              const pdfThumb = pdfThumbs[c.id];
 
               return (
                 <div
@@ -861,20 +913,42 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
                     <div className="absolute -bottom-16 left-6">
                       <div className="relative">
                         <div className="w-32 h-32 bg-white rounded-full p-2 shadow-xl">
-                          { (c.profile_photo_signed_url || c.profile_photo_url) ? (
-                            <img
-                              src={c.profile_photo_signed_url || c.profile_photo_url}
-                              alt={c.name}
-                              className="w-full h-full rounded-full object-cover"
-                              onError={(e) => {
-                                // Fallback to initials if photo fails to load
-                                e.currentTarget.style.display = 'none';
-                                const parent = e.currentTarget.parentElement;
-                                if (parent) {
-                                  parent.innerHTML = `<div class="w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center text-4xl font-bold text-blue-600">${getInitials(c.name)}</div>`;
-                                }
-                              }}
-                            />
+                          { resolvedPhotoUrl ? (
+                            isPdfPhoto ? (
+                              pdfThumb ? (
+                                <img
+                                  src={pdfThumb}
+                                  alt={c.name}
+                                  className="w-full h-full rounded-full object-cover"
+                                  onClick={() => window.open(resolvedPhotoUrl, '_blank')}
+                                  title="Click to open PDF"
+                                />
+                              ) : (
+                                <div
+                                  className="w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex flex-col items-center justify-center"
+                                  onClick={() => window.open(resolvedPhotoUrl, '_blank')}
+                                  title="Click to open PDF"
+                                  style={{ cursor: 'pointer' }}
+                                >
+                                  <div className="text-4xl font-bold text-blue-600">{getInitials(c.name)}</div>
+                                  <div className="mt-1 text-[10px] px-2 py-0.5 rounded-full bg-white/70 text-gray-700">PDF</div>
+                                </div>
+                              )
+                            ) : (
+                              <img
+                                src={resolvedPhotoUrl}
+                                alt={c.name}
+                                className="w-full h-full rounded-full object-cover"
+                                onError={(e) => {
+                                  // Fallback to initials if photo fails to load
+                                  e.currentTarget.style.display = 'none';
+                                  const parent = e.currentTarget.parentElement;
+                                  if (parent) {
+                                    parent.innerHTML = `<div class=\"w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center text-4xl font-bold text-blue-600\">${getInitials(c.name)}</div>`;
+                                  }
+                                }}
+                              />
+                            )
                           ) : (
                             <div className="w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center text-4xl font-bold text-blue-600">
                               {getInitials(c.name)}

@@ -192,6 +192,7 @@ export interface Candidate {
   
   // Profile photo (migration 013)
   profile_photo_url?: string;
+  profile_photo_signed_url?: string;
   profile_photo_bucket?: string;
   profile_photo_path?: string;
   
