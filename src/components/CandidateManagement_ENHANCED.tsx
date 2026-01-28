@@ -830,9 +830,9 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
                     <div className="absolute -bottom-16 left-6">
                       <div className="relative">
                         <div className="w-32 h-32 bg-white rounded-full p-2 shadow-xl">
-                          {c.profile_photo_url ? (
+                          { (c.profile_photo_signed_url || c.profile_photo_url) ? (
                             <img
-                              src={c.profile_photo_url}
+                              src={c.profile_photo_signed_url || c.profile_photo_url}
                               alt={c.name}
                               className="w-full h-full rounded-full object-cover"
                               onError={(e) => {

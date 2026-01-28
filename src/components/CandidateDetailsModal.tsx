@@ -32,31 +32,7 @@ interface Document {
   overridden_at?: string | null;
   override_reason?: string | null;
   overridden_by_name?: string | null; // From API response rejection.overridden.by
-  // Rejection details
-  rejection?: {
-    code?: string;
-    reason?: string;
-    mismatch_fields?: string[];
-    ai_confidence?: number;
-    ocr_confidence?: number;
-    error_stage?: 'OCR' | 'Vision' | 'Matching' | 'Extraction' | 'Categorization';
-    retry_possible?: boolean;
-    retry_count?: number;
-    max_retries?: number;
-    document_expiry_date?: string;
-    rejection_context?: {
-      mismatch_fields?: string[];
-      extracted_values?: Record<string, any>;
-      candidate_values?: Record<string, any>;
-    };
-    is_overridable?: boolean;
-    required_role?: 'admin' | 'super_admin';
-    overridden?: {
-      by?: string;
-      at?: string;
-      reason?: string;
-    };
-  };
+  rejection?: DocumentRejectionDetails;
 }
 
 // Mock documents for this candidate
@@ -204,6 +180,32 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
     }
   }, [uploading]);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [rejectionModalDocument, setRejectionModalDocument] = useState<Document | null>(null);
+  const [overrideModalDocument, setOverrideModalDocument] = useState<Document | null>(null);
+  const [overrideLoading, setOverrideLoading] = useState(false);
+
+  // Get user role from auth context
+  const { session } = useAuth();
+  const userRole = session?.user?.user_metadata?.role?.toLowerCase() || 'viewer';
+  const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+  const isSuperAdmin = userRole === 'super_admin';
+
+  // Helper function to check if rejection code is overridable
+  const isRejectionOverridable = (rejectionCode?: string): boolean => {
+    if (!rejectionCode) return true; // Default to overridable if no code
+    
+    // Non-overridable codes (require super_admin)
+    const nonOverridableCodes = ['DOCUMENT_TAMPERED', 'PHOTO_MISMATCH'];
+    return !nonOverridableCodes.includes(rejectionCode);
+  };
+
+  // Helper function to get required override role
+  const getRequiredOverrideRole = (rejectionCode?: string): 'admin' | 'super_admin' => {
+    if (!rejectionCode) return 'admin';
+    
+    const superAdminCodes = ['DOCUMENT_TAMPERED', 'PHOTO_MISMATCH'];
+    return superAdminCodes.includes(rejectionCode) ? 'super_admin' : 'admin';
+  };
 
   // Fetch real documents from API
   const fetchDocuments = async () => {
@@ -268,6 +270,7 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
           overridden_by: doc.overridden_by || null,
           overridden_at: doc.overridden_at || null,
           override_reason: doc.override_reason || null,
+<<<<<<< HEAD
           overridden_by_name: doc.rejection?.overridden?.by || doc.overridden_by_name || null,
           // Map rejection details from API response (API uses snake_case: rejection_code, rejection_reason)
           rejection: doc.rejection ? {
@@ -276,6 +279,13 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
             rejection_code: doc.rejection.rejection_code ?? doc.rejection.code,
             rejection_reason: doc.rejection.rejection_reason ?? doc.rejection.reason,
             mismatch_fields: doc.rejection.mismatch_fields,
+=======
+          overridden_by_name: doc.rejection?.overridden?.by || null,
+          rejection: doc.rejection ? {
+            rejection_code: doc.rejection.rejection_code,
+            rejection_reason: doc.rejection.rejection_reason,
+            mismatch_fields: doc.rejection.mismatch_fields || [],
+>>>>>>> a94476f (feat(frontend): prefer profile_photo_signed_url when rendering candidate photos)
             ai_confidence: doc.rejection.ai_confidence,
             ocr_confidence: doc.rejection.ocr_confidence,
             error_stage: doc.rejection.error_stage,
@@ -284,9 +294,12 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
             max_retries: doc.rejection.max_retries,
             document_expiry_date: doc.rejection.document_expiry_date,
             rejection_context: doc.rejection.rejection_context,
+<<<<<<< HEAD
             is_overridable: doc.rejection.is_overridable,
             required_role: doc.rejection.required_role,
             overridden: doc.rejection.overridden,
+=======
+>>>>>>> a94476f (feat(frontend): prefer profile_photo_signed_url when rendering candidate photos)
           } : undefined,
         };
       });
@@ -919,11 +932,11 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
           {activeTab === 'details' ? (
             <div className="p-6 space-y-6">
               {/* Profile Photo */}
-              {candidate.profile_photo_url && (
+              {(candidate.profile_photo_signed_url || candidate.profile_photo_url) && (
                 <div className="flex justify-center">
                   <div className="relative">
                     <img
-                      src={candidate.profile_photo_url}
+                      src={candidate.profile_photo_signed_url || candidate.profile_photo_url}
                       alt={candidate.name}
                       className="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-lg"
                       onError={(e) => {
@@ -1411,6 +1424,7 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                             
                             {/* Status Badge - Clickable for rejected/failed documents */}
                             <div className="flex items-center gap-2 flex-shrink-0">
+<<<<<<< HEAD
                               {(doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed') ? (
                                 <button
                                   onClick={() => setRejectionModalDocument(doc)}
@@ -1427,6 +1441,265 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                                   doc.status === 'verified' ? 'bg-green-100 text-green-700' :
                                   doc.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
                                   'bg-red-100 text-red-700'
+=======
+                              <span 
+                                onClick={() => {
+                                  if (doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed') {
+                                    setRejectionModalDocument(doc);
+                                  }
+                                }}
+                                className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
+                                  doc.status === 'verified' ? 'bg-green-100 text-green-700' :
+                                  doc.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                  'bg-red-100 text-red-700'
+                                } ${
+                                  (doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed')
+                                    ? 'cursor-pointer hover:opacity-80 transition-opacity'
+                                    : ''
+                                }`}
+                                title={
+                                  (doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed')
+                                    ? 'Click to view rejection details'
+                                    : undefined
+                                }
+                              >
+                                {doc.status === 'verified' && <CheckCircle className="w-3 h-3" />}
+                                {doc.status === 'expired' && <AlertCircle className="w-3 h-3" />}
+                                {doc.status === 'pending' && <AlertCircle className="w-3 h-3" />}
+                                {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
+                              </span>
+
+                              {/* Admin Override Badge */}
+                              {doc.verification_source === 'admin_override' && (
+                                <div className="relative group">
+                                  <span className="px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 bg-purple-100 text-purple-700 border border-purple-200">
+                                    <Shield className="w-3 h-3" />
+                                    Overridden
+                                  </span>
+                                  
+                                  {/* Tooltip */}
+                                  <div className="absolute left-0 bottom-full mb-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                                    <div className="absolute bottom-0 left-4 transform translate-y-1/2 rotate-45 w-2 h-2 bg-gray-900"></div>
+                                    <div className="font-semibold mb-2 flex items-center gap-1">
+                                      <Shield className="w-3 h-3" />
+                                      Admin Override
+                                    </div>
+                                    {doc.overridden_by_name && (
+                                      <div className="mb-1">
+                                        <span className="text-gray-400">Admin:</span> {doc.overridden_by_name}
+                                      </div>
+                                    )}
+                                    {doc.overridden_at && (
+                                      <div className="mb-1">
+                                        <span className="text-gray-400">Date:</span> {new Date(doc.overridden_at).toLocaleString()}
+                                      </div>
+                                    )}
+                                    {doc.override_reason && (
+                                      <div className="mt-2 pt-2 border-t border-gray-700">
+                                        <span className="text-gray-400 block mb-1">Justification:</span>
+                                        <span className="text-white">{doc.override_reason}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Metadata */}
+                          <div className="flex items-center gap-4 text-xs text-gray-600 mb-3">
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              <span>Uploaded {doc.uploadedDate}</span>
+                            </div>
+                            <div>
+                              By {doc.uploadedBy}
+                            </div>
+                            {doc.expiryDate && (
+                              <div className="flex items-center gap-1">
+                                <AlertCircle className="w-3 h-3" />
+                                <span>Expires: {doc.expiryDate}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => handleViewDocument(doc)}
+                              className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1.5 text-sm"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              View
+                            </button>
+                            <button 
+                              onClick={() => handleDownloadDocument(doc)}
+                              className="px-3 py-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors flex items-center gap-1.5 text-sm"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              Download
+                            </button>
+                            {doc.status === 'pending' && (
+                              <button 
+                                onClick={() => handleReprocessDocument(doc)}
+                                className="px-3 py-1.5 bg-yellow-50 text-yellow-600 rounded-lg hover:bg-yellow-100 transition-colors flex items-center gap-1.5 text-sm"
+                                title="Reprocess AI verification"
+                              >
+                                <RefreshCw className="w-3.5 h-3.5" />
+                                Reprocess
+                              </button>
+                            )}
+                            <button 
+                              onClick={() => handleDeleteDocument(doc)}
+                              className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-1.5 text-sm"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-600 mb-4">No documents uploaded yet</p>
+                  <button
+                    onClick={handleUploadDocument}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Upload First Document
+                  </button>
+                </div>
+              )}
+
+              {/* Document Categories Info */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+                <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-blue-600" />
+                  Document Categories
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-700">
+                  <div>📄 CV / Resume</div>
+                  <div>🛂 Passport</div>
+                  <div>📜 Certificates</div>
+                  <div>📝 Contracts</div>
+                  <div>🏥 Medical Reports</div>
+                  <div>📷 Photos</div>
+                  <div>📁 Other Documents</div>
+                </div>
+              </div>
+            </div>
+          ) : activeTab === 'documents' ? (
+            <div className="p-6 space-y-4">
+              {/* Auto-Extraction Status */}
+              {extractionInProgress && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+                  <Loader className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5 animate-spin" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-800">Extracting CV Data</p>
+                    <p className="text-sm text-blue-700 mt-1">Processing your CV with AI... This may take a moment.</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Error Message */}
+              {extractionError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-red-800">Extraction Error</p>
+                    <p className="text-sm text-red-700 mt-1">{extractionError}</p>
+                    <button
+                      onClick={() => setExtractionError(null)}
+                      className="text-xs text-red-600 hover:text-red-700 mt-2 underline"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Documents Header */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Candidate Documents</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {documentsLoading ? 'Loading...' : `${documents.length} files uploaded`}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={fetchDocuments}
+                    disabled={documentsLoading}
+                    className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
+                    title="Refresh documents"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${documentsLoading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </button>
+                  <button
+                    onClick={handleUploadDocument}
+                    disabled={extractionInProgress || uploading}
+                    className={`${
+                      extractionInProgress || uploading
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                    } px-4 py-2 rounded-lg transition-colors flex items-center gap-2`}
+                  >
+                    <Upload className={`w-4 h-4 ${uploading ? 'animate-pulse' : ''}`} />
+                    {uploading ? 'Uploading...' : extractionInProgress ? 'Extracting...' : 'Upload Document'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Documents Grid */}
+              {documentsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader className="w-6 h-6 animate-spin text-blue-600" />
+                  <span className="ml-2 text-gray-600">Loading documents...</span>
+                </div>
+              ) : documents.length > 0 ? (
+                <div className="grid grid-cols-1 gap-3">
+                  {documents.map(doc => (
+                    <div
+                      key={doc.id}
+                      className="bg-white border-2 border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all"
+                    >
+                      <div className="flex items-start gap-4">
+                        {/* Icon */}
+                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                          doc.category === 'CV' ? 'bg-blue-100 text-blue-600' :
+                          doc.category === 'Passport' ? 'bg-purple-100 text-purple-600' :
+                          doc.category === 'Certificate' ? 'bg-green-100 text-green-600' :
+                          doc.category === 'Medical' ? 'bg-red-100 text-red-600' :
+                          doc.category === 'Photo' ? 'bg-pink-100 text-pink-600' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>
+                          {getCategoryIcon(doc.category)}
+                        </div>
+
+                        {/* File Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-900 truncate">{doc.fileName}</h4>
+                              <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                                <span>{doc.fileType}</span>
+                                <span>•</span>
+                                <span>{doc.fileSize}</span>
+                                <span>•</span>
+                                <span className={`px-2 py-0.5 rounded-full ${
+                                  doc.category === 'CV' ? 'bg-blue-100 text-blue-700' :
+                                  doc.category === 'Passport' ? 'bg-purple-100 text-purple-700' :
+                                  doc.category === 'Certificate' ? 'bg-green-100 text-green-700' :
+                                  doc.category === 'Medical' ? 'bg-red-100 text-red-700' :
+                                  doc.category === 'Photo' ? 'bg-pink-100 text-pink-700' :
+                                  'bg-gray-100 text-gray-700'
+>>>>>>> a94476f (feat(frontend): prefer profile_photo_signed_url when rendering candidate photos)
                                 }`}>
                                   {doc.status === 'verified' && <CheckCircle className="w-3 h-3" />}
                                   {doc.status === 'expired' && <AlertCircle className="w-3 h-3" />}
@@ -1470,6 +1743,74 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                                 </div>
                               )}
                             </div>
+<<<<<<< HEAD
+=======
+                            
+                            {/* Status Badge - Clickable for rejected/failed documents */}
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <span 
+                                onClick={() => {
+                                  if (doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed') {
+                                    setRejectionModalDocument(doc);
+                                  }
+                                }}
+                                className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
+                                  doc.status === 'verified' ? 'bg-green-100 text-green-700' :
+                                  doc.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                  'bg-red-100 text-red-700'
+                                } ${
+                                  (doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed')
+                                    ? 'cursor-pointer hover:opacity-80 transition-opacity'
+                                    : ''
+                                }`}
+                                title={
+                                  (doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed')
+                                    ? 'Click to view rejection details'
+                                    : undefined
+                                }
+                              >
+                                {doc.status === 'verified' && <CheckCircle className="w-3 h-3" />}
+                                {doc.status === 'expired' && <AlertCircle className="w-3 h-3" />}
+                                {doc.status === 'pending' && <AlertCircle className="w-3 h-3" />}
+                                {doc.status.charAt(0).toUpperCase() + doc.status.slice(1)}
+                              </span>
+
+                              {/* Admin Override Badge */}
+                              {doc.verification_source === 'admin_override' && (
+                                <div className="relative group">
+                                  <span className="px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 bg-purple-100 text-purple-700 border border-purple-200">
+                                    <Shield className="w-3 h-3" />
+                                    Overridden
+                                  </span>
+                                  
+                                  {/* Tooltip */}
+                                  <div className="absolute left-0 bottom-full mb-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                                    <div className="absolute bottom-0 left-4 transform translate-y-1/2 rotate-45 w-2 h-2 bg-gray-900"></div>
+                                    <div className="font-semibold mb-2 flex items-center gap-1">
+                                      <Shield className="w-3 h-3" />
+                                      Admin Override
+                                    </div>
+                                    {doc.overridden_by_name && (
+                                      <div className="mb-1">
+                                        <span className="text-gray-400">Admin:</span> {doc.overridden_by_name}
+                                      </div>
+                                    )}
+                                    {doc.overridden_at && (
+                                      <div className="mb-1">
+                                        <span className="text-gray-400">Date:</span> {new Date(doc.overridden_at).toLocaleString()}
+                                      </div>
+                                    )}
+                                    {doc.override_reason && (
+                                      <div className="mt-2 pt-2 border-t border-gray-700">
+                                        <span className="text-gray-400 block mb-1">Justification:</span>
+                                        <span className="text-white">{doc.override_reason}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+>>>>>>> a94476f (feat(frontend): prefer profile_photo_signed_url when rendering candidate photos)
                           </div>
 
                           {/* Metadata */}
@@ -1605,7 +1946,11 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
           }}
         />
       )}
+<<<<<<< HEAD
       
+=======
+
+>>>>>>> a94476f (feat(frontend): prefer profile_photo_signed_url when rendering candidate photos)
       {/* Document Rejection Modal */}
       {rejectionModalDocument && (
         <DocumentRejectionModal
@@ -1615,11 +1960,96 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
           rejectionDetails={rejectionModalDocument.rejection || {}}
           verificationStatus={rejectionModalDocument.verification_status === 'rejected_mismatch' ? 'rejected_mismatch' : 'failed'}
           onClose={() => setRejectionModalDocument(null)}
+<<<<<<< HEAD
           onRetry={() => handleReprocessDocument(rejectionModalDocument)}
           onRequestOverride={() => handleRequestOverride(rejectionModalDocument)}
           isAdmin={isAdmin}
         />
       )}
+=======
+          onRequestOverride={() => {
+            // Check if override is allowed
+            const rejectionCode = rejectionModalDocument.rejection?.rejection_code;
+            const overridable = isRejectionOverridable(rejectionCode);
+            
+            if (!overridable && !isSuperAdmin) {
+              alert('You do not have permission to override this rejection. Super Admin privileges are required.');
+              return;
+            }
+            
+            if (!isAdmin) {
+              alert('You do not have admin privileges to override document verification.');
+              return;
+            }
+            
+            // Show override modal
+            setOverrideModalDocument(rejectionModalDocument);
+            setRejectionModalDocument(null);
+          }}
+          isAdmin={isAdmin}
+        />
+      )}
+
+      {/* Admin Override Modal */}
+      {overrideModalDocument && (
+        <AdminOverrideModal
+          documentId={overrideModalDocument.id}
+          documentName={overrideModalDocument.fileName}
+          documentCategory={overrideModalDocument.category}
+          rejectionCode={overrideModalDocument.rejection?.rejection_code}
+          rejectionReason={overrideModalDocument.rejection?.rejection_reason}
+          isOverridable={isRejectionOverridable(overrideModalDocument.rejection?.rejection_code)}
+          requiredRole={getRequiredOverrideRole(overrideModalDocument.rejection?.rejection_code)}
+          onClose={() => setOverrideModalDocument(null)}
+          onConfirm={async (adminPassword: string, justification: string) => {
+            try {
+              setOverrideLoading(true);
+              await apiClient.overrideCandidateDocument(
+                overrideModalDocument.id,
+                adminPassword,
+                justification,
+                session?.user?.email || '' // Pass admin email from auth context
+              );
+              
+              // Refresh documents after override
+              await fetchDocuments();
+              if (onDocumentChange) {
+                onDocumentChange();
+              }
+              
+              setOverrideModalDocument(null);
+              alert('Document verification override successful. The document is now marked as verified.');
+            } catch (error: any) {
+              throw new Error(error?.message || 'Failed to override document verification');
+            } finally {
+              setOverrideLoading(false);
+            }
+          }}
+          loading={overrideLoading}
+        />
+      )}
+      {showEmployerCV && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 flex items-center justify-between text-white print:hidden">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                  <Shield className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold">Employer-Safe CV</h2>
+                  <p className="text-sm text-blue-100">Contact information hidden for privacy</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowEmployerCV(false)}
+                className="w-10 h-10 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full flex items-center justify-center transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+>>>>>>> a94476f (feat(frontend): prefer profile_photo_signed_url when rendering candidate photos)
 
       {/* Admin Override Modal */}
       {overrideModalDocument && (
