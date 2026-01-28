@@ -373,13 +373,32 @@ class ApiClient {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
 
-    const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      ...options,
-    });
+    // Avoid infinite spinners if the backend hangs or a network request never resolves.
+    // Only apply our timeout when the caller didn't provide a signal.
+    const method = (options.method || 'GET').toUpperCase();
+    const timeoutMs = method === 'GET' ? 30000 : 60000;
+    const controller = options.signal ? null : new AbortController();
+    const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+        ...options,
+        signal: options.signal || controller?.signal,
+      });
+    } catch (err: any) {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (err?.name === 'AbortError') {
+        throw new Error(`API Error: timeout after ${timeoutMs}ms`);
+      }
+      throw err;
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       const error = await response.text();
