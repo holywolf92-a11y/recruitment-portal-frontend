@@ -1307,7 +1307,8 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                               Download
                             </button>
 
-                            {((doc.fileType || '').toUpperCase() === 'PDF' || (doc.fileName || '').toLowerCase().endsWith('.pdf')) && (
+                            {/* AI extraction only for photo documents (PDFs containing photos) */}
+                            {(doc.category === 'Photo' || doc.category === 'Passport') && ((doc.fileType || '').toUpperCase() === 'PDF' || (doc.fileName || '').toLowerCase().endsWith('.pdf')) && (
                               <button
                                 onClick={() => handleExtractProfilePhotoAI(doc)}
                                 disabled={aiExtractingDocId === doc.id}
