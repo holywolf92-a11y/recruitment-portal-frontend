@@ -224,29 +224,42 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
   // Fetch signed photo URLs for candidates missing them in list response
   useEffect(() => {
     const fetchMissingPhotoUrls = async () => {
-      const toFetch = candidates.filter(c => c.photo_received && !c.profile_photo_signed_url && !photoUrls[c.id]);
+      // Backend list endpoint no longer signs URLs (for performance), so we fetch per-candidate
+      const toFetch = candidates.filter(c => 
+        (c.photo_received || c.profile_photo_url) && !c.profile_photo_signed_url && !photoUrls[c.id]
+      );
       if (!toFetch.length) return;
-      try {
-        const entries = await Promise.all(
-          toFetch.map(async (c) => {
-            try {
-              const full = await apiClient.getCandidate(c.id);
-              const url = (full as any).profile_photo_signed_url || full.profile_photo_url || '';
-              return [c.id, url] as const;
-            } catch {
-              return [c.id, ''] as const;
+      
+      // Batch fetch in chunks to avoid overwhelming the backend
+      const chunkSize = 10;
+      for (let i = 0; i < toFetch.length; i += chunkSize) {
+        const chunk = toFetch.slice(i, i + chunkSize);
+        try {
+          const entries = await Promise.all(
+            chunk.map(async (c) => {
+              try {
+                const full = await apiClient.getCandidate(c.id);
+                const url = (full as any).profile_photo_signed_url || full.profile_photo_url || '';
+                return [c.id, url] as const;
+              } catch {
+                return [c.id, ''] as const;
+              }
+            })
+          );
+          setPhotoUrls((prev) => {
+            const next: Record<string, string> = { ...prev };
+            for (const [id, url] of entries) {
+              if (url) next[id] = url;
             }
-          })
-        );
-        setPhotoUrls((prev) => {
-          const next: Record<string, string> = { ...prev };
-          for (const [id, url] of entries) {
-            if (url) next[id] = url;
-          }
-          return next;
-        });
-      } catch (e) {
-        console.warn('Failed to fetch some photo URLs', e);
+            return next;
+          });
+        } catch (e) {
+          console.warn('Failed to fetch chunk of photo URLs', e);
+        }
+        // Small delay between chunks to avoid rate limits
+        if (i + chunkSize < toFetch.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
       }
     };
     fetchMissingPhotoUrls();
