@@ -1275,8 +1275,9 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                               Download
                             </button>
                             
-                            {/* Approve/Reprocess buttons for pending documents */}
-                            {(doc.status === 'pending' || doc.verification_status === 'pending_ai' || doc.verification_status === 'needs_review') && (
+                            {/* Approve/Reprocess buttons for pending documents (but not for already verified docs) */}
+                            {(doc.status === 'pending' || doc.verification_status === 'pending_ai' || doc.verification_status === 'needs_review') && 
+                             doc.verification_status !== 'verified' && (
                               <>
                                 <button 
                                   onClick={() => handleQuickApprove(doc)}
