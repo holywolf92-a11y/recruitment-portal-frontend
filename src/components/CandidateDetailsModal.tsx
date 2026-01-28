@@ -176,7 +176,7 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
 
       try {
         setProfilePdfThumbStatus('pending');
-        const thumb = await renderPdfFirstPageToDataUrl(resolvedProfilePhotoUrl);
+        const thumb = await renderPdfFirstPageToDataUrl(resolvedProfilePhotoUrl, { maxPagesToScan: 10 });
         if (!cancelled) {
           setProfilePdfThumb(thumb);
           setProfilePdfThumbStatus('idle');
