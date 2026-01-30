@@ -1352,22 +1352,24 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
               </div>
             </div>
           ) : activeTab === 'missing-data' ? (
-            <MissingDataTab 
-              candidate={editedCandidate}
-              onFieldUpdate={async (field, value) => {
-                // Update the local state
-                setEditedCandidate({
-                  ...editedCandidate,
-                  [field]: value
-                });
-              }}
-            />
+            <div className="p-6">
+              <MissingDataTab 
+                candidate={editedCandidate}
+                onFieldUpdate={async (field, value) => {
+                  // Update the local state
+                  setEditedCandidate({
+                    ...editedCandidate,
+                    [field]: value
+                  });
+                }}
+              />
+            </div>
           ) : null}
         </div>
       </div>
 
       {/* Extraction Modal */}
-      {showExtractionModal && extractedData && (
+      {showExtractionReviewModal && extractedData && (
         <ExtractionReviewModal
           candidateId={candidate.id}
           extractedData={extractedData}
