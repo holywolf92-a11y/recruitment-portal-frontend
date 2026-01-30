@@ -302,6 +302,7 @@ export function CandidateBrowserExcel() {
     documents_uploaded: number;
   } | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
+  const [excelView, setExcelView] = useState<'dashboard' | 'browser'>('dashboard');
   
   
   // Use shared candidate context (but we'll override with server-side fetching)
@@ -556,13 +557,21 @@ export function CandidateBrowserExcel() {
   }, [candidates, selectedFolder]);
   
   // Quick date filters
-  const setQuickDateFilter = (days: number) => {
+  const setQuickDateFilter = useCallback((days: number) => {
     const today = new Date();
     const from = new Date(today);
     from.setDate(from.getDate() - days);
     setAppliedFrom(from.toISOString().split('T')[0]);
     setAppliedTo(today.toISOString().split('T')[0]);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (excelView === 'dashboard' && !appliedFrom && !appliedTo) {
+      setQuickDateFilter(0);
+      setSortBy('created_at');
+      setSortOrder('desc');
+    }
+  }, [excelView, appliedFrom, appliedTo, setQuickDateFilter]);
   
   // Export function
   const handleExport = async (format: 'csv' | 'xlsx') => {
@@ -648,6 +657,144 @@ export function CandidateBrowserExcel() {
         <div className="bg-white border border-red-200 rounded-lg p-6 text-center">
           <h3 className="text-lg font-medium text-red-900 mb-2">Failed to load candidates</h3>
           <p className="text-red-700">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (excelView === 'dashboard') {
+    return (
+      <div className="p-6">
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col shadow-sm h-[calc(100vh-125px)]">
+          <div className="border-b border-gray-200 p-4 bg-gray-50 flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Excel Browser Dashboard</h2>
+              <p className="text-sm text-gray-600">Default view shows today’s candidates (newest first)</p>
+            </div>
+            <button
+              onClick={() => setExcelView('browser')}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+            >
+              Open Browser
+            </button>
+          </div>
+
+          <div className="p-4 space-y-4 overflow-auto">
+            {dailyStats && (
+              <div className="grid grid-cols-5 gap-3">
+                <div className="bg-white rounded-lg p-3 border border-gray-200">
+                  <p className="text-xs text-gray-500 mb-1">Total Applied</p>
+                  <p className="text-2xl font-bold text-gray-900">{dailyStats.total}</p>
+                </div>
+                <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                  <p className="text-xs text-blue-600 mb-1">Applied</p>
+                  <p className="text-2xl font-bold text-blue-700">{dailyStats.applied}</p>
+                </div>
+                <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                  <p className="text-xs text-green-600 mb-1">Verified</p>
+                  <p className="text-2xl font-bold text-green-700">{dailyStats.verified}</p>
+                </div>
+                <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+                  <p className="text-xs text-yellow-600 mb-1">Pending</p>
+                  <p className="text-2xl font-bold text-yellow-700">{dailyStats.pending}</p>
+                </div>
+                <div className="bg-red-50 rounded-lg p-3 border border-red-200">
+                  <p className="text-xs text-red-600 mb-1">Rejected</p>
+                  <p className="text-2xl font-bold text-red-700">{dailyStats.rejected}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex-1 relative min-w-[240px]">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by name, passport, CNIC, email, phone..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-gray-500" />
+                <input
+                  type="date"
+                  value={appliedFrom}
+                  onChange={(e) => {
+                    setAppliedFrom(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+                />
+                <span className="text-gray-500">to</span>
+                <input
+                  type="date"
+                  value={appliedTo}
+                  onChange={(e) => {
+                    setAppliedTo(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+                />
+                <div className="flex gap-1 ml-2">
+                  <button onClick={() => setQuickDateFilter(0)} className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded">Today</button>
+                  <button onClick={() => setQuickDateFilter(1)} className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded">Yesterday</button>
+                  <button onClick={() => setQuickDateFilter(7)} className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded">Last 7 days</button>
+                  <button onClick={() => setQuickDateFilter(30)} className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded">Last 30 days</button>
+                  <button onClick={fetchCandidatesWithFilters} className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded font-medium">Apply Filter</button>
+                  {(appliedFrom || appliedTo) && (
+                    <button
+                      onClick={() => {
+                        setAppliedFrom('');
+                        setAppliedTo('');
+                        setCurrentPage(1);
+                      }}
+                      className="px-2 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700">
+                Today’s Candidates (sorted by newest)
+              </div>
+              {displayedCandidates.length > 0 ? (
+                <table className="w-full border-collapse">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="border border-gray-200 p-2 text-left text-xs font-semibold text-gray-700">ID</th>
+                      <th className="border border-gray-200 p-2 text-left text-xs font-semibold text-gray-700">Name</th>
+                      <th className="border border-gray-200 p-2 text-left text-xs font-semibold text-gray-700">Position</th>
+                      <th className="border border-gray-200 p-2 text-left text-xs font-semibold text-gray-700">Status</th>
+                      <th className="border border-gray-200 p-2 text-left text-xs font-semibold text-gray-700">Applied</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {displayedCandidates.map((candidate) => (
+                      <tr key={candidate.id} className="hover:bg-blue-50">
+                        <td className="border border-gray-200 p-2 text-xs text-gray-700">{candidate.id}</td>
+                        <td className="border border-gray-200 p-2 text-xs text-gray-900 font-medium">{candidate.name}</td>
+                        <td className="border border-gray-200 p-2 text-xs text-gray-700">{candidate.position || 'missing'}</td>
+                        <td className="border border-gray-200 p-2 text-xs text-gray-700">{candidate.status || 'missing'}</td>
+                        <td className="border border-gray-200 p-2 text-xs text-gray-700">{formatDate(candidate.created_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="p-6 text-center text-sm text-gray-500">No candidates found for today.</div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -831,6 +978,12 @@ export function CandidateBrowserExcel() {
                   {selectedCandidates.size} selected
                 </span>
               )}
+              <button
+                onClick={() => setExcelView('dashboard')}
+                className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+              >
+                Dashboard
+              </button>
               <div className="flex gap-1 bg-gray-200 rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('basic')}
