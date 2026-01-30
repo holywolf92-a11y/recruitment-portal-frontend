@@ -694,40 +694,46 @@ export function CandidateBrowserExcel() {
   }
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col shadow-sm">
-        <div className="border-b border-gray-200 p-4 bg-gray-50">
-          <h2 className="text-lg font-semibold text-gray-900">Excel Browser Dashboard</h2>
-          <p className="text-sm text-gray-600">Top summary and filters. Candidates list is below.</p>
+    <div className="p-6 space-y-6">
+      <section className="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div className="px-6 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Dashboard</h2>
+            <p className="text-sm text-gray-600">Overview of candidates with quick filters for daily operations.</p>
+          </div>
+          <div className="text-sm text-gray-500">
+            Default view: last 30 days • Sorted by newest
+          </div>
         </div>
-        <div className="p-4 space-y-4">
-          {dailyStats && (
-            <div className="grid grid-cols-5 gap-3">
-              <div className="bg-white rounded-lg p-3 border border-gray-200">
-                <p className="text-xs text-gray-500 mb-1">Total Applied</p>
-                <p className="text-2xl font-bold text-gray-900">{dailyStats.total}</p>
-              </div>
-              <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                <p className="text-xs text-blue-600 mb-1">Applied</p>
-                <p className="text-2xl font-bold text-blue-700">{dailyStats.applied}</p>
-              </div>
-              <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-                <p className="text-xs text-green-600 mb-1">Verified</p>
-                <p className="text-2xl font-bold text-green-700">{dailyStats.verified}</p>
-              </div>
-              <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
-                <p className="text-xs text-yellow-600 mb-1">Pending</p>
-                <p className="text-2xl font-bold text-yellow-700">{dailyStats.pending}</p>
-              </div>
-              <div className="bg-red-50 rounded-lg p-3 border border-red-200">
-                <p className="text-xs text-red-600 mb-1">Rejected</p>
-                <p className="text-2xl font-bold text-red-700">{dailyStats.rejected}</p>
-              </div>
-            </div>
-          )}
 
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex-1 relative min-w-[240px]">
+        {dailyStats && (
+          <div className="px-6 py-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="bg-white rounded-lg p-4 border border-gray-200">
+              <p className="text-xs text-gray-500 mb-2">Total Applied</p>
+              <p className="text-2xl font-bold text-gray-900">{dailyStats.total}</p>
+            </div>
+            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+              <p className="text-xs text-blue-600 mb-2">Applied</p>
+              <p className="text-2xl font-bold text-blue-700">{dailyStats.applied}</p>
+            </div>
+            <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+              <p className="text-xs text-green-600 mb-2">Verified</p>
+              <p className="text-2xl font-bold text-green-700">{dailyStats.verified}</p>
+            </div>
+            <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+              <p className="text-xs text-yellow-600 mb-2">Pending</p>
+              <p className="text-2xl font-bold text-yellow-700">{dailyStats.pending}</p>
+            </div>
+            <div className="bg-red-50 rounded-lg p-4 border border-red-200">
+              <p className="text-xs text-red-600 mb-2">Rejected</p>
+              <p className="text-2xl font-bold text-red-700">{dailyStats.rejected}</p>
+            </div>
+          </div>
+        )}
+
+        <div className="px-6 pb-6">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
@@ -737,7 +743,7 @@ export function CandidateBrowserExcel() {
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               {searchQuery && (
                 <button
@@ -752,70 +758,86 @@ export function CandidateBrowserExcel() {
               )}
             </div>
 
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-gray-500" />
-              <input
-                type="date"
-                value={appliedFrom}
-                onChange={(e) => {
-                  setAppliedFrom(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
-              />
-              <span className="text-gray-500">to</span>
-              <input
-                type="date"
-                value={appliedTo}
-                onChange={(e) => {
-                  setAppliedTo(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
-              />
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-gray-500" />
+                <input
+                  type="date"
+                  value={appliedFrom}
+                  onChange={(e) => {
+                    setAppliedFrom(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-full"
+                />
+                <span className="text-gray-500">to</span>
+                <input
+                  type="date"
+                  value={appliedTo}
+                  onChange={(e) => {
+                    setAppliedTo(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-full"
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => setQuickDateFilter(0)} className="px-2.5 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full">Today</button>
+                <button onClick={() => setQuickDateFilter(1)} className="px-2.5 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full">Yesterday</button>
+                <button onClick={() => setQuickDateFilter(7)} className="px-2.5 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full">Last 7 days</button>
+                <button onClick={() => setQuickDateFilter(30)} className="px-2.5 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full">Last 30 days</button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs text-gray-500 mb-2">Country Filter</label>
               <select
                 value={selectedCountry}
                 onChange={(e) => {
                   setSelectedCountry(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm min-w-[160px]"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
               >
                 <option value="all">All Countries</option>
                 {countryOptions.map(country => (
                   <option key={country} value={country}>{country}</option>
                 ))}
               </select>
-              <div className="flex gap-1 ml-2">
-                <button onClick={() => setQuickDateFilter(0)} className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded">Today</button>
-                <button onClick={() => setQuickDateFilter(1)} className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded">Yesterday</button>
-                <button onClick={() => setQuickDateFilter(7)} className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded">Last 7 days</button>
-                <button onClick={() => setQuickDateFilter(30)} className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded">Last 30 days</button>
-                <button onClick={fetchCandidatesWithFilters} className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded font-medium">Apply Filter</button>
-                {(appliedFrom || appliedTo || selectedCountry !== 'all') && (
-                  <button
-                    onClick={() => {
-                      setAppliedFrom('');
-                      setAppliedTo('');
-                      setSelectedCountry('all');
-                      setCurrentPage(1);
-                    }}
-                    className="px-2 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
             </div>
           </div>
 
-          <div className="text-sm text-gray-600">
-            Showing {filteredCandidates.length} of {totalCandidates} candidates
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="text-sm text-gray-600">
+              Showing {filteredCandidates.length} of {totalCandidates} candidates
+              {debouncedSearchQuery && ` (filtered by "${debouncedSearchQuery}")`}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={fetchCandidatesWithFilters}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
+              >
+                Apply Filters
+              </button>
+              {(appliedFrom || appliedTo || selectedCountry !== 'all') && (
+                <button
+                  onClick={() => {
+                    setAppliedFrom('');
+                    setAppliedTo('');
+                    setSelectedCountry('all');
+                    setCurrentPage(1);
+                  }}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm"
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="flex h-[calc(100vh-260px)] gap-4">
+      <section className="flex h-[calc(100vh-320px)] gap-4">
       {/* Left Sidebar - Folder Tree */}
       <div className="w-80 bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col shadow-sm">
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 flex-shrink-0">
@@ -1256,7 +1278,7 @@ export function CandidateBrowserExcel() {
           )}
         </div>
       </div>
-      </div>
+      </section>
       <Toaster position="top-right" richColors closeButton />
     </div>
   );
