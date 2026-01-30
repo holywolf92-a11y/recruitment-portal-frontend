@@ -2,6 +2,7 @@
 import { X, Edit2, Save, Phone, Mail, MapPin, Briefcase, Calendar, FileText, Globe, CheckCircle, XCircle, Star, Video, MessageSquare, Upload, Download, Eye, Trash2, File, Image as ImageIcon, AlertCircle, Loader, Shield, Check, Link2, RefreshCw } from 'lucide-react';
 import { Candidate } from '../lib/apiClient';
 import { ExtractionReviewModal } from './ExtractionReviewModal';
+import { MissingDataTab } from './MissingDataTab';
 import { apiClient } from '../lib/apiClient';
 import { renderPdfFirstPageToDataUrl } from '../lib/pdfThumb';
 
@@ -141,7 +142,7 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
   const [editedCandidate, setEditedCandidate] = useState(candidate);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [documentsLoading, setDocumentsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'details' | 'documents'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'details' | 'documents' | 'missing-data'>(initialTab);
   const [extractionInProgress, setExtractionInProgress] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showExtractionModal, setShowExtractionModal] = useState(false);
@@ -741,6 +742,17 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                 </span>
               )}
             </button>
+            <button
+              onClick={() => setActiveTab('missing-data')}
+              className={`py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                activeTab === 'missing-data'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <AlertCircle className="w-4 h-4" />
+              Missing Data
+            </button>
           </div>
         </div>
 
@@ -1339,7 +1351,18 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                 </div>
               </div>
             </div>
-          )}
+          ) : activeTab === 'missing-data' ? (
+            <MissingDataTab 
+              candidate={editedCandidate}
+              onFieldUpdate={async (field, value) => {
+                // Update the local state
+                setEditedCandidate({
+                  ...editedCandidate,
+                  [field]: value
+                });
+              }}
+            />
+          ) : null}
         </div>
       </div>
 
