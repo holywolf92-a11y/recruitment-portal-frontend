@@ -1119,7 +1119,7 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                 </button>
               </div>
             </div>
-          ) : (
+          ) : activeTab === 'documents' ? (
             <div className="p-6 space-y-4">
               {/* Upload Status */}
               {uploading && (
