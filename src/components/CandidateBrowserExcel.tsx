@@ -1256,6 +1256,7 @@ export function CandidateBrowserExcel() {
           )}
         </div>
       </div>
+      </div>
       <Toaster position="top-right" richColors closeButton />
     </div>
   );
