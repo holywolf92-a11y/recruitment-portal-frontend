@@ -718,7 +718,7 @@ export function CandidateBrowserExcel() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-0">
       {professionMode ? (
         <section className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm flex items-center justify-between">
           <div>
