@@ -583,22 +583,31 @@ export function CandidateBrowserExcel() {
     });
   }, [displayedCandidates, selectedCountry]);
   
+  const [quickDateFilter, setQuickDateFilter] = useState<'today' | 'yesterday' | '7days' | '30days' | null>('30days');
+
   // Quick date filters
-  const setQuickDateFilter = useCallback((days: number) => {
+  const applyQuickDateFilter = useCallback((key: 'today' | 'yesterday' | '7days' | '30days') => {
+    const daysMap: Record<'today' | 'yesterday' | '7days' | '30days', number> = {
+      today: 0,
+      yesterday: 1,
+      '7days': 7,
+      '30days': 30,
+    };
     const today = new Date();
     const from = new Date(today);
-    from.setDate(from.getDate() - days);
+    from.setDate(from.getDate() - daysMap[key]);
     setAppliedFrom(from.toISOString().split('T')[0]);
     setAppliedTo(today.toISOString().split('T')[0]);
+    setQuickDateFilter(key);
   }, []);
 
   useEffect(() => {
     if (!appliedFrom && !appliedTo) {
-      setQuickDateFilter(30);
+      applyQuickDateFilter('30days');
       setSortBy('created_at');
       setSortOrder('desc');
     }
-  }, [appliedFrom, appliedTo, setQuickDateFilter]);
+  }, [appliedFrom, appliedTo, applyQuickDateFilter]);
   
   // Export function
   const handleExport = async (format: 'csv' | 'xlsx') => {
@@ -818,7 +827,7 @@ export function CandidateBrowserExcel() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => setQuickDateFilter('today')}
+              onClick={() => applyQuickDateFilter('today')}
               className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
                 quickDateFilter === 'today'
                   ? 'bg-blue-600 text-white'
@@ -828,7 +837,7 @@ export function CandidateBrowserExcel() {
               Today
             </button>
             <button
-              onClick={() => setQuickDateFilter('yesterday')}
+              onClick={() => applyQuickDateFilter('yesterday')}
               className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
                 quickDateFilter === 'yesterday'
                   ? 'bg-blue-600 text-white'
@@ -838,7 +847,7 @@ export function CandidateBrowserExcel() {
               Yesterday
             </button>
             <button
-              onClick={() => setQuickDateFilter('7days')}
+              onClick={() => applyQuickDateFilter('7days')}
               className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
                 quickDateFilter === '7days'
                   ? 'bg-blue-600 text-white'
@@ -848,7 +857,7 @@ export function CandidateBrowserExcel() {
               Last 7 Days
             </button>
             <button
-              onClick={() => setQuickDateFilter('30days')}
+              onClick={() => applyQuickDateFilter('30days')}
               className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
                 quickDateFilter === '30days'
                   ? 'bg-blue-600 text-white'
