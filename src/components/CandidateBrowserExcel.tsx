@@ -303,13 +303,6 @@ export function CandidateBrowserExcel() {
   } | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
   
-  // Column management
-  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set([
-    'id', 'name', 'position', 'age', 'nationality', 'country', 'phone', 'email', 
-    'experience', 'status', 'ai_score', 'applied'
-  ]));
-  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
-  const [sortColumns, setSortColumns] = useState<Array<{ field: string; order: 'asc' | 'desc' }>>([]);
   
   // Use shared candidate context (but we'll override with server-side fetching)
   const { 
@@ -321,13 +314,27 @@ export function CandidateBrowserExcel() {
   
   // Local state for server-fetched candidates
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [allCandidatesForNavigation, setAllCandidatesForNavigation] = useState<Candidate[]>([]); // Keep all candidates for folder structure
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Debounced search state
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [selectedFolder, setSelectedFolder] = useState<FolderNode | null>(null);
   const [selectedCandidates, setSelectedCandidates] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'basic' | 'detailed'>('basic');
+
+  // Debounce search input to prevent API spam
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setCurrentPage(1); // Reset to first page when search changes
+    }, 500); // Wait 500ms after user stops typing
+    
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Fetch candidates with server-side filtering
   const fetchCandidatesWithFilters = useCallback(async () => {
@@ -336,7 +343,7 @@ export function CandidateBrowserExcel() {
     try {
       const activeFilters: CandidateFilters = {
         ...filters,
-        search: searchQuery.trim() || undefined,
+        search: debouncedSearchQuery.trim() || undefined,
         applied_from: appliedFrom || undefined,
         applied_to: appliedTo || undefined,
         sort_by: sortBy,
@@ -388,7 +395,7 @@ export function CandidateBrowserExcel() {
     } finally {
       setLoading(false);
     }
-  }, [filters, searchQuery, appliedFrom, appliedTo, sortBy, sortOrder, currentPage, selectedFolder]);
+  }, [filters, debouncedSearchQuery, appliedFrom, appliedTo, sortBy, sortOrder, currentPage, selectedFolder]);
 
   // Fetch daily stats
   const fetchDailyStats = useCallback(async () => {
@@ -422,15 +429,28 @@ export function CandidateBrowserExcel() {
     fetchCandidatesWithFilters();
   }, [fetchCandidatesWithFilters]);
 
+  // Fetch all candidates once on mount for folder structure (no filters)
+  useEffect(() => {
+    const fetchAllCandidates = async () => {
+      try {
+        const result = await apiClient.getCandidates({ limit: 5000 });
+        setAllCandidatesForNavigation(result.candidates || []);
+      } catch (e) {
+        console.error('Failed to load candidates for navigation:', e);
+      }
+    };
+    fetchAllCandidates();
+  }, []);
+
   useEffect(() => {
     fetchDailyStats();
   }, [fetchDailyStats]);
 
   // Build folder structure from all candidates (for navigation only)
   const folderStructure = useMemo(() => {
-    // Fetch all positions for folder structure (lightweight query)
-    return buildFolderStructure(candidates);
-  }, [candidates]);
+    // Use all candidates for folder structure, not filtered ones
+    return buildFolderStructure(allCandidatesForNavigation);
+  }, [allCandidatesForNavigation]);
 
   // Set default selected folder when structure is built
   useEffect(() => {
@@ -527,8 +547,13 @@ export function CandidateBrowserExcel() {
     );
   };
 
-  // Use server-fetched candidates directly (no client-side filtering)
-  const displayedCandidates = candidates;
+  // Filter candidates based on selected folder
+  const displayedCandidates = useMemo(() => {
+    if (!selectedFolder || !selectedFolder.filter) {
+      return candidates;
+    }
+    return selectedFolder.filter(candidates);
+  }, [candidates, selectedFolder]);
   
   // Quick date filters
   const setQuickDateFilter = (days: number) => {
@@ -593,10 +618,16 @@ export function CandidateBrowserExcel() {
   };
 
   const toggleSelectAll = () => {
-    if (selectedCandidates.size === displayedCandidates.length) {
+    if (displayedCandidates.length === 0) return;
+    
+    if (selectedCandidates.size === displayedCandidates.length && displayedCandidates.length > 0) {
+      // Unselect all on current page
       setSelectedCandidates(new Set());
     } else {
-      setSelectedCandidates(new Set(displayedCandidates.map(c => c.id)));
+      // Select all on current page, add to existing selections
+      const newSelected = new Set(selectedCandidates);
+      displayedCandidates.forEach(c => newSelected.add(c.id));
+      setSelectedCandidates(newSelected);
     }
   };
 
@@ -758,6 +789,18 @@ export function CandidateBrowserExcel() {
               >
                 Last 7 days
               </button>
+              <button
+                onClick={() => setQuickDateFilter(30)}
+                className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
+              >
+                Last 30 days
+              </button>
+              <button
+                onClick={fetchCandidatesWithFilters}
+                className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded font-medium"
+              >
+                Apply Filter
+              </button>
               {(appliedFrom || appliedTo) && (
                 <button
                   onClick={() => {
@@ -779,7 +822,7 @@ export function CandidateBrowserExcel() {
               <h3 className="font-semibold text-gray-900">{selectedFolder?.name || 'Select a folder'}</h3>
               <p className="text-sm text-gray-600">
                 Showing {displayedCandidates.length} of {totalCandidates} candidates
-                {searchQuery && ` (filtered by "${searchQuery}")`}
+                {debouncedSearchQuery && ` (filtered by "${debouncedSearchQuery}")`}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -1001,16 +1044,16 @@ export function CandidateBrowserExcel() {
                       {/* Detailed columns */}
                       {viewMode === 'detailed' && (
                         <>
-                          <td className="border border-gray-300 p-2 text-sm text-gray-700">missing</td>
+                          <td className="border border-gray-300 p-2 text-sm text-gray-700">{candidate.religion || 'missing'}</td>
                           <td className="border border-gray-300 p-2 text-sm text-gray-700">{candidate.marital_status || 'missing'}</td>
-                          <td className="border border-gray-300 p-2 text-sm text-gray-700">missing</td>
-                          <td className="border border-gray-300 p-2 text-xs text-gray-700">missing</td>
-                          <td className="border border-gray-300 p-2 text-xs text-gray-700">missing</td>
+                          <td className="border border-gray-300 p-2 text-sm text-gray-700">{candidate.salary_expectation || 'missing'}</td>
+                          <td className="border border-gray-300 p-2 text-xs text-gray-700">{formatDate(candidate.date_available)}</td>
+                          <td className="border border-gray-300 p-2 text-xs text-gray-700">{formatDate(candidate.interview_date)}</td>
                           <td className="border border-gray-300 p-2 text-xs font-mono text-gray-700">{candidate.passport || 'missing'}</td>
                           <td className="border border-gray-300 p-2 text-xs text-gray-700">{passportExpiry}</td>
-                          <td className="border border-gray-300 p-2 text-xs text-gray-700">missing</td>
-                          <td className="border border-gray-300 p-2 text-xs text-gray-700">missing</td>
-                          <td className="border border-gray-300 p-2 text-sm text-center text-gray-700">missing</td>
+                          <td className="border border-gray-300 p-2 text-xs text-gray-700">{formatDate(candidate.medical_expiry)}</td>
+                          <td className="border border-gray-300 p-2 text-xs text-gray-700">{candidate.license || 'missing'}</td>
+                          <td className="border border-gray-300 p-2 text-sm text-center text-gray-700">{candidate.gcc_years || 'missing'}</td>
                           <td className="border border-gray-300 p-2 text-xs text-gray-700">{englishLevel}</td>
                           <td className="border border-gray-300 p-2 text-xs text-gray-700">{arabicLevel}</td>
                           <td className="border border-gray-300 p-2 text-xs text-gray-700">{candidate.address || 'missing'}</td>
