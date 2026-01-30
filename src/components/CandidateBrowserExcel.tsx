@@ -724,7 +724,76 @@ export function CandidateBrowserExcel() {
   }
 
   return (
-    <div className="space-y-0">
+    <div className="flex gap-4">
+      <aside className="w-80 bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col shadow-sm sticky top-24 self-start max-h-[calc(100vh-120px)]">
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 flex-shrink-0">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Folder className="w-5 h-5" />
+            Excel Browser
+          </h2>
+          <p className="text-xs text-blue-100 mt-1">Choose a view to start</p>
+        </div>
+
+        <div className="border-b border-gray-200">
+          <button
+            onClick={() => {
+              setActiveMenu('dashboard');
+              setProfessionMode(null);
+              setSelectedFolder(null);
+            }}
+            className={`w-full flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
+              activeMenu === 'dashboard'
+                ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
+                : 'text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <LayoutDashboard className="w-4 h-4" />
+            Dashboard
+          </button>
+          <button
+            onClick={() => setActiveMenu('browser')}
+            className={`w-full flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
+              activeMenu === 'browser'
+                ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
+                : 'text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            Candidate Browser
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {activeMenu === 'browser' ? (
+            folderStructure.length > 0 ? (
+              folderStructure.map(folder => renderFolder(folder))
+            ) : (
+              <div className="p-4 text-center text-gray-500 text-sm">
+                No candidates found
+              </div>
+            )
+          ) : (
+            <div className="p-4 text-center text-gray-500 text-sm">
+              Dashboard mode shows all candidates.
+            </div>
+          )}
+        </div>
+
+        <div className="border-t border-gray-200 p-4 bg-gray-50 flex-shrink-0">
+          <div className="text-xs text-gray-600 space-y-1">
+            <div className="flex items-center justify-between">
+              <span>Total Candidates:</span>
+              <span className="font-semibold text-gray-900">{candidates.length}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Showing:</span>
+              <span className="font-semibold text-blue-600">{filteredCandidates.length}</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <div className="flex-1 space-y-4">
       {activeMenu === 'browser' ? (
         <section className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm flex items-center justify-between">
           <div>
@@ -936,76 +1005,7 @@ export function CandidateBrowserExcel() {
       )}
 
       {/* Browser Section */}
-      <section className={`flex gap-4 ${activeMenu === 'browser' ? 'h-[calc(100vh-200px)]' : 'h-[calc(100vh-320px)]'}`}>
-      {/* Left Sidebar - Menu + Folder Tree */}
-      <div className="w-80 bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col shadow-sm">
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 flex-shrink-0">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Folder className="w-5 h-5" />
-            Excel Browser
-          </h2>
-          <p className="text-xs text-blue-100 mt-1">Choose a view to start</p>
-        </div>
-
-        <div className="border-b border-gray-200">
-          <button
-            onClick={() => {
-              setActiveMenu('dashboard');
-              setProfessionMode(null);
-              setSelectedFolder(null);
-            }}
-            className={`w-full flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
-              activeMenu === 'dashboard'
-                ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
-                : 'text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            <LayoutDashboard className="w-4 h-4" />
-            Dashboard
-          </button>
-          <button
-            onClick={() => setActiveMenu('browser')}
-            className={`w-full flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
-              activeMenu === 'browser'
-                ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
-                : 'text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            Candidate Browser
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {activeMenu === 'browser' ? (
-            folderStructure.length > 0 ? (
-              folderStructure.map(folder => renderFolder(folder))
-            ) : (
-              <div className="p-4 text-center text-gray-500 text-sm">
-                No candidates found
-              </div>
-            )
-          ) : (
-            <div className="p-4 text-center text-gray-500 text-sm">
-              Dashboard mode shows all candidates.
-            </div>
-          )}
-        </div>
-
-        <div className="border-t border-gray-200 p-4 bg-gray-50 flex-shrink-0">
-          <div className="text-xs text-gray-600 space-y-1">
-            <div className="flex items-center justify-between">
-              <span>Total Candidates:</span>
-              <span className="font-semibold text-gray-900">{candidates.length}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Showing:</span>
-              <span className="font-semibold text-blue-600">{filteredCandidates.length}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
+      <section className={`${activeMenu === 'browser' ? 'h-[calc(100vh-200px)]' : 'h-[calc(100vh-320px)]'}`}>
       {/* Right Side - Excel Table */}
       <div className="flex-1 bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col shadow-sm">
         {/* Table Header Actions */}
@@ -1413,6 +1413,7 @@ export function CandidateBrowserExcel() {
         </div>
       </div>
       </section>
+      </div>
       <Toaster position="top-right" richColors closeButton />
     </div>
   );
