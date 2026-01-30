@@ -326,6 +326,7 @@ export function CandidateBrowserExcel() {
   const [selectedFolder, setSelectedFolder] = useState<FolderNode | null>(null);
   const [selectedCandidates, setSelectedCandidates] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'basic' | 'detailed'>('basic');
+  const [professionMode, setProfessionMode] = useState<string | null>(null);
 
   // Debounce search input to prevent API spam
   useEffect(() => {
@@ -352,9 +353,13 @@ export function CandidateBrowserExcel() {
         limit: 50,
         offset: (currentPage - 1) * 50,
       };
+
+      if (professionMode) {
+        activeFilters.position = professionMode;
+      }
       
       // Apply folder filters (position, country, status, documents)
-      if (selectedFolder) {
+      if (selectedFolder && !professionMode) {
         if (selectedFolder.type === 'profession' && selectedFolder.name !== 'all') {
           activeFilters.position = selectedFolder.name;
         } else if (selectedFolder.type === 'subfolder') {
@@ -516,6 +521,16 @@ export function CandidateBrowserExcel() {
           }`}
           style={{ paddingLeft: `${paddingLeft}px` }}
           onClick={() => {
+            if (folder.type === 'profession') {
+              const allChild = folder.children?.find((child) => child.name === 'All');
+              setProfessionMode(folder.name);
+              selectFolder(allChild || folder);
+              if (hasChildren) {
+                setExpandedFolders(new Set([...expandedFolders, folder.id]));
+              }
+              return;
+            }
+
             if (hasChildren && folder.type !== 'smart-folder') {
               toggleFolder(folder.id);
             } else {
@@ -704,55 +719,73 @@ export function CandidateBrowserExcel() {
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
-      <section className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Candidate Browser</h1>
-        <p className="text-gray-600 mt-2">Browse and manage all candidates with advanced filters and professional organization.</p>
-      </section>
+      {professionMode ? (
+        <section className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm flex items-center justify-between">
+          <div>
+            <button
+              onClick={() => {
+                setProfessionMode(null);
+                setSelectedFolder(null);
+              }}
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+            >
+              ← Back to Dashboard
+            </button>
+            <h2 className="text-2xl font-semibold text-gray-900 mt-2">{professionMode}</h2>
+            <p className="text-sm text-gray-600">Showing {filteredCandidates.length} candidates</p>
+          </div>
+        </section>
+      ) : (
+        <>
+          {/* Header Section */}
+          <section className="mb-4">
+            <h1 className="text-3xl font-bold text-gray-900">Candidate Browser</h1>
+            <p className="text-gray-600 mt-2">Browse and manage all candidates with advanced filters and professional organization.</p>
+          </section>
 
-      {/* KPI Cards Section */}
-      {dailyStats && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="text-sm font-medium text-slate-700">Total Applied</div>
-            <div className="text-3xl font-bold text-slate-900 mt-2">{dailyStats.total}</div>
-            <div className="text-xs text-slate-600 mt-3">All candidates in system</div>
-          </div>
-          
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="text-sm font-medium text-blue-700">Applied</div>
-            <div className="text-3xl font-bold text-blue-900 mt-2">{dailyStats.applied}</div>
-            <div className="text-xs text-blue-600 mt-3">Awaiting review</div>
-          </div>
-          
-          <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="text-sm font-medium text-green-700">Verified</div>
-            <div className="text-3xl font-bold text-green-900 mt-2">{dailyStats.verified}</div>
-            <div className="text-xs text-green-600 mt-3">Approved candidates</div>
-          </div>
-          
-          <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="text-sm font-medium text-yellow-700">Pending</div>
-            <div className="text-3xl font-bold text-yellow-900 mt-2">{dailyStats.pending}</div>
-            <div className="text-xs text-yellow-600 mt-3">Under processing</div>
-          </div>
-          
-          <div className="bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="text-sm font-medium text-red-700">Rejected</div>
-            <div className="text-3xl font-bold text-red-900 mt-2">{dailyStats.rejected}</div>
-            <div className="text-xs text-red-600 mt-3">Not qualified</div>
-          </div>
-        </div>
-      )}
+          {/* KPI Cards Section */}
+          {dailyStats && (
+            <div className="flex gap-4 overflow-x-auto pb-2">
+              <div className="min-w-[220px] flex-1 bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-lg p-4 shadow-sm">
+                <div className="text-sm font-medium text-slate-700">Total Applied</div>
+                <div className="text-2xl font-bold text-slate-900 mt-1">{dailyStats.total}</div>
+                <div className="text-xs text-slate-600 mt-2">All candidates in system</div>
+              </div>
+              
+              <div className="min-w-[220px] flex-1 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-4 shadow-sm">
+                <div className="text-sm font-medium text-blue-700">Applied</div>
+                <div className="text-2xl font-bold text-blue-900 mt-1">{dailyStats.applied}</div>
+                <div className="text-xs text-blue-600 mt-2">Awaiting review</div>
+              </div>
+              
+              <div className="min-w-[220px] flex-1 bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-4 shadow-sm">
+                <div className="text-sm font-medium text-green-700">Verified</div>
+                <div className="text-2xl font-bold text-green-900 mt-1">{dailyStats.verified}</div>
+                <div className="text-xs text-green-600 mt-2">Approved candidates</div>
+              </div>
+              
+              <div className="min-w-[220px] flex-1 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200 rounded-lg p-4 shadow-sm">
+                <div className="text-sm font-medium text-yellow-700">Pending</div>
+                <div className="text-2xl font-bold text-yellow-900 mt-1">{dailyStats.pending}</div>
+                <div className="text-xs text-yellow-600 mt-2">Under processing</div>
+              </div>
+              
+              <div className="min-w-[220px] flex-1 bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-lg p-4 shadow-sm">
+                <div className="text-sm font-medium text-red-700">Rejected</div>
+                <div className="text-2xl font-bold text-red-900 mt-1">{dailyStats.rejected}</div>
+                <div className="text-xs text-red-600 mt-2">Not qualified</div>
+              </div>
+            </div>
+          )}
 
-      {/* Filters Section */}
-      <section className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
-          <p className="text-sm text-gray-600 mt-1">{filteredCandidates.length} candidates found</p>
-        </div>
+          {/* Filters Section */}
+          <section className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
+              <p className="text-sm text-gray-600 mt-1">{filteredCandidates.length} candidates found</p>
+            </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
           {/* Search Column */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">Search</label>
@@ -891,10 +924,12 @@ export function CandidateBrowserExcel() {
             )}
           </div>
         </div>
-      </section>
+          </section>
+        </>
+      )}
 
       {/* Browser Section */}
-      <section className="flex h-[calc(100vh-320px)] gap-4">
+      <section className={`flex gap-4 ${professionMode ? 'h-[calc(100vh-200px)]' : 'h-[calc(100vh-320px)]'}`}>
       {/* Left Sidebar - Folder Tree */}
       <div className="w-80 bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col shadow-sm">
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 flex-shrink-0">
