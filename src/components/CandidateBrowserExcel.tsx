@@ -24,7 +24,8 @@ import {
   ChevronDown as ChevronDownIcon,
   GripVertical,
   Settings,
-  ExternalLink
+  ExternalLink,
+  LayoutDashboard
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Toaster } from './ui/sonner';
@@ -327,6 +328,7 @@ export function CandidateBrowserExcel() {
   const [selectedCandidates, setSelectedCandidates] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'basic' | 'detailed'>('basic');
   const [professionMode, setProfessionMode] = useState<string | null>(null);
+  const [activeMenu, setActiveMenu] = useState<'dashboard' | 'browser'>('dashboard');
 
   // Debounce search input to prevent API spam
   useEffect(() => {
@@ -523,6 +525,7 @@ export function CandidateBrowserExcel() {
           onClick={() => {
             if (folder.type === 'profession') {
               const allChild = folder.children?.find((child) => child.name === 'All');
+              setActiveMenu('browser');
               setProfessionMode(folder.name);
               selectFolder(allChild || folder);
               if (hasChildren) {
@@ -582,11 +585,14 @@ export function CandidateBrowserExcel() {
 
   // Filter candidates based on selected folder
   const displayedCandidates = useMemo(() => {
+    if (activeMenu === 'dashboard') {
+      return candidates;
+    }
     if (!selectedFolder || !selectedFolder.filter) {
       return candidates;
     }
     return selectedFolder.filter(candidates);
-  }, [candidates, selectedFolder]);
+  }, [activeMenu, candidates, selectedFolder]);
 
   const filteredCandidates = useMemo(() => {
     if (selectedCountry === 'all') {
@@ -719,11 +725,12 @@ export function CandidateBrowserExcel() {
 
   return (
     <div className="space-y-0">
-      {professionMode ? (
+      {activeMenu === 'browser' ? (
         <section className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm flex items-center justify-between">
           <div>
             <button
               onClick={() => {
+                setActiveMenu('dashboard');
                 setProfessionMode(null);
                 setSelectedFolder(null);
               }}
@@ -731,7 +738,7 @@ export function CandidateBrowserExcel() {
             >
               ← Back to Dashboard
             </button>
-            <h2 className="text-2xl font-semibold text-gray-900 mt-2">{professionMode}</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 mt-2">{professionMode || 'Candidate Browser'}</h2>
             <p className="text-sm text-gray-600">Showing {filteredCandidates.length} candidates</p>
           </div>
         </section>
@@ -929,23 +936,58 @@ export function CandidateBrowserExcel() {
       )}
 
       {/* Browser Section */}
-      <section className={`flex gap-4 ${professionMode ? 'h-[calc(100vh-200px)]' : 'h-[calc(100vh-320px)]'}`}>
-      {/* Left Sidebar - Folder Tree */}
+      <section className={`flex gap-4 ${activeMenu === 'browser' ? 'h-[calc(100vh-200px)]' : 'h-[calc(100vh-320px)]'}`}>
+      {/* Left Sidebar - Menu + Folder Tree */}
       <div className="w-80 bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col shadow-sm">
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 flex-shrink-0">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Folder className="w-5 h-5" />
-            Candidate Browser
+            Excel Browser
           </h2>
-          <p className="text-xs text-blue-100 mt-1">Select a folder to view candidates</p>
+          <p className="text-xs text-blue-100 mt-1">Choose a view to start</p>
+        </div>
+
+        <div className="border-b border-gray-200">
+          <button
+            onClick={() => {
+              setActiveMenu('dashboard');
+              setProfessionMode(null);
+              setSelectedFolder(null);
+            }}
+            className={`w-full flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
+              activeMenu === 'dashboard'
+                ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
+                : 'text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <LayoutDashboard className="w-4 h-4" />
+            Dashboard
+          </button>
+          <button
+            onClick={() => setActiveMenu('browser')}
+            className={`w-full flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
+              activeMenu === 'browser'
+                ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
+                : 'text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            Candidate Browser
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {folderStructure.length > 0 ? (
-            folderStructure.map(folder => renderFolder(folder))
+          {activeMenu === 'browser' ? (
+            folderStructure.length > 0 ? (
+              folderStructure.map(folder => renderFolder(folder))
+            ) : (
+              <div className="p-4 text-center text-gray-500 text-sm">
+                No candidates found
+              </div>
+            )
           ) : (
             <div className="p-4 text-center text-gray-500 text-sm">
-              No candidates found
+              Dashboard mode shows all candidates.
             </div>
           )}
         </div>
