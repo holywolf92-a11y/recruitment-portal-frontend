@@ -594,7 +594,7 @@ export function CandidateBrowserExcel() {
 
   useEffect(() => {
     if (!appliedFrom && !appliedTo) {
-      setQuickDateFilter(0);
+      setQuickDateFilter(30);
       setSortBy('created_at');
       setSortOrder('desc');
     }
