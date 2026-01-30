@@ -302,7 +302,7 @@ export function CandidateBrowserExcel() {
     documents_uploaded: number;
   } | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
-  const [excelView, setExcelView] = useState<'dashboard' | 'browser'>('dashboard');
+  const [selectedCountry, setSelectedCountry] = useState<string>('all');
   
   
   // Use shared candidate context (but we'll override with server-side fetching)
@@ -387,6 +387,10 @@ export function CandidateBrowserExcel() {
           }
         }
       }
+
+      if (!activeFilters.country_of_interest && selectedCountry !== 'all') {
+        activeFilters.country_of_interest = selectedCountry;
+      }
       
       const result = await apiClient.getCandidates(activeFilters);
       setCandidates(result.candidates || []);
@@ -396,7 +400,7 @@ export function CandidateBrowserExcel() {
     } finally {
       setLoading(false);
     }
-  }, [filters, debouncedSearchQuery, appliedFrom, appliedTo, sortBy, sortOrder, currentPage, selectedFolder]);
+  }, [filters, debouncedSearchQuery, appliedFrom, appliedTo, sortBy, sortOrder, currentPage, selectedFolder, selectedCountry]);
 
   // Fetch daily stats
   const fetchDailyStats = useCallback(async () => {
@@ -415,6 +419,10 @@ export function CandidateBrowserExcel() {
         );
         if (parent) statsFilters.position = parent.name;
       }
+
+      if (selectedCountry !== 'all') {
+        statsFilters.country_of_interest = selectedCountry;
+      }
       
       const stats = await apiClient.getDailyStats(statsFilters);
       setDailyStats(stats);
@@ -423,7 +431,7 @@ export function CandidateBrowserExcel() {
     } finally {
       setLoadingStats(false);
     }
-  }, [searchQuery, appliedFrom, appliedTo, selectedFolder]);
+  }, [searchQuery, appliedFrom, appliedTo, selectedFolder, selectedCountry]);
 
   // Fetch data when filters change
   useEffect(() => {
@@ -451,6 +459,15 @@ export function CandidateBrowserExcel() {
   const folderStructure = useMemo(() => {
     // Use all candidates for folder structure, not filtered ones
     return buildFolderStructure(allCandidatesForNavigation);
+  }, [allCandidatesForNavigation]);
+
+  const countryOptions = useMemo(() => {
+    const unique = new Set<string>();
+    allCandidatesForNavigation.forEach(candidate => {
+      const country = (candidate.country_of_interest || candidate.country || '').trim();
+      if (country) unique.add(country);
+    });
+    return Array.from(unique).sort((a, b) => a.localeCompare(b));
   }, [allCandidatesForNavigation]);
 
   // Set default selected folder when structure is built
@@ -555,6 +572,16 @@ export function CandidateBrowserExcel() {
     }
     return selectedFolder.filter(candidates);
   }, [candidates, selectedFolder]);
+
+  const filteredCandidates = useMemo(() => {
+    if (selectedCountry === 'all') {
+      return displayedCandidates;
+    }
+    return displayedCandidates.filter(candidate => {
+      const country = (candidate.country_of_interest || candidate.country || '').trim();
+      return country === selectedCountry;
+    });
+  }, [displayedCandidates, selectedCountry]);
   
   // Quick date filters
   const setQuickDateFilter = useCallback((days: number) => {
@@ -566,12 +593,12 @@ export function CandidateBrowserExcel() {
   }, []);
 
   useEffect(() => {
-    if (excelView === 'dashboard' && !appliedFrom && !appliedTo) {
+    if (!appliedFrom && !appliedTo) {
       setQuickDateFilter(0);
       setSortBy('created_at');
       setSortOrder('desc');
     }
-  }, [excelView, appliedFrom, appliedTo, setQuickDateFilter]);
+  }, [appliedFrom, appliedTo, setQuickDateFilter]);
   
   // Export function
   const handleExport = async (format: 'csv' | 'xlsx') => {
@@ -590,6 +617,10 @@ export function CandidateBrowserExcel() {
           f.children?.some(c => c.id === selectedFolder.id || c.children?.some(sc => sc.id === selectedFolder.id))
         );
         if (parent) activeFilters.position = parent.name;
+      }
+
+      if (selectedCountry !== 'all') {
+        activeFilters.country_of_interest = selectedCountry;
       }
       
       const blob = await apiClient.exportCandidates(activeFilters, format);
@@ -627,15 +658,15 @@ export function CandidateBrowserExcel() {
   };
 
   const toggleSelectAll = () => {
-    if (displayedCandidates.length === 0) return;
+    if (filteredCandidates.length === 0) return;
     
-    if (selectedCandidates.size === displayedCandidates.length && displayedCandidates.length > 0) {
+    if (selectedCandidates.size === filteredCandidates.length && filteredCandidates.length > 0) {
       // Unselect all on current page
       setSelectedCandidates(new Set());
     } else {
       // Select all on current page, add to existing selections
       const newSelected = new Set(selectedCandidates);
-      displayedCandidates.forEach(c => newSelected.add(c.id));
+      filteredCandidates.forEach(c => newSelected.add(c.id));
       setSelectedCandidates(newSelected);
     }
   };
@@ -662,146 +693,129 @@ export function CandidateBrowserExcel() {
     );
   }
 
-  if (excelView === 'dashboard') {
-    return (
-      <div className="p-6">
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col shadow-sm h-[calc(100vh-125px)]">
-          <div className="border-b border-gray-200 p-4 bg-gray-50 flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Excel Browser Dashboard</h2>
-              <p className="text-sm text-gray-600">Default view shows today’s candidates (newest first)</p>
-            </div>
-            <button
-              onClick={() => setExcelView('browser')}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-            >
-              Open Browser
-            </button>
-          </div>
-
-          <div className="p-4 space-y-4 overflow-auto">
-            {dailyStats && (
-              <div className="grid grid-cols-5 gap-3">
-                <div className="bg-white rounded-lg p-3 border border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">Total Applied</p>
-                  <p className="text-2xl font-bold text-gray-900">{dailyStats.total}</p>
-                </div>
-                <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                  <p className="text-xs text-blue-600 mb-1">Applied</p>
-                  <p className="text-2xl font-bold text-blue-700">{dailyStats.applied}</p>
-                </div>
-                <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-                  <p className="text-xs text-green-600 mb-1">Verified</p>
-                  <p className="text-2xl font-bold text-green-700">{dailyStats.verified}</p>
-                </div>
-                <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
-                  <p className="text-xs text-yellow-600 mb-1">Pending</p>
-                  <p className="text-2xl font-bold text-yellow-700">{dailyStats.pending}</p>
-                </div>
-                <div className="bg-red-50 rounded-lg p-3 border border-red-200">
-                  <p className="text-xs text-red-600 mb-1">Rejected</p>
-                  <p className="text-2xl font-bold text-red-700">{dailyStats.rejected}</p>
-                </div>
+  return (
+    <div className="p-6 space-y-4">
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col shadow-sm">
+        <div className="border-b border-gray-200 p-4 bg-gray-50">
+          <h2 className="text-lg font-semibold text-gray-900">Excel Browser Dashboard</h2>
+          <p className="text-sm text-gray-600">Top summary and filters. Candidates list is below.</p>
+        </div>
+        <div className="p-4 space-y-4">
+          {dailyStats && (
+            <div className="grid grid-cols-5 gap-3">
+              <div className="bg-white rounded-lg p-3 border border-gray-200">
+                <p className="text-xs text-gray-500 mb-1">Total Applied</p>
+                <p className="text-2xl font-bold text-gray-900">{dailyStats.total}</p>
               </div>
-            )}
-
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex-1 relative min-w-[240px]">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search by name, passport, CNIC, email, phone..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
+              <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                <p className="text-xs text-blue-600 mb-1">Applied</p>
+                <p className="text-2xl font-bold text-blue-700">{dailyStats.applied}</p>
               </div>
-
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-gray-500" />
-                <input
-                  type="date"
-                  value={appliedFrom}
-                  onChange={(e) => {
-                    setAppliedFrom(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
-                />
-                <span className="text-gray-500">to</span>
-                <input
-                  type="date"
-                  value={appliedTo}
-                  onChange={(e) => {
-                    setAppliedTo(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
-                />
-                <div className="flex gap-1 ml-2">
-                  <button onClick={() => setQuickDateFilter(0)} className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded">Today</button>
-                  <button onClick={() => setQuickDateFilter(1)} className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded">Yesterday</button>
-                  <button onClick={() => setQuickDateFilter(7)} className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded">Last 7 days</button>
-                  <button onClick={() => setQuickDateFilter(30)} className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded">Last 30 days</button>
-                  <button onClick={fetchCandidatesWithFilters} className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded font-medium">Apply Filter</button>
-                  {(appliedFrom || appliedTo) && (
-                    <button
-                      onClick={() => {
-                        setAppliedFrom('');
-                        setAppliedTo('');
-                        setCurrentPage(1);
-                      }}
-                      className="px-2 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
+              <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                <p className="text-xs text-green-600 mb-1">Verified</p>
+                <p className="text-2xl font-bold text-green-700">{dailyStats.verified}</p>
+              </div>
+              <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+                <p className="text-xs text-yellow-600 mb-1">Pending</p>
+                <p className="text-2xl font-bold text-yellow-700">{dailyStats.pending}</p>
+              </div>
+              <div className="bg-red-50 rounded-lg p-3 border border-red-200">
+                <p className="text-xs text-red-600 mb-1">Rejected</p>
+                <p className="text-2xl font-bold text-red-700">{dailyStats.rejected}</p>
               </div>
             </div>
+          )}
 
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <div className="bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700">
-                Today’s Candidates (sorted by newest)
-              </div>
-              {displayedCandidates.length > 0 ? (
-                <table className="w-full border-collapse">
-                  <thead className="bg-gray-100">
-                    <tr>
-                      <th className="border border-gray-200 p-2 text-left text-xs font-semibold text-gray-700">ID</th>
-                      <th className="border border-gray-200 p-2 text-left text-xs font-semibold text-gray-700">Name</th>
-                      <th className="border border-gray-200 p-2 text-left text-xs font-semibold text-gray-700">Position</th>
-                      <th className="border border-gray-200 p-2 text-left text-xs font-semibold text-gray-700">Status</th>
-                      <th className="border border-gray-200 p-2 text-left text-xs font-semibold text-gray-700">Applied</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {displayedCandidates.map((candidate) => (
-                      <tr key={candidate.id} className="hover:bg-blue-50">
-                        <td className="border border-gray-200 p-2 text-xs text-gray-700">{candidate.id}</td>
-                        <td className="border border-gray-200 p-2 text-xs text-gray-900 font-medium">{candidate.name}</td>
-                        <td className="border border-gray-200 p-2 text-xs text-gray-700">{candidate.position || 'missing'}</td>
-                        <td className="border border-gray-200 p-2 text-xs text-gray-700">{candidate.status || 'missing'}</td>
-                        <td className="border border-gray-200 p-2 text-xs text-gray-700">{formatDate(candidate.created_at)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <div className="p-6 text-center text-sm text-gray-500">No candidates found for today.</div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex-1 relative min-w-[240px]">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by name, passport, CNIC, email, phone..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setCurrentPage(1);
+                  }}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               )}
             </div>
+
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-gray-500" />
+              <input
+                type="date"
+                value={appliedFrom}
+                onChange={(e) => {
+                  setAppliedFrom(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+              />
+              <span className="text-gray-500">to</span>
+              <input
+                type="date"
+                value={appliedTo}
+                onChange={(e) => {
+                  setAppliedTo(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+              />
+              <select
+                value={selectedCountry}
+                onChange={(e) => {
+                  setSelectedCountry(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm min-w-[160px]"
+              >
+                <option value="all">All Countries</option>
+                {countryOptions.map(country => (
+                  <option key={country} value={country}>{country}</option>
+                ))}
+              </select>
+              <div className="flex gap-1 ml-2">
+                <button onClick={() => setQuickDateFilter(0)} className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded">Today</button>
+                <button onClick={() => setQuickDateFilter(1)} className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded">Yesterday</button>
+                <button onClick={() => setQuickDateFilter(7)} className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded">Last 7 days</button>
+                <button onClick={() => setQuickDateFilter(30)} className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded">Last 30 days</button>
+                <button onClick={fetchCandidatesWithFilters} className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded font-medium">Apply Filter</button>
+                {(appliedFrom || appliedTo || selectedCountry !== 'all') && (
+                  <button
+                    onClick={() => {
+                      setAppliedFrom('');
+                      setAppliedTo('');
+                      setSelectedCountry('all');
+                      setCurrentPage(1);
+                    }}
+                    className="px-2 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="text-sm text-gray-600">
+            Showing {filteredCandidates.length} of {totalCandidates} candidates
           </div>
         </div>
       </div>
-    );
-  }
 
-  return (
-    <div className="flex h-[calc(100vh-125px)] gap-4 p-6">
+      <div className="flex h-[calc(100vh-260px)] gap-4">
       {/* Left Sidebar - Folder Tree */}
       <div className="w-80 bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col shadow-sm">
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 flex-shrink-0">
@@ -830,7 +844,7 @@ export function CandidateBrowserExcel() {
             </div>
             <div className="flex items-center justify-between">
               <span>Showing:</span>
-              <span className="font-semibold text-blue-600">{displayedCandidates.length}</span>
+              <span className="font-semibold text-blue-600">{filteredCandidates.length}</span>
             </div>
           </div>
         </div>
@@ -838,137 +852,13 @@ export function CandidateBrowserExcel() {
 
       {/* Right Side - Excel Table */}
       <div className="flex-1 bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col shadow-sm">
-        {/* Header with Search and Filters */}
-        <div className="border-b border-gray-200 p-4 bg-gray-50 flex-shrink-0 space-y-4">
-          {/* Daily Summary Cards */}
-          {dailyStats && (
-            <div className="grid grid-cols-5 gap-3">
-              <div className="bg-white rounded-lg p-3 border border-gray-200">
-                <p className="text-xs text-gray-500 mb-1">Total Applied</p>
-                <p className="text-2xl font-bold text-gray-900">{dailyStats.total}</p>
-              </div>
-              <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                <p className="text-xs text-blue-600 mb-1">Applied</p>
-                <p className="text-2xl font-bold text-blue-700">{dailyStats.applied}</p>
-              </div>
-              <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-                <p className="text-xs text-green-600 mb-1">Verified</p>
-                <p className="text-2xl font-bold text-green-700">{dailyStats.verified}</p>
-              </div>
-              <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
-                <p className="text-xs text-yellow-600 mb-1">Pending</p>
-                <p className="text-2xl font-bold text-yellow-700">{dailyStats.pending}</p>
-              </div>
-              <div className="bg-red-50 rounded-lg p-3 border border-red-200">
-                <p className="text-xs text-red-600 mb-1">Rejected</p>
-                <p className="text-2xl font-bold text-red-700">{dailyStats.rejected}</p>
-              </div>
-            </div>
-          )}
-          
-          {/* Global Search Bar */}
-          <div className="flex items-center gap-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by name, passport, CNIC, email, phone..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1); // Reset to first page on search
-                }}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => {
-                    setSearchQuery('');
-                    setCurrentPage(1);
-                  }}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          </div>
-          
-          {/* Date Applied Filter */}
-          <div className="flex items-center gap-3">
-            <Calendar className="w-4 h-4 text-gray-500" />
-            <span className="text-sm text-gray-700 font-medium">Date Applied:</span>
-            <input
-              type="date"
-              value={appliedFrom}
-              onChange={(e) => {
-                setAppliedFrom(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
-            />
-            <span className="text-gray-500">to</span>
-            <input
-              type="date"
-              value={appliedTo}
-              onChange={(e) => {
-                setAppliedTo(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
-            />
-            <div className="flex gap-1 ml-2">
-              <button
-                onClick={() => setQuickDateFilter(0)}
-                className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
-              >
-                Today
-              </button>
-              <button
-                onClick={() => setQuickDateFilter(1)}
-                className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
-              >
-                Yesterday
-              </button>
-              <button
-                onClick={() => setQuickDateFilter(7)}
-                className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
-              >
-                Last 7 days
-              </button>
-              <button
-                onClick={() => setQuickDateFilter(30)}
-                className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
-              >
-                Last 30 days
-              </button>
-              <button
-                onClick={fetchCandidatesWithFilters}
-                className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded font-medium"
-              >
-                Apply Filter
-              </button>
-              {(appliedFrom || appliedTo) && (
-                <button
-                  onClick={() => {
-                    setAppliedFrom('');
-                    setAppliedTo('');
-                    setCurrentPage(1);
-                  }}
-                  className="px-2 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-          </div>
-          
-          {/* Table Header Actions */}
+        {/* Table Header Actions */}
+        <div className="border-b border-gray-200 p-4 bg-gray-50 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-semibold text-gray-900">{selectedFolder?.name || 'Select a folder'}</h3>
               <p className="text-sm text-gray-600">
-                Showing {displayedCandidates.length} of {totalCandidates} candidates
+                Showing {filteredCandidates.length} of {totalCandidates} candidates
                 {debouncedSearchQuery && ` (filtered by "${debouncedSearchQuery}")`}
               </p>
             </div>
@@ -978,12 +868,6 @@ export function CandidateBrowserExcel() {
                   {selectedCandidates.size} selected
                 </span>
               )}
-              <button
-                onClick={() => setExcelView('dashboard')}
-                className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
-              >
-                Dashboard
-              </button>
               <div className="flex gap-1 bg-gray-200 rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('basic')}
@@ -1024,14 +908,14 @@ export function CandidateBrowserExcel() {
 
         {/* Excel-like Table */}
         <div className="flex-1 overflow-auto">
-          {displayedCandidates.length > 0 ? (
+          {filteredCandidates.length > 0 ? (
             <table className="w-full border-collapse">
               <thead className="bg-gray-100 sticky top-0 z-10">
                 <tr>
                   <th className="border border-gray-300 p-2 text-left bg-gray-100">
                     <input
                       type="checkbox"
-                      checked={selectedCandidates.size === displayedCandidates.length && displayedCandidates.length > 0}
+                      checked={selectedCandidates.size === filteredCandidates.length && filteredCandidates.length > 0}
                       onChange={toggleSelectAll}
                       className="w-4 h-4 cursor-pointer"
                     />
@@ -1142,7 +1026,7 @@ export function CandidateBrowserExcel() {
                 </tr>
               </thead>
               <tbody>
-                {displayedCandidates.map((candidate, index) => {
+                {filteredCandidates.map((candidate, index) => {
                   const age = calculateAge(candidate.date_of_birth);
                   const englishLevel = parseLanguageLevel(candidate.languages, 'english');
                   const arabicLevel = parseLanguageLevel(candidate.languages, 'arabic');
