@@ -4,6 +4,10 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
+# Accept build-time environment variables
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+
 # Copy package files
 COPY package.json package-lock.json ./
 
@@ -13,7 +17,7 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build the frontend
+# Build the frontend (environment variables are baked into the bundle)
 RUN npm run build
 
 # Stage 2: Runtime (minimal image)
