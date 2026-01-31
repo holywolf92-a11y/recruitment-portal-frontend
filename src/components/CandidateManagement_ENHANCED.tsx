@@ -1,5 +1,6 @@
 // Updated: Using NEW server-side CV generation system
 import { useEffect, useMemo, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   AlertTriangle,
   AlertCircle,
@@ -514,7 +515,6 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
 
   // Handler functions for interactive elements
   function handleViewProfile(candidate: Candidate) {
-    console.log('[CandidateManagement] Opening profile for:', candidate.id, candidate.name);
     setSelectedCandidate(candidate);
     setDetailsInitialTab('details');
     setShowDetailsModal(true);
@@ -1400,14 +1400,13 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
         </div>
       )}
 
-      {/* Candidate Details Modal */}
-      {showDetailsModal && selectedCandidate && (
+      {/* Candidate Details Modal - Portalled to document body to avoid z-index/stacking issues */}
+      {showDetailsModal && selectedCandidate && createPortal(
         <CandidateDetailsModal 
           key={selectedCandidate.id}
           candidate={selectedCandidate} 
           initialTab={detailsInitialTab}
           onClose={() => {
-            console.log('[CandidateManagement] Closing details modal');
             setShowDetailsModal(false);
             setSelectedCandidate(null);
             processedCandidateIdRef.current = null; // Reset so same candidate can be opened again later
@@ -1416,7 +1415,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
             // Refresh candidates from context to update document flags on cards
             refreshCandidates();
           }}
-        />
+        />,
+        document.body
       )}
     </div>
   );
