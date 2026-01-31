@@ -22,8 +22,9 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Copy only built artifacts and package files from builder
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/build ./build
 COPY --from=builder /app/package.json package-lock.json ./
+COPY --from=builder /app/server.js ./server.js
 
 # Install only production dependencies
 RUN npm ci --only=production && \
