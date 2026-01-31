@@ -514,6 +514,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
 
   // Handler functions for interactive elements
   function handleViewProfile(candidate: Candidate) {
+    console.log('[CandidateManagement] Opening profile for:', candidate.id, candidate.name);
     setSelectedCandidate(candidate);
     setDetailsInitialTab('details');
     setShowDetailsModal(true);
@@ -1402,9 +1403,11 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
       {/* Candidate Details Modal */}
       {showDetailsModal && selectedCandidate && (
         <CandidateDetailsModal 
+          key={selectedCandidate.id}
           candidate={selectedCandidate} 
           initialTab={detailsInitialTab}
           onClose={() => {
+            console.log('[CandidateManagement] Closing details modal');
             setShowDetailsModal(false);
             setSelectedCandidate(null);
             processedCandidateIdRef.current = null; // Reset so same candidate can be opened again later
