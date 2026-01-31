@@ -1369,7 +1369,7 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
       </div>
 
       {/* Extraction Modal */}
-      {showExtractionReviewModal && extractedData && (
+      {showExtractionModal && extractedData && (
         <ExtractionReviewModal
           candidateId={candidate.id}
           extractedData={extractedData}
