@@ -303,8 +303,16 @@ export function PublicCandidateProfile() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
             <div className="flex items-center gap-3 w-full sm:w-auto">
-              <div className="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
-                {candidate.name?.charAt(0) || '?'}
+              <div className="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center text-white font-bold text-xl flex-shrink-0 overflow-hidden">
+                {candidate.profile_photo_signed_url ? (
+                  <img 
+                    src={candidate.profile_photo_signed_url} 
+                    alt={candidate.name || 'Profile'} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span>{candidate.name?.charAt(0) || '?'}</span>
+                )}
               </div>
               <div className="min-w-0 flex-1">
                 <h1 className="text-xl sm:text-2xl font-bold text-white truncate">{candidate.name || 'Candidate'}</h1>
@@ -352,8 +360,16 @@ export function PublicCandidateProfile() {
 
               {/* Colorful CV Header */}
               <div className="text-center mb-8 pb-8 border-b-4 border-blue-600">
-                <div className="w-32 h-32 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white shadow-2xl relative">
-                  <span className="text-5xl font-bold">{candidate.name?.charAt(0) || '?'}</span>
+                <div className="w-32 h-32 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white shadow-2xl relative overflow-hidden">
+                  {candidate.profile_photo_signed_url ? (
+                    <img 
+                      src={candidate.profile_photo_signed_url} 
+                      alt={candidate.name || 'Profile'} 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-5xl font-bold">{candidate.name?.charAt(0) || '?'}</span>
+                  )}
                   <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-green-500 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
                     <CheckCircle className="w-6 h-6 text-white" />
                   </div>
