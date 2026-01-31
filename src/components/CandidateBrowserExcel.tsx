@@ -1279,7 +1279,7 @@ export function CandidateBrowserExcel() {
                           }}
                         >
                           <Globe className="w-4 h-4 group-hover:scale-110 transition-transform flex-shrink-0" />
-                          <span className="text-xs font-medium underline">View Profile</span>
+                          <span className="text-xs font-medium underline">View Details</span>
                           <ExternalLink className="w-3 h-3 opacity-60" />
                         </a>
                       </td>
