@@ -370,9 +370,6 @@ export function PublicCandidateProfile() {
                   ) : (
                     <span className="text-5xl font-bold">{candidate.name?.charAt(0) || '?'}</span>
                   )}
-                  <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-green-500 rounded-full border-4 border-white flex items-center justify-center shadow-lg">
-                    <CheckCircle className="w-6 h-6 text-white" />
-                  </div>
                 </div>
                 
                 <h1 className="text-4xl font-bold text-gray-900 mb-2">{candidate.name || 'Candidate'}</h1>
