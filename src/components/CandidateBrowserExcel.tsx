@@ -1281,31 +1281,42 @@ export function CandidateBrowserExcel() {
                         </a>
                       </td>
                       <td className="border border-gray-300 p-2 bg-purple-50">
-                        <a
-                          href={generateCVShareLink(candidate)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center justify-center gap-2 px-3 py-1.5 text-purple-600 hover:text-purple-800 hover:underline transition-colors group"
-                          title="Click to open employer CV (Right-click to copy link)"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toast.info('Opening Employer CV...');
-                          }}
-                          onContextMenu={async (e) => {
-                            e.preventDefault();
+                        <button
+                          onClick={async (e) => {
                             e.stopPropagation();
                             try {
-                              await copyToClipboard(generateCVShareLink(candidate));
-                              toast.success('CV link copied to clipboard!');
-                            } catch (err) {
-                              toast.error('Failed to copy link');
+                              toast.info('Generating Employer CV...');
+                              const result = await apiClient.generateCandidateCV(candidate.id, 'employer-safe', true);
+                              
+                              // Download PDF from signed URL
+                              const response = await fetch(result.cv_url);
+                              if (!response.ok) {
+                                throw new Error(`Failed to download CV: ${response.statusText}`);
+                              }
+                              
+                              const blob = await response.blob();
+                              const url = window.URL.createObjectURL(blob);
+                              const link = document.createElement('a');
+                              link.href = url;
+                              link.download = `${candidate.name || 'Candidate'}_Employer_CV.pdf`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              window.URL.revokeObjectURL(url);
+                              
+                              toast.success('Employer CV downloaded successfully!');
+                            } catch (err: any) {
+                              console.error('Failed to download CV:', err);
+                              toast.error(err?.message || 'Failed to download Employer CV');
                             }
                           }}
+                          className="flex items-center justify-center gap-2 px-3 py-1.5 text-purple-600 hover:text-purple-800 hover:underline transition-colors group cursor-pointer"
+                          title="Click to download employer CV"
                         >
                           <FileText className="w-4 h-4 group-hover:scale-110 transition-transform flex-shrink-0" />
                           <span className="text-xs font-medium underline">View CV</span>
-                          <ExternalLink className="w-3 h-3 opacity-60" />
-                        </a>
+                          <Download className="w-3 h-3 opacity-60" />
+                        </button>
                       </td>
                       <td className="border border-gray-300 p-2">
                         <span className="text-xs text-gray-400">missing</span>
