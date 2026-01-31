@@ -27,6 +27,7 @@ import {
   ExternalLink,
   LayoutDashboard
 } from 'lucide-react';
+import { API_BASE_URL } from '../lib/apiClient';
 import { toast } from 'sonner';
 import { Toaster } from './ui/sonner';
 import { apiClient, Candidate, CandidateFilters } from '../lib/apiClient';
@@ -125,15 +126,11 @@ function generateProfileLink(candidate: Candidate): string {
   return `${baseUrl}/profile/${candidateId}/${slug}`;
 }
 
-// Helper function to generate CV share link (uses current frontend URL)
+// Helper function to generate CV download link (backend redirect)
 function generateCVShareLink(candidate: Candidate): string {
-  const name = candidate.name || 'candidate';
-  const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
   const candidateId = candidate.id || '';
-  const baseUrl = typeof window !== 'undefined' 
-    ? window.location.origin 
-    : 'https://exquisite-surprise-production.up.railway.app';
-  return `${baseUrl}/cv/${candidateId}/${slug}`;
+  const apiBaseUrl = API_BASE_URL.replace(/\/$/, '');
+  return `${apiBaseUrl}/cv-generator/${candidateId}/download?format=employer-safe&force=true`;
 }
 
 // Helper function to copy to clipboard
