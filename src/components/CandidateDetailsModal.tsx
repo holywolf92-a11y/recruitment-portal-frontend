@@ -137,6 +137,59 @@ function safeJsonArray(value: unknown): string[] {
   return [];
 }
 
+function splitByDelimiters(value: string): string[] {
+  return value
+    .split(/\s*\|\s*|\s*;\s*|\n+/g)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
+function formatSimpleList(value: unknown): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.map((v) => String(v)).filter((v) => v.length > 0);
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return formatSimpleList(parsed);
+    } catch {
+      return splitByDelimiters(value);
+    }
+  }
+  return [];
+}
+
+function formatEducationList(value: unknown): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    if (value.every((v) => typeof v === 'string')) {
+      return (value as string[]).map((v) => v.trim()).filter((v) => v.length > 0);
+    }
+    return value
+      .map((entry: any) => {
+        if (!entry || typeof entry !== 'object') return '';
+        const parts = [
+          entry.degree,
+          entry.institution,
+          entry.location,
+          entry.graduation_date,
+          entry.cgpa ? `CGPA: ${entry.cgpa}` : undefined,
+        ].filter(Boolean);
+        return parts.join(' - ');
+      })
+      .map((v) => v.trim())
+      .filter((v) => v.length > 0);
+  }
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return formatEducationList(parsed);
+    } catch {
+      return splitByDelimiters(value);
+    }
+  }
+  return [];
+}
+
 export function CandidateDetailsModal({ candidate, onClose, initialTab = 'details' }: CandidateDetailsModalProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedCandidate, setEditedCandidate] = useState(candidate);
@@ -1566,43 +1619,67 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                 )}
 
                 {/* Education */}
-                {candidate.education && (
-                  <div className="mb-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
-                      <FileText className="w-5 h-5 text-blue-600" />
-                      Education
-                    </h2>
-                    <div className="bg-gray-50 p-3 rounded border-l-4 border-purple-500">
-                      <p className="text-sm whitespace-pre-line text-gray-700">{candidate.education}</p>
+                {(() => {
+                  const educationItems = formatEducationList(candidate.education);
+                  if (educationItems.length === 0) return null;
+                  return (
+                    <div className="mb-6">
+                      <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-blue-600" />
+                        Education
+                      </h2>
+                      <div className="bg-gray-50 p-3 rounded border-l-4 border-purple-500">
+                        <ul className="text-sm text-gray-700 space-y-1">
+                          {educationItems.map((item, index) => (
+                            <li key={index}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Certifications */}
-                {candidate.certifications && (
-                  <div className="mb-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
-                      <CheckCircle className="w-5 h-5 text-blue-600" />
-                      Certifications
-                    </h2>
-                    <div className="bg-green-50 p-3 rounded border-l-4 border-green-500">
-                      <p className="text-sm whitespace-pre-line text-gray-700">{candidate.certifications}</p>
+                {(() => {
+                  const certificationItems = formatSimpleList(candidate.certifications);
+                  if (certificationItems.length === 0) return null;
+                  return (
+                    <div className="mb-6">
+                      <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5 text-blue-600" />
+                        Certifications
+                      </h2>
+                      <div className="bg-green-50 p-3 rounded border-l-4 border-green-500">
+                        <ul className="text-sm text-gray-700 space-y-1">
+                          {certificationItems.map((item, index) => (
+                            <li key={index}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Internships */}
-                {candidate.internships && (
-                  <div className="mb-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
-                      <FileText className="w-5 h-5 text-blue-600" />
-                      Internships
-                    </h2>
-                    <div className="bg-purple-50 p-3 rounded border-l-4 border-purple-500">
-                      <p className="text-sm whitespace-pre-line text-gray-700">{candidate.internships}</p>
+                {(() => {
+                  const internshipItems = formatSimpleList(candidate.internships);
+                  if (internshipItems.length === 0) return null;
+                  return (
+                    <div className="mb-6">
+                      <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-blue-600" />
+                        Internships
+                      </h2>
+                      <div className="bg-purple-50 p-3 rounded border-l-4 border-purple-500">
+                        <ul className="text-sm text-gray-700 space-y-1">
+                          {internshipItems.map((item, index) => (
+                            <li key={index}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Additional Information */}
                 <div className="mb-6">
