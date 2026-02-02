@@ -11,6 +11,7 @@ interface ExtractedData {
   languages?: string[];
   education?: string;
   certifications?: string[];
+  internships?: string[];
   previous_employment?: string;
   passport_expiry?: string;
   professional_summary?: string;
@@ -279,6 +280,23 @@ export function ExtractionReviewModal({
                 type="text"
                 value={editedData.certifications?.join(', ') || ''}
                 onChange={(e) => updateField('certifications', e.target.value.split(',').map(s => s.trim()))}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Internships (comma-separated)
+                {editedData.extraction_confidence?.internships && (
+                  <span className={`ml-2 text-xs ${getConfidenceColor(editedData.extraction_confidence.internships)}`}>
+                    ({getConfidenceLabel(editedData.extraction_confidence.internships)} confidence)
+                  </span>
+                )}
+              </label>
+              <input
+                type="text"
+                value={editedData.internships?.join(', ') || ''}
+                onChange={(e) => updateField('internships', e.target.value.split(',').map(s => s.trim()))}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>

@@ -995,6 +995,16 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                 </div>
               )}
 
+              {/* Internships */}
+              {candidate.internships && (
+                <div>
+                  <h3 className="mb-4">Internships</h3>
+                  <div className="bg-purple-50 border border-purple-200 p-4 rounded-lg">
+                    <p className="text-sm whitespace-pre-line">{candidate.internships}</p>
+                  </div>
+                </div>
+              )}
+
               {/* Previous Employment */}
               {candidate.previous_employment && (
                 <div>
@@ -1577,6 +1587,19 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                     </h2>
                     <div className="bg-green-50 p-3 rounded border-l-4 border-green-500">
                       <p className="text-sm whitespace-pre-line text-gray-700">{candidate.certifications}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Internships */}
+                {candidate.internships && (
+                  <div className="mb-6">
+                    <h2 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b-2 border-blue-600 flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-blue-600" />
+                      Internships
+                    </h2>
+                    <div className="bg-purple-50 p-3 rounded border-l-4 border-purple-500">
+                      <p className="text-sm whitespace-pre-line text-gray-700">{candidate.internships}</p>
                     </div>
                   </div>
                 )}

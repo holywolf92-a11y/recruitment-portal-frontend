@@ -205,6 +205,7 @@ export interface Candidate {
   languages?: string;
   education?: string;
   certifications?: string;
+  internships?: string;
   previous_employment?: string;
   passport_expiry?: string;
   professional_summary?: string;
@@ -250,6 +251,7 @@ export interface CreateCandidateData {
   languages?: string;
   education?: string;
   certifications?: string;
+  internships?: string;
   previous_employment?: string;
   passport_expiry?: string;
   professional_summary?: string;
