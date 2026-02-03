@@ -1,5 +1,5 @@
 $BACKEND = "https://recruitment-portal-backend-production-d1f7.up.railway.app"
-$PDF_PATH = "D:\falisha\recruitment-portal-backend\Ibtehaj Uddin Ahmed Siddiqui.pdf"
+$PDF_PATH = "D:\falisha\Recruitment Automation Portal (2)\Abdullah cv.pdf"
 
 Write-Host "=== CV Upload & Parsing Test ===" -ForegroundColor Cyan
 
@@ -9,7 +9,7 @@ $messagePayload = @{
     source = "manual_upload"
     external_message_id = "cv-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
     payload = @{
-        sender_name = "Ibtehaj Uddin Ahmed Siddiqui"
+        sender_name = "Abdullah"
         sender_contact = "cv_upload"
     }
     status = "received"
@@ -37,10 +37,16 @@ try {
     $pdfBytes = [System.IO.File]::ReadAllBytes($PDF_PATH)
     $base64 = [Convert]::ToBase64String($pdfBytes)
     
+    $safeFileName = "Abdullah cv.pdf" -replace '[^a-zA-Z0-9.\-_]', '_'
+    $storageBucket = "documents"
+    $storagePath = "unmatched_documents/manual_upload/$messageId/$safeFileName"
+
     $attachPayload = @{
-        file_name = "Ibtehaj Uddin Ahmed Siddiqui.pdf"
+        file_name = "Abdullah cv.pdf"
         mime_type = "application/pdf"
         attachment_type = "cv"
+        storage_bucket = $storageBucket
+        storage_path = $storagePath
         file_base64 = $base64
     } | ConvertTo-Json -Depth 10
     
