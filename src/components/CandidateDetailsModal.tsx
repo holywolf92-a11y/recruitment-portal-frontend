@@ -3,6 +3,7 @@ import { X, Edit2, Save, Phone, Mail, MapPin, Briefcase, Calendar, FileText, Glo
 import { Candidate } from '../lib/apiClient';
 import { ExtractionReviewModal } from './ExtractionReviewModal';
 import { MissingDataTab } from './MissingDataTab';
+import { AdminOverrideModal } from './AdminOverrideModal';
 import { apiClient } from '../lib/apiClient';
 import { renderPdfFirstPageToDataUrl } from '../lib/pdfThumb';
 
@@ -201,6 +202,9 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
   const [showExtractionModal, setShowExtractionModal] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [extractionError, setExtractionError] = useState<string | null>(null);
+  const [showOverrideModal, setShowOverrideModal] = useState(false);
+  const [documentToOverride, setDocumentToOverride] = useState<Document | null>(null);
+  const [overrideLoading, setOverrideLoading] = useState(false);
 
   // Safety: Reset uploading state if it's been stuck for too long
   useEffect(() => {
@@ -695,6 +699,47 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
       console.error('[QuickApprove] Error approving document:', error);
       const errorMessage = error?.message || 'Failed to approve document';
       alert(`Error approving document: ${errorMessage}`);
+    }
+  };
+
+  // Handle admin override (for rejected documents - requires password)
+  const handleRequestOverride = (doc: Document) => {
+    setDocumentToOverride(doc);
+    setShowOverrideModal(true);
+  };
+
+  // Handle admin override confirmation
+  const handleOverrideConfirm = async (password: string, justification: string) => {
+    if (!documentToOverride) return;
+
+    setOverrideLoading(true);
+    try {
+      // Get admin email from localStorage or prompt
+      const adminEmail = localStorage.getItem('userEmail') || prompt('Enter your admin email:');
+      if (!adminEmail) {
+        throw new Error('Admin email is required');
+      }
+
+      console.log('[AdminOverride] Overriding document:', documentToOverride.id, documentToOverride.fileName);
+      await apiClient.overrideCandidateDocument(
+        documentToOverride.id,
+        adminEmail,
+        password,
+        justification
+      );
+      console.log('[AdminOverride] Document override successful');
+
+      alert('Document successfully overridden and approved!');
+
+      // Close modal and refresh documents
+      setShowOverrideModal(false);
+      setDocumentToOverride(null);
+      await fetchDocuments();
+    } catch (error: any) {
+      console.error('[AdminOverride] Error overriding document:', error);
+      throw error; // Let AdminOverrideModal handle the error display
+    } finally {
+      setOverrideLoading(false);
     }
   };
 
@@ -1375,6 +1420,17 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                               </>
                             )}
                             
+                            {/* Override button for rejected documents */}
+                            {(doc.verification_status === 'rejected_mismatch' || doc.verification_status === 'failed') && (
+                              <button 
+                                onClick={() => handleRequestOverride(doc)}
+                                className="px-3 py-1.5 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 transition-colors flex items-center gap-1.5 text-sm"
+                                title="Admin override - requires password">
+                                <Shield className="w-3.5 h-3.5" />
+                                Override
+                              </button>
+                            )}
+                            
                             <button 
                               onClick={() => handleDeleteDocument(doc)}
                               className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center gap-1.5 text-sm">
@@ -1867,6 +1923,25 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
             }
           `}</style>
         </div>
+      )}
+
+      {/* Admin Override Modal */}
+      {showOverrideModal && documentToOverride && (
+        <AdminOverrideModal
+          documentId={documentToOverride.id}
+          documentName={documentToOverride.fileName}
+          documentCategory={documentToOverride.category}
+          rejectionCode={documentToOverride.rejection?.rejection_code}
+          rejectionReason={documentToOverride.rejection?.rejection_reason}
+          isOverridable={true}
+          requiredRole="admin"
+          onClose={() => {
+            setShowOverrideModal(false);
+            setDocumentToOverride(null);
+          }}
+          onConfirm={handleOverrideConfirm}
+          loading={overrideLoading}
+        />
       )}
     </div>
   );
