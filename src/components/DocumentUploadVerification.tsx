@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Upload, File, CheckCircle, AlertCircle, Clock, XCircle, FileText, Shield, Award, Briefcase, Heart, Image as ImageIcon, FileQuestion } from 'lucide-react';
+import { Upload, File, CheckCircle, AlertCircle, Clock, XCircle, FileText, Shield, Award, Briefcase, Heart, Image as ImageIcon, FileQuestion, GraduationCap } from 'lucide-react';
 import { apiClient } from '../lib/apiClient';
 
 interface DocumentUploadVerificationProps {
@@ -8,16 +8,19 @@ interface DocumentUploadVerificationProps {
 }
 
 const DOCUMENT_CATEGORIES = {
-  cv_resume: { label: 'CV / Resume', icon: FileText, color: 'blue' },
-  passport: { label: 'Passport', icon: Shield, color: 'purple' },
-  cnic: { label: 'CNIC (National ID)', icon: Shield, color: 'indigo' },
-  driving_license: { label: 'Driving License', icon: Shield, color: 'cyan' },
-  police_character_certificate: { label: 'Police Character Certificate', icon: Shield, color: 'teal' },
-  certificates: { label: 'Certificates', icon: Award, color: 'green' },
-  contracts: { label: 'Contracts', icon: Briefcase, color: 'orange' },
-  medical_reports: { label: 'Medical Reports', icon: Heart, color: 'red' },
-  photos: { label: 'Photos', icon: ImageIcon, color: 'pink' },
-  other_documents: { label: 'Other Documents', icon: FileQuestion, color: 'gray' },
+  cv_resume: { label: 'CV / Resume', icon: FileText, color: 'blue', description: 'Curriculum vitae or resume' },
+  passport: { label: 'Passport', icon: Shield, color: 'purple', description: 'Passport copy or scan' },
+  cnic: { label: 'CNIC (National ID)', icon: Shield, color: 'indigo', description: 'Pakistani National ID Card' },
+  driving_license: { label: 'Driving License', icon: Shield, color: 'cyan', description: 'Driver\'s license' },
+  police_character_certificate: { label: 'Police Certificate', icon: Shield, color: 'teal', description: 'Police clearance, character certificate' },
+  educational_documents: { label: 'Educational Documents', icon: GraduationCap, color: 'blue', description: 'Degrees, diplomas, transcripts, marksheets' },
+  experience_certificates: { label: 'Experience Certificates', icon: Briefcase, color: 'emerald', description: 'Employment certificates, experience letters' },
+  navttc_reports: { label: 'NAVTTC Reports', icon: Award, color: 'amber', description: 'NAVTTC vocational training certificates' },
+  certificates: { label: 'Professional Certificates', icon: Award, color: 'green', description: 'Skill certifications, professional licenses' },
+  contracts: { label: 'Contracts', icon: Briefcase, color: 'orange', description: 'Employment contracts, agreements' },
+  medical_reports: { label: 'Medical Reports', icon: Heart, color: 'red', description: 'Medical test reports, health certificates' },
+  photos: { label: 'Photos', icon: ImageIcon, color: 'pink', description: 'Passport photos, ID photos' },
+  other_documents: { label: 'Other Documents', icon: FileQuestion, color: 'gray', description: 'Miscellaneous documents' },
 };
 
 const VERIFICATION_STATUS = {

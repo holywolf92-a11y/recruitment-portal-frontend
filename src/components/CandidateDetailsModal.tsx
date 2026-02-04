@@ -17,7 +17,7 @@ interface Document {
   id: string;
   fileName: string;
   fileType: string;
-  category: 'CV' | 'Passport' | 'Certificate' | 'Contract' | 'Medical' | 'Photo' | 'Other';
+  category: 'CV' | 'Passport' | 'Educational' | 'Experience' | 'NAVTTC' | 'Police' | 'Certificate' | 'Contract' | 'Medical' | 'Photo' | 'Other';
   uploadedBy: string;
   uploadedDate: string;
   fileSize: string;
@@ -267,6 +267,10 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
         let category: Document['category'] = 'Other';
         if (doc.category === 'cv_resume') category = 'CV';
         else if (doc.category === 'passport') category = 'Passport';
+        else if (doc.category === 'educational_documents') category = 'Educational';
+        else if (doc.category === 'experience_certificates') category = 'Experience';
+        else if (doc.category === 'navttc_reports') category = 'NAVTTC';
+        else if (doc.category === 'police_character_certificate') category = 'Police';
         else if (doc.category === 'certificates') category = 'Certificate';
         else if (doc.category === 'contracts') category = 'Contract';
         else if (doc.category === 'medical_reports') category = 'Medical';
@@ -1406,7 +1410,11 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-700">
                   <div>📄 CV / Resume</div>
                   <div>🛂 Passport</div>
-                  <div>🎓 Certificates</div>
+                  <div>🎓 Educational Documents</div>
+                  <div>💼 Experience Certificates</div>
+                  <div>👷 NAVTTC Reports</div>
+                  <div>👮 Police Certificate</div>
+                  <div>📜 Professional Certificates</div>
                   <div>📋 Contracts</div>
                   <div>🏥 Medical Reports</div>
                   <div>📷 Photos</div>

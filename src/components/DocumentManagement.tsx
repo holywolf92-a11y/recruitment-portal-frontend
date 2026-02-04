@@ -265,7 +265,11 @@ export function DocumentManagement() {
             <option value="all">All Categories</option>
             <option value="CV">CVs</option>
             <option value="Passport">Passports</option>
-            <option value="Certificate">Certificates</option>
+            <option value="Educational">Educational Documents</option>
+            <option value="Experience">Experience Certificates</option>
+            <option value="NAVTTC">NAVTTC Reports</option>
+            <option value="Police">Police Certificate</option>
+            <option value="Certificate">Professional Certificates</option>
             <option value="Contract">Contracts</option>
             <option value="Medical">Medical</option>
             <option value="Photo">Photos</option>
