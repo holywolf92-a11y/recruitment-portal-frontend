@@ -35,21 +35,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  console.log('[AuthContext] Init - supabaseUrl:', supabaseUrl?.substring(0, 30) + '...');
+  console.log('[AuthContext] Init - supabaseAnonKey:', supabaseAnonKey?.substring(0, 20) + '...');
+
   useEffect(() => {
+    console.log('[AuthContext] Getting initial session...');
     // Get initial session
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
+        console.log('[AuthContext] Got session:', session?.user?.email);
         setSession(session);
         setLoading(false);
       })
       .catch((error) => {
-        console.error('Error getting session:', error);
+        console.error('[AuthContext] Error getting session:', error);
         setLoading(false);
       });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
+        console.log('[AuthContext] Auth state changed:', _event, session?.user?.email);
         setSession(session);
         setLoading(false);
       }
@@ -59,11 +65,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) throw error;
+    console.log('[AuthContext] signIn called:', email);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      console.log('[AuthContext] signInWithPassword response:', { data, error });
+      if (error) {
+        console.error('[AuthContext] signIn error:', error);
+        throw error;
+      }
+      console.log('[AuthContext] signIn successful');
+    } catch (err) {
+      console.error('[AuthContext] signIn exception:', err);
+      throw err;
+    }
   };
 
   const signOut = async () => {
