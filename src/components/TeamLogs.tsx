@@ -57,7 +57,7 @@ export const TeamLogs = () => {
 
   const fetchEmployees = async () => {
     try {
-      const response = await apiClient.get('/api/candidates/users'); // Adjust endpoint if needed
+      const response = await apiClient.get('/candidates/users'); // Adjust endpoint if needed
       setEmployees(response || []);
     } catch (error) {
       console.error('Failed to fetch employees:', error);
@@ -67,7 +67,7 @@ export const TeamLogs = () => {
   const fetchTeamLogs = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get('/api/employee-logs/team/logs', {
+      const response = await apiClient.get('/employee-logs/team/logs', {
         params: {
           startDate: filters.startDate,
           endDate: filters.endDate,

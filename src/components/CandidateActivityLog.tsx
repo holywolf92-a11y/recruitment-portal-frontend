@@ -33,7 +33,7 @@ export const CandidateActivityLog = ({ candidateId, candidateName = 'Candidate' 
     try {
       setLoading(true);
       setError(null);
-      const response = await apiClient.get(`/api/employee-logs/candidate/${candidateId}/activity`, {
+      const response = await apiClient.get(`/employee-logs/candidate/${candidateId}/activity`, {
         params: {
           limit: 100,
         },

@@ -59,7 +59,7 @@ export const EmployeeDashboard = () => {
       const today = new Date().toISOString().split('T')[0];
       console.log('[EmployeeDashboard] Calling API...');
 
-      const response = await apiClient.get<any>('/api/employee-logs/logs', {
+      const response = await apiClient.get<any>('/employee-logs/logs', {
         params: {
           startDate: today,
           endDate: today,

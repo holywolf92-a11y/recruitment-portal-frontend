@@ -66,7 +66,7 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
   const fetchTaskTypes = async () => {
     try {
       setLoadingTaskTypes(true);
-      const response = await apiClient.get('/api/employee-logs/task-types');
+      const response = await apiClient.get('/employee-logs/task-types');
       setTaskTypes(response.data || []);
     } catch (err: any) {
       console.error('Failed to fetch task types:', err);
@@ -79,7 +79,7 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
   const fetchCandidates = async () => {
     try {
       setLoadingCandidates(true);
-      const response = await apiClient.get('/api/candidates?limit=1000');
+      const response = await apiClient.get('/candidates?limit=1000');
       setCandidates(response || []);
     } catch (err: any) {
       console.error('Failed to fetch candidates:', err);
@@ -101,7 +101,7 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
 
     try {
       setLoading(true);
-      await apiClient.post('/api/employee-logs/logs', {
+      await apiClient.post('/employee-logs/logs', {
         candidate_id: formData.candidate_id,
         task_type_id: formData.task_type_id,
         description: formData.description.trim(),
