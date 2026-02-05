@@ -67,7 +67,6 @@ const AppContent = () => {
   const [professionCounts, setProfessionCounts] = useState<Record<string, number>>({ all: 0 });
 
   useEffect(() => {
-    if (isEmployee) return;
     let isMounted = true;
     (async () => {
       try {
@@ -87,14 +86,11 @@ const AppContent = () => {
     return () => {
       isMounted = false;
     };
-  }, [isEmployee]);
+  }, []);
 
   const isBrowserView = activeTab === 'candidate-excel-browser'; // Excel Browser only (Browser (Excel) removed)
 
   const renderContent = () => {
-    if (isEmployee) {
-      return <EmployeeDashboard />;
-    }
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard />;
@@ -244,7 +240,7 @@ const AppContent = () => {
 
       <div className="flex">
         {/* Sidebar - Hidden when in browser view */}
-        {!isBrowserView && !isEmployee && (
+        {!isBrowserView && (
           <aside className="w-64 bg-white border-r border-gray-200 min-h-[calc(100vh-73px)]">
             <nav className="p-4 space-y-1">
               {/* Dashboard */}

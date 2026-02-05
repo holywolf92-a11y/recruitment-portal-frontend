@@ -9,7 +9,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from './ui/dialog';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
@@ -144,22 +143,22 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
     : 'Select a candidate...';
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="gap-2" type="button" onClick={() => setOpen(true)}>
-          <Plus className="w-4 h-4" />
-          Add Daily Log
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>📝 Add Daily Work Log</DialogTitle>
-          <DialogDescription>
-            Log the work you've done today for a candidate. The log date is auto-set to today.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Button className="gap-2" type="button" onClick={() => setOpen(true)}>
+        <Plus className="w-4 h-4" />
+        Add Daily Log
+      </Button>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>📝 Add Daily Work Log</DialogTitle>
+            <DialogDescription>
+              Log the work you've done today for a candidate. The log date is auto-set to today.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
           {/* Candidate Selection */}
           <div className="space-y-2">
             <Label htmlFor="candidate" className="text-sm font-medium">
@@ -283,8 +282,9 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
           <p className="text-xs text-gray-500 text-center">
             💡 Logs must be structured and candidate-linked. This ensures accountability and audit trails.
           </p>
-        </form>
-      </DialogContent>
-    </Dialog>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
