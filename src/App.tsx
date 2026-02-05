@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Dashboard } from './components/Dashboard';
 import { CandidateManagement } from './components/CandidateManagement_ENHANCED';
 import { EmployerManagement } from './components/EmployerManagement';
@@ -48,7 +48,7 @@ const AppContent = () => {
   console.log('[App] User:', { email: user.email, role: user.role, rawRole: session?.user?.user_metadata?.role });
 
   // Track if we've already redirected to avoid infinite loops
-  const hasRedirected = React.useRef(false);
+  const hasRedirected = useRef(false);
 
   // Route employees to their dashboard on login
   useEffect(() => {
