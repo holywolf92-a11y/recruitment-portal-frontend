@@ -39,9 +39,12 @@ interface DailyLogFormProps {
 }
 
 export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
+  console.log('[DailyLogForm] Component render');
   const { session } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  
+  console.log('[DailyLogForm] State:', { open, loading });
   const [taskTypes, setTaskTypes] = useState<TaskType[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loadingTaskTypes, setLoadingTaskTypes] = useState(true);
@@ -61,7 +64,9 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
+    console.log('[DailyLogForm] useEffect - open changed to:', open);
     if (open) {
+      console.log('[DailyLogForm] Dialog opened, fetching data...');
       fetchTaskTypes();
       fetchCandidates();
     }
@@ -142,26 +147,40 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
     ? candidates.find((c) => c.id === formData.candidate_id)?.name
     : 'Select a candidate...';
 
+  console.log('[DailyLogForm] Rendering return with open =', open);
+  
   return (
     <>
       <Button
         className="gap-2 bg-blue-600 hover:bg-blue-700 text-orange-200 hover:text-orange-100"
         type="button"
         onClick={(e) => {
+          console.log('[DailyLogForm] Button clicked!');
           e.preventDefault();
           e.stopPropagation();
+          console.log('[DailyLogForm] Calling setOpen(true)...');
           setOpen(true);
+          console.log('[DailyLogForm] setOpen(true) called');
         }}
       >
         <Plus className="w-4 h-4" />
         Add Daily Log
       </Button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(newOpen) => {
+        console.log('[DailyLogForm] Dialog onOpenChange:', newOpen);
+        setOpen(newOpen);
+      }}>
         <DialogContent
           className="sm:max-w-md"
-          onPointerDownOutside={(e) => e.preventDefault()}
-          onInteractOutside={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => {
+            console.log('[DailyLogForm] onPointerDownOutside prevented');
+            e.preventDefault();
+          }}
+          onInteractOutside={(e) => {
+            console.log('[DailyLogForm] onInteractOutside prevented');
+            e.preventDefault();
+          }}
         >
         <DialogHeader>
           <DialogTitle>📝 Add Daily Work Log</DialogTitle>
