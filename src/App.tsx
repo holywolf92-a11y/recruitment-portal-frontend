@@ -5,6 +5,7 @@ import { EmployerManagement } from './components/EmployerManagement';
 import { JobOrderManagement } from './components/JobOrderManagement';
 import { Reports } from './components/Reports';
 import { Settings } from './components/Settings';
+import { AdminPanel } from './components/AdminPanel';
 import { PublicApplicationForm } from './components/PublicApplicationForm';
 import { ApplicationLinkGenerator } from './components/ApplicationLinkGenerator';
 import { CVInbox } from './components/CVInbox';
@@ -100,6 +101,8 @@ const AppContent = () => {
         return <Reports />;
       case 'settings':
         return <Settings />;
+      case 'admin-panel':
+        return <AdminPanel />;
       case 'users':
         return <UserManagement />;
       default:
@@ -389,6 +392,20 @@ const AppContent = () => {
               {/* Section: Reports & Settings */}
               <div className="pt-4">
                 <p className="px-4 text-xs font-semibold text-gray-500 mb-2">SYSTEM</p>
+                
+                {user.role === 'Admin' && (
+                  <button
+                    onClick={() => setActiveTab('admin-panel')}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
+                      activeTab === 'admin-panel'
+                        ? 'bg-blue-50 text-blue-600 font-medium'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Shield className="w-4 h-4" />
+                    Admin Panel
+                  </button>
+                )}
                 
                 {hasPermission(user, 'users', 'view') && (
                   <button
