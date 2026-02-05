@@ -144,9 +144,19 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
     : 'Select a candidate...';
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        console.log('[DailyLogForm] onOpenChange:', nextOpen);
+        setOpen(nextOpen);
+      }}
+    >
       <DialogTrigger asChild>
-        <Button className="gap-2" type="button">
+        <Button
+          className="gap-2"
+          type="button"
+          onClick={() => console.log('[DailyLogForm] Trigger clicked')}
+        >
           <Plus className="w-4 h-4" />
           Add Daily Log
         </Button>
