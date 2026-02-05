@@ -410,6 +410,28 @@ class ApiClient {
     return response.json();
   }
 
+  // Generic GET method with support for query params and auth headers
+  async get<T>(endpoint: string, options?: { params?: Record<string, any>; headers?: Record<string, string> }): Promise<T> {
+    let url = endpoint;
+    
+    // Add query parameters if provided
+    if (options?.params) {
+      const queryParams = new URLSearchParams();
+      Object.entries(options.params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, String(value));
+        }
+      });
+      const queryString = queryParams.toString();
+      url += queryString ? `?${queryString}` : '';
+    }
+
+    return this.request<T>(url, {
+      method: 'GET',
+      headers: options?.headers || {},
+    });
+  }
+
   // Candidates API
   async getCandidates(filters: CandidateFilters = {}): Promise<CandidatesResponse> {
     const params = new URLSearchParams();

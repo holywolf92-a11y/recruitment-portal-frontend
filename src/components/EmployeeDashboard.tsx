@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Calendar, Users, Clock, AlertCircle, FileText, TrendingUp } from 'lucide-react';
 import { apiClient } from '../lib/apiClient';
+import { useAuth } from '../lib/authContext';
 import { DailyLogForm } from './DailyLogForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
@@ -23,7 +24,9 @@ interface RecentLog {
 }
 
 export const EmployeeDashboard = () => {
+  const { session } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<TodayStats>({
     logsCreated: 0,
     candidatesHandled: 0,
@@ -40,17 +43,28 @@ export const EmployeeDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+      setError(null);
+      
+      // Get auth token from session
+      const token = session?.session?.access_token || session?.access_token;
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+
       const today = new Date().toISOString().split('T')[0];
 
-      const response = await apiClient.get('/api/employee-logs/logs', {
+      const response = await apiClient.get<any>('/api/employee-logs/logs', {
         params: {
           startDate: today,
           endDate: today,
           limit: 100,
         },
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
       });
 
-      const logs = response.data || [];
+      const logs = response.data || response || [];
 
       // Calculate stats
       const uniqueCandidates = new Set(logs.map((log: any) => log.candidate_id));
@@ -68,6 +82,7 @@ export const EmployeeDashboard = () => {
       setRecentLogs(logs.slice(0, 5));
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
+      setError('Failed to load dashboard data. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -103,7 +118,21 @@ export const EmployeeDashboard = () => {
         <DailyLogForm onSuccess={handleLogSuccess} />
       </div>
 
-      {/* Stats Grid */}
+      {/* Error Alert */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="text-sm font-medium text-red-900">{error}</h3>
+            <button
+              onClick={() => setError(null)}
+              className="text-xs text-red-700 hover:text-red-900 underline mt-1"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Today's Logs */}
         <Card>
