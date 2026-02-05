@@ -6,6 +6,7 @@ import { JobOrderManagement } from './components/JobOrderManagement';
 import { Reports } from './components/Reports';
 import { Settings } from './components/Settings';
 import { AdminPanel } from './components/AdminPanel';
+import { EmployeeDashboard } from './components/EmployeeDashboard';
 import { PublicApplicationForm } from './components/PublicApplicationForm';
 import { ApplicationLinkGenerator } from './components/ApplicationLinkGenerator';
 import { CVInbox } from './components/CVInbox';
@@ -44,6 +45,13 @@ const AppContent = () => {
     lastActive: 'Today'
   };
 
+  // Route employees to their dashboard on login
+  useEffect(() => {
+    if (session && user.role === 'Employee' && activeTab === 'dashboard') {
+      setActiveTab('employee-dashboard');
+    }
+  }, [session, user.role]);
+
   // Build profession filters from live candidates
   const [professions, setProfessions] = useState<string[]>(['all']);
   const [professionCounts, setProfessionCounts] = useState<Record<string, number>>({ all: 0 });
@@ -76,6 +84,8 @@ const AppContent = () => {
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard />;
+      case 'employee-dashboard':
+        return <EmployeeDashboard />;
       case 'cv-inbox':
         return <CVInbox />;
       case 'inbox-ui':
