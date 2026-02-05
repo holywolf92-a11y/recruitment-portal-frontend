@@ -145,7 +145,7 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
   return (
     <>
       <Button
-        className="gap-2"
+        className="gap-2 bg-blue-600 hover:bg-blue-700 text-orange-200 hover:text-orange-100"
         type="button"
         onClick={(e) => {
           e.preventDefault();
