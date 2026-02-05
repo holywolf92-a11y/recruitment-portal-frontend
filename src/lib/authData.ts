@@ -1,5 +1,5 @@
 // User roles and permissions system
-export type UserRole = 'Admin' | 'Recruiter' | 'Viewer' | 'Manager';
+export type UserRole = 'Admin' | 'Recruiter' | 'Viewer' | 'Manager' | 'Employee';
 
 export interface Permission {
   candidates: {
@@ -95,6 +95,15 @@ export const rolePermissions: Record<UserRole, Permission> = {
     users: { view: false, create: false, edit: false, delete: false },
     settings: { view: false, edit: false },
   },
+  Employee: {
+    candidates: { view: false, create: false, edit: false, delete: false, export: false },
+    employers: { view: false, create: false, edit: false, delete: false },
+    jobs: { view: false, create: false, edit: false, delete: false },
+    documents: { view: false, upload: false, delete: false },
+    analytics: { view: false, export: false },
+    users: { view: false, create: false, edit: false, delete: false },
+    settings: { view: false, edit: false },
+  },
 };
 
 // Mock users database
@@ -176,7 +185,7 @@ export const mockUsers: User[] = [
 // Helper function to get user permissions
 export function getUserPermissions(user: User): Permission {
   // If user has custom permissions, merge with role permissions
-  const basePermissions = rolePermissions[user.role];
+  const basePermissions = rolePermissions[user.role] ?? rolePermissions.Viewer;
   if (user.permissions) {
     return {
       candidates: { ...basePermissions.candidates, ...user.permissions.candidates },

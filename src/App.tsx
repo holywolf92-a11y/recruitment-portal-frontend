@@ -47,6 +47,8 @@ const AppContent = () => {
 
   console.log('[App] User:', { email: user.email, role: user.role, rawRole: session?.user?.user_metadata?.role });
 
+  const isEmployee = !!session && user.role === 'Employee';
+
   // Track if we've already redirected to avoid infinite loops
   const hasRedirected = useRef(false);
 
@@ -89,6 +91,9 @@ const AppContent = () => {
   const isBrowserView = activeTab === 'candidate-excel-browser'; // Excel Browser only (Browser (Excel) removed)
 
   const renderContent = () => {
+    if (isEmployee) {
+      return <EmployeeDashboard />;
+    }
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard />;
@@ -238,7 +243,7 @@ const AppContent = () => {
 
       <div className="flex">
         {/* Sidebar - Hidden when in browser view */}
-        {!isBrowserView && (
+        {!isBrowserView && !isEmployee && (
           <aside className="w-64 bg-white border-r border-gray-200 min-h-[calc(100vh-73px)]">
             <nav className="p-4 space-y-1">
               {/* Dashboard */}
