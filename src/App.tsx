@@ -67,6 +67,7 @@ const AppContent = () => {
   const [professionCounts, setProfessionCounts] = useState<Record<string, number>>({ all: 0 });
 
   useEffect(() => {
+    if (isEmployee) return;
     let isMounted = true;
     (async () => {
       try {
@@ -86,7 +87,7 @@ const AppContent = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isEmployee]);
 
   const isBrowserView = activeTab === 'candidate-excel-browser'; // Excel Browser only (Browser (Excel) removed)
 
