@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Users, Plus, Lock, Trash2, Eye, EyeOff, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { apiClient } from '../lib/apiClient';
+import { useAuth } from '../lib/authContext';
 
 interface Employee {
   id: string;
@@ -20,6 +21,7 @@ interface FormData {
 }
 
 export function AdminPanel() {
+  const { session } = useAuth();
   const [activeTab, setActiveTab] = useState<'list' | 'create' | 'manage'>('list');
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(false);
@@ -50,12 +52,14 @@ export function AdminPanel() {
   const loadEmployees = async () => {
     try {
       setLoading(true);
+      const token = session?.session?.access_token || session?.access_token;
+      
       // Fetch employees from backend
       const response = await fetch('/api/auth/employees', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('sb-auth-token') || ''}`
+          'Authorization': `Bearer ${token || ''}`
         }
       });
 
@@ -146,11 +150,13 @@ export function AdminPanel() {
         throw new Error('No employee selected');
       }
 
+      const token = session?.session?.access_token || session?.access_token;
+
       const response = await fetch('/api/auth/change-employee-password', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('sb-auth-token') || ''}`
+          'Authorization': `Bearer ${token || ''}`
         },
         body: JSON.stringify({
           employeeId: selectedEmployee.id,
@@ -182,11 +188,13 @@ export function AdminPanel() {
       setError('');
       setSuccess('');
 
+      const token = session?.session?.access_token || session?.access_token;
+
       const response = await fetch('/api/auth/delete-employee', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('sb-auth-token') || ''}`
+          'Authorization': `Bearer ${token || ''}`
         },
         body: JSON.stringify({ employeeId })
       });
