@@ -47,14 +47,18 @@ const AppContent = () => {
 
   console.log('[App] User:', { email: user.email, role: user.role, rawRole: session?.user?.user_metadata?.role });
 
+  // Track if we've already redirected to avoid infinite loops
+  const hasRedirected = React.useRef(false);
+
   // Route employees to their dashboard on login
   useEffect(() => {
-    console.log('[App] Checking redirect:', { sessionExists: !!session, userRole: user.role, activeTab, shouldRedirect: session && user.role === 'Employee' && activeTab === 'dashboard' });
-    if (session && user.role === 'Employee' && activeTab === 'dashboard') {
+    console.log('[App] Checking redirect:', { sessionExists: !!session, userRole: user.role, activeTab, hasRedirected: hasRedirected.current });
+    if (session && user.role === 'Employee' && activeTab === 'dashboard' && !hasRedirected.current) {
       console.log('[App] Redirecting to employee-dashboard');
+      hasRedirected.current = true;
       setActiveTab('employee-dashboard');
     }
-  }, [session, user.role]);
+  }, [session, user.role, activeTab]);
 
   // Build profession filters from live candidates
   const [professions, setProfessions] = useState<string[]>(['all']);
