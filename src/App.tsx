@@ -14,13 +14,14 @@ import { Login } from './components/Login';
 import { InboxUI } from './components/InboxUI';
 import { CandidateBrowserExcel } from './components/CandidateBrowserExcel';
 import { PublicCandidateProfile } from './components/PublicCandidateProfile';
+import { EmployeesModule } from './components/EmployeesModule';
 import { useAuth, AuthProvider } from './lib/authContext';
 import { CandidateProvider } from './lib/candidateContext';
 import { hasPermission } from './lib/authData';
 import { apiClient } from './lib/apiClient';
 import { APP_CONFIG } from './lib/constants';
 import { Toaster } from './components/ui/sonner';
-import { Users, Briefcase, Building2, FileText, Settings as SettingsIcon, LayoutDashboard, Link2, Inbox, MessageSquare, FolderTree, ArrowLeft, LogOut, Shield, ChevronDown, Mail, Phone } from 'lucide-react';
+import { Users, Briefcase, Building2, FileText, Settings as SettingsIcon, LayoutDashboard, Link2, Inbox, MessageSquare, FolderTree, ArrowLeft, LogOut, Shield, ChevronDown, Mail, Phone, ClipboardList } from 'lucide-react';
 
 const AppContent = () => {
   const { session, signOut, loading } = useAuth();
@@ -89,6 +90,8 @@ const AppContent = () => {
         return <EmployerManagement />;
       case 'jobs':
         return <JobOrderManagement />;
+      case 'employees':
+        return <EmployeesModule userRole={user.role} />;
       case 'templates':
         return <CommunicationTemplates />;
       case 'application-link':
@@ -334,6 +337,23 @@ const AppContent = () => {
                 >
                   <Briefcase className="w-4 h-4" />
                   Job Orders
+                </button>
+              </div>
+
+              {/* Section: Operations & Management */}
+              <div className="pt-4">
+                <p className="px-4 text-xs font-semibold text-gray-500 mb-2">OPERATIONS</p>
+                
+                <button
+                  onClick={() => setActiveTab('employees')}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
+                    activeTab === 'employees'
+                      ? 'bg-blue-50 text-blue-600 font-medium'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <ClipboardList className="w-4 h-4" />
+                  Employees
                 </button>
               </div>
 
