@@ -37,6 +37,7 @@ export const EmployeeDashboard = () => {
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
+    console.log('[EmployeeDashboard] Component mounted, session:', session?.user?.email);
     fetchDashboardData();
   }, [refreshKey]);
 
@@ -45,13 +46,18 @@ export const EmployeeDashboard = () => {
       setLoading(true);
       setError(null);
       
+      console.log('[EmployeeDashboard] Fetching data...');
+      
       // Get auth token from session
       const token = session?.session?.access_token || session?.access_token;
+      console.log('[EmployeeDashboard] Token available:', !!token);
+      
       if (!token) {
         throw new Error('No authentication token available');
       }
 
       const today = new Date().toISOString().split('T')[0];
+      console.log('[EmployeeDashboard] Calling API...');
 
       const response = await apiClient.get<any>('/api/employee-logs/logs', {
         params: {
@@ -64,6 +70,7 @@ export const EmployeeDashboard = () => {
         },
       });
 
+      console.log('[EmployeeDashboard] API Response:', response);
       const logs = response.data || response || [];
 
       // Calculate stats
@@ -80,9 +87,10 @@ export const EmployeeDashboard = () => {
 
       // Set recent logs (last 5)
       setRecentLogs(logs.slice(0, 5));
+      console.log('[EmployeeDashboard] Dashboard loaded successfully');
     } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
-      setError('Failed to load dashboard data. Please try again.');
+      console.error('[EmployeeDashboard] Error fetching dashboard data:', error);
+      setError(`Failed to load dashboard data: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setLoading(false);
     }
