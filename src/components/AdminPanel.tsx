@@ -52,52 +52,38 @@ export function AdminPanel() {
   const loadEmployees = async () => {
     try {
       setLoading(true);
+      setError('');
       const token = session?.session?.access_token || session?.access_token;
       
+      if (!token) {
+        setError('No authentication token available');
+        return;
+      }
+
       // Fetch employees from backend
       const response = await fetch('/api/auth/employees', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token || ''}`
+          'Authorization': `Bearer ${token}`
         }
       });
 
       if (!response.ok) {
-        throw new Error('Failed to load employees');
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to load employees (${response.status})`);
       }
 
       const data = await response.json();
-      setEmployees(data.employees || []);
+      if (data.employees && Array.isArray(data.employees)) {
+        setEmployees(data.employees);
+      } else {
+        setEmployees([]);
+      }
     } catch (err: any) {
-      // Fallback to demo data if endpoint fails
-      const demoEmployees: Employee[] = [
-        {
-          id: '1',
-          email: 'employee1@falisha.com',
-          firstName: 'Ahmed',
-          lastName: 'Khan',
-          phone: '+971501234567',
-          createdAt: '2026-02-01'
-        },
-        {
-          id: '2',
-          email: 'employee2@falisha.com',
-          firstName: 'Fatima',
-          lastName: 'Ali',
-          phone: '+971502345678',
-          createdAt: '2026-02-01'
-        },
-        {
-          id: '3',
-          email: 'employee3@falisha.com',
-          firstName: 'Mohammad',
-          lastName: 'Hassan',
-          phone: '+971503456789',
-          createdAt: '2026-02-01'
-        }
-      ];
-      setEmployees(demoEmployees);
+      console.error('Error loading employees:', err);
+      setError(`Failed to load employees: ${err.message}`);
+      setEmployees([]);
     } finally {
       setLoading(false);
     }
@@ -122,7 +108,9 @@ export function AdminPanel() {
       }
 
       const data = await response.json();
-      setSuccess(`Employee ${formData.email} created successfully!`);
+      setSuccess(`Employee ${formData.email} created successfully! Reloading employee list...`);
+      
+      // Clear form
       setFormData({
         email: '',
         password: '',
@@ -130,8 +118,12 @@ export function AdminPanel() {
         lastName: '',
         phone: ''
       });
+      
+      // Switch to list tab
       setActiveTab('list');
-      loadEmployees();
+      
+      // Reload employees to show the new one
+      await loadEmployees();
     } catch (err: any) {
       setError(err.message);
     } finally {
