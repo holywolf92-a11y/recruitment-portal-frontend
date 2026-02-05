@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Clock, MapPin, AlertCircle, Plus } from 'lucide-react';
 import { apiClient } from '../lib/apiClient';
 import { useAuth } from '../lib/authContext';
@@ -9,7 +9,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from './ui/dialog';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
@@ -42,7 +41,6 @@ interface DailyLogFormProps {
 export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
   const { session } = useAuth();
   const [open, setOpen] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const [loading, setLoading] = useState(false);
   const [taskTypes, setTaskTypes] = useState<TaskType[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -145,33 +143,26 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
     : 'Select a candidate...';
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          className="gap-2"
-          type="button"
-          ref={triggerRef}
-        >
-          <Plus className="w-4 h-4" />
-          Add Daily Log
-        </Button>
-      </DialogTrigger>
-
-      <DialogContent
-        className="sm:max-w-md"
-        onPointerDownOutside={(e) => {
-          const target = (e.target as HTMLElement) || null;
-          if (target && triggerRef.current && triggerRef.current.contains(target)) {
-            e.preventDefault();
-          }
-        }}
-        onInteractOutside={(e) => {
-          const target = (e.target as HTMLElement) || null;
-          if (target && triggerRef.current && triggerRef.current.contains(target)) {
-            e.preventDefault();
-          }
+    <>
+      <Button
+        className="gap-2"
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen(true);
         }}
       >
+        <Plus className="w-4 h-4" />
+        Add Daily Log
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent
+          className="sm:max-w-md"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+        >
         <DialogHeader>
           <DialogTitle>📝 Add Daily Work Log</DialogTitle>
           <DialogDescription>
@@ -304,7 +295,8 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
             💡 Logs must be structured and candidate-linked. This ensures accountability and audit trails.
           </p>
         </form>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
