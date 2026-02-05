@@ -432,6 +432,15 @@ class ApiClient {
     });
   }
 
+  // Generic POST method with optional auth headers
+  async post<T>(endpoint: string, body?: any, options?: { headers?: Record<string, string> }): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'POST',
+      headers: options?.headers || {},
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  }
+
   // Candidates API
   async getCandidates(filters: CandidateFilters = {}): Promise<CandidatesResponse> {
     const params = new URLSearchParams();

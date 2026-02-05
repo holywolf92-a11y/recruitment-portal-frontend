@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Clock, MapPin, AlertCircle, Plus } from 'lucide-react';
 import { apiClient } from '../lib/apiClient';
+import { useAuth } from '../lib/authContext';
 import { Button } from './ui/button';
 import {
   Dialog,
@@ -39,12 +40,16 @@ interface DailyLogFormProps {
 }
 
 export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
+  const { session } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [taskTypes, setTaskTypes] = useState<TaskType[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loadingTaskTypes, setLoadingTaskTypes] = useState(true);
   const [loadingCandidates, setLoadingCandidates] = useState(true);
+
+  const token = (session as any)?.access_token || (session as any)?.session?.access_token;
+  const authHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
   const [formData, setFormData] = useState({
     candidate_id: candidateId || '',
@@ -66,7 +71,9 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
   const fetchTaskTypes = async () => {
     try {
       setLoadingTaskTypes(true);
-      const response = await apiClient.get('/employee-logs/task-types');
+      const response = await apiClient.get<{ success: boolean; data: TaskType[] }>('/employee-logs/task-types', {
+        headers: authHeaders,
+      });
       setTaskTypes(response.data || []);
     } catch (err: any) {
       console.error('Failed to fetch task types:', err);
@@ -79,8 +86,10 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
   const fetchCandidates = async () => {
     try {
       setLoadingCandidates(true);
-      const response = await apiClient.get('/candidates?limit=1000');
-      setCandidates(response || []);
+      const response = await apiClient.get<{ candidates: Candidate[] }>('/candidates', {
+        params: { limit: 1000 },
+      });
+      setCandidates(response.candidates || []);
     } catch (err: any) {
       console.error('Failed to fetch candidates:', err);
       setError('Failed to load candidates');
@@ -106,6 +115,8 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
         task_type_id: formData.task_type_id,
         description: formData.description.trim(),
         time_spent_minutes: formData.time_spent_minutes,
+      }, {
+        headers: authHeaders,
       });
 
       setSuccess(true);
@@ -135,7 +146,7 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2">
+        <Button className="gap-2" type="button" onClick={() => setOpen(true)}>
           <Plus className="w-4 h-4" />
           Add Daily Log
         </Button>
