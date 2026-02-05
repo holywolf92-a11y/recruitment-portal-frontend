@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Lock, Mail, Eye, EyeOff, AlertCircle, Users, Shield, UserCheck, LogIn } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, AlertCircle, Users, Shield, UserCheck, LogIn, BarChart3, CheckCircle } from 'lucide-react';
 import { useAuth } from '../lib/authContext';
 
 export function Login() {
@@ -9,6 +9,7 @@ export function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [loginType, setLoginType] = useState<'admin' | 'employee'>('admin');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,11 +25,18 @@ export function Login() {
     }
   };
 
-  // Demo accounts for easy login (update with real Supabase users)
-  const demoAccounts = [
+  // Demo accounts for Admin and Employees
+  const adminAccounts = [
     { role: 'Admin', email: 'admin@falisha.com', password: 'admin123', color: 'from-purple-500 to-purple-600' },
-    // Add more accounts as needed
   ];
+
+  const employeeAccounts = [
+    { role: 'Employee', email: 'employee1@falisha.com', password: 'employee123', name: 'Ahmed Khan', color: 'from-blue-500 to-blue-600' },
+    { role: 'Employee', email: 'employee2@falisha.com', password: 'employee123', name: 'Fatima Ali', color: 'from-green-500 to-green-600' },
+    { role: 'Employee', email: 'employee3@falisha.com', password: 'employee123', name: 'Mohammad Hassan', color: 'from-orange-500 to-orange-600' },
+  ];
+
+  const demoAccounts = loginType === 'admin' ? adminAccounts : employeeAccounts;
 
   const quickLogin = (demoEmail: string, demoPassword: string) => {
     setEmail(demoEmail);
@@ -47,6 +55,32 @@ export function Login() {
             </div>
             <h1 className="text-3xl text-gray-900 mb-2">Falisha Manpower</h1>
             <p className="text-gray-600">AI-Powered Recruitment Portal</p>
+          </div>
+
+          {/* Login Type Toggle */}
+          <div className="flex gap-4 mb-8">
+            <button
+              onClick={() => setLoginType('admin')}
+              className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
+                loginType === 'admin'
+                  ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Shield className="w-4 h-4 inline mr-2" />
+              Admin Login
+            </button>
+            <button
+              onClick={() => setLoginType('employee')}
+              className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
+                loginType === 'employee'
+                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Users className="w-4 h-4 inline mr-2" />
+              Employee Login
+            </button>
           </div>
 
           {/* Login Form */}
@@ -120,7 +154,11 @@ export function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
+              className={`w-full text-white py-3 rounded-lg transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium ${
+                loginType === 'admin'
+                  ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800'
+                  : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
+              }`}
             >
               {isLoading ? (
                 <>
@@ -166,38 +204,70 @@ export function Login() {
           </div>
         </div>
 
-        {/* Right Side - Demo Accounts */}
+        {/* Right Side - Demo Accounts & Info */}
         <div className="space-y-6">
           {/* Welcome Card */}
-          <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl shadow-2xl p-8 text-white">
-            <h2 className="text-2xl mb-4">Welcome Back!</h2>
+          <div className={`rounded-2xl shadow-2xl p-8 text-white ${
+            loginType === 'admin'
+              ? 'bg-gradient-to-br from-purple-600 to-purple-700'
+              : 'bg-gradient-to-br from-blue-600 to-blue-700'
+          }`}>
+            <h2 className="text-2xl mb-4">
+              {loginType === 'admin' ? 'Admin Portal' : 'Employee Portal'}
+            </h2>
             <p className="text-blue-100 mb-6">
-              Access your recruitment dashboard to manage candidates, track applications, and streamline your hiring process with AI-powered insights.
+              {loginType === 'admin'
+                ? 'Access your recruitment dashboard to manage candidates, track applications, and streamline your hiring process with AI-powered insights.'
+                : 'Log your daily work activities, track completed tasks, and contribute to the team\'s progress. Monitor your productivity and achievements.'}
             </p>
             <div className="grid grid-cols-3 gap-4">
-              <div className="bg-white bg-opacity-20 rounded-lg p-4 text-center">
-                <Users className="w-8 h-8 mx-auto mb-2" />
-                <div className="text-2xl mb-1">150+</div>
-                <div className="text-xs text-blue-100">Candidates</div>
-              </div>
-              <div className="bg-white bg-opacity-20 rounded-lg p-4 text-center">
-                <Shield className="w-8 h-8 mx-auto mb-2" />
-                <div className="text-2xl mb-1">98%</div>
-                <div className="text-xs text-blue-100">Success Rate</div>
-              </div>
-              <div className="bg-white bg-opacity-20 rounded-lg p-4 text-center">
-                <UserCheck className="w-8 h-8 mx-auto mb-2" />
-                <div className="text-2xl mb-1">45</div>
-                <div className="text-xs text-blue-100">Deployed</div>
-              </div>
+              {loginType === 'admin' ? (
+                <>
+                  <div className="bg-white bg-opacity-20 rounded-lg p-4 text-center">
+                    <Users className="w-8 h-8 mx-auto mb-2" />
+                    <div className="text-2xl mb-1">150+</div>
+                    <div className="text-xs text-blue-100">Candidates</div>
+                  </div>
+                  <div className="bg-white bg-opacity-20 rounded-lg p-4 text-center">
+                    <Shield className="w-8 h-8 mx-auto mb-2" />
+                    <div className="text-2xl mb-1">98%</div>
+                    <div className="text-xs text-blue-100">Success Rate</div>
+                  </div>
+                  <div className="bg-white bg-opacity-20 rounded-lg p-4 text-center">
+                    <UserCheck className="w-8 h-8 mx-auto mb-2" />
+                    <div className="text-2xl mb-1">45</div>
+                    <div className="text-xs text-blue-100">Deployed</div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="bg-white bg-opacity-20 rounded-lg p-4 text-center">
+                    <BarChart3 className="w-8 h-8 mx-auto mb-2" />
+                    <div className="text-2xl mb-1">120+</div>
+                    <div className="text-xs text-blue-100">Task Types</div>
+                  </div>
+                  <div className="bg-white bg-opacity-20 rounded-lg p-4 text-center">
+                    <CheckCircle className="w-8 h-8 mx-auto mb-2" />
+                    <div className="text-2xl mb-1">89%</div>
+                    <div className="text-xs text-blue-100">Completion Rate</div>
+                  </div>
+                  <div className="bg-white bg-opacity-20 rounded-lg p-4 text-center">
+                    <Users className="w-8 h-8 mx-auto mb-2" />
+                    <div className="text-2xl mb-1">25</div>
+                    <div className="text-xs text-blue-100">Team Members</div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
           {/* Demo Accounts Card */}
           <div className="bg-white rounded-2xl shadow-2xl p-8">
-            <h3 className="text-xl mb-2 text-gray-900">Demo Accounts</h3>
+            <h3 className="text-xl mb-2 text-gray-900">
+              {loginType === 'admin' ? 'Admin Accounts' : 'Demo Employees'}
+            </h3>
             <p className="text-sm text-gray-600 mb-6">
-              Click any account below to quick login and explore different role permissions
+              Click any account below to quick login and explore {loginType === 'admin' ? 'admin' : 'employee'} features
             </p>
             <div className="space-y-3">
               {demoAccounts.map((account) => (
@@ -210,14 +280,17 @@ export function Login() {
                     <div className="flex items-center justify-between text-white">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                          {account.role === 'Admin' && <Shield className="w-5 h-5" />}
-                          {account.role === 'Manager' && <UserCheck className="w-5 h-5" />}
-                          {account.role === 'Recruiter' && <Users className="w-5 h-5" />}
-                          {account.role === 'Viewer' && <Eye className="w-5 h-5" />}
+                          {loginType === 'admin' ? (
+                            <Shield className="w-5 h-5" />
+                          ) : (
+                            <UserCheck className="w-5 h-5" />
+                          )}
                         </div>
                         <div className="text-left">
                           <div className="font-semibold">{account.role}</div>
-                          <div className="text-xs text-white text-opacity-90">{account.email}</div>
+                          <div className="text-xs text-white text-opacity-90">
+                            {(account as any).name || account.email}
+                          </div>
                         </div>
                       </div>
                       <div className="text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
@@ -230,13 +303,38 @@ export function Login() {
             </div>
             
             {/* Permissions Info */}
-            <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm font-semibold text-blue-900 mb-2">Role Permissions:</p>
-              <ul className="text-xs text-blue-800 space-y-1">
-                <li><strong>Admin:</strong> Full access to all features and settings</li>
-                <li><strong>Manager:</strong> Manage candidates, view analytics, no user management</li>
-                <li><strong>Recruiter:</strong> Add/edit candidates, upload documents, basic analytics</li>
-                <li><strong>Viewer:</strong> Read-only access to candidates and jobs</li>
+            <div className={`mt-6 border rounded-lg p-4 ${
+              loginType === 'admin'
+                ? 'bg-purple-50 border-purple-200'
+                : 'bg-blue-50 border-blue-200'
+            }`}>
+              <p className={`text-sm font-semibold mb-2 ${
+                loginType === 'admin'
+                  ? 'text-purple-900'
+                  : 'text-blue-900'
+              }`}>
+                Role Permissions:
+              </p>
+              <ul className={`text-xs space-y-1 ${
+                loginType === 'admin'
+                  ? 'text-purple-800'
+                  : 'text-blue-800'
+              }`}>
+                {loginType === 'admin' ? (
+                  <>
+                    <li><strong>Admin:</strong> Full access to all features and settings</li>
+                    <li><strong>Manager:</strong> Manage candidates, view analytics, no user management</li>
+                    <li><strong>Recruiter:</strong> Add/edit candidates, upload documents, basic analytics</li>
+                    <li><strong>Viewer:</strong> Read-only access to candidates and jobs</li>
+                  </>
+                ) : (
+                  <>
+                    <li><strong>Employee:</strong> Log daily work activities</li>
+                    <li><strong>View Progress:</strong> Monitor team's task completion</li>
+                    <li><strong>Track Metrics:</strong> See personal and team performance</li>
+                    <li><strong>Submit Reports:</strong> Daily work summaries and activity logs</li>
+                  </>
+                )}
               </ul>
             </div>
           </div>
