@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Clock, MapPin, AlertCircle, Plus } from 'lucide-react';
 import { apiClient } from '../lib/apiClient';
 import { useAuth } from '../lib/authContext';
@@ -42,6 +42,7 @@ interface DailyLogFormProps {
 export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
   const { session } = useAuth();
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const [loading, setLoading] = useState(false);
   const [taskTypes, setTaskTypes] = useState<TaskType[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -144,25 +145,33 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
     : 'Select a candidate...';
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        console.log('[DailyLogForm] onOpenChange:', nextOpen);
-        setOpen(nextOpen);
-      }}
-    >
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button
           className="gap-2"
           type="button"
-          onClick={() => console.log('[DailyLogForm] Trigger clicked')}
+          ref={triggerRef}
         >
           <Plus className="w-4 h-4" />
           Add Daily Log
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-md">
+      <DialogContent
+        className="sm:max-w-md"
+        onPointerDownOutside={(e) => {
+          const target = (e.target as HTMLElement) || null;
+          if (target && triggerRef.current && triggerRef.current.contains(target)) {
+            e.preventDefault();
+          }
+        }}
+        onInteractOutside={(e) => {
+          const target = (e.target as HTMLElement) || null;
+          if (target && triggerRef.current && triggerRef.current.contains(target)) {
+            e.preventDefault();
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle>📝 Add Daily Work Log</DialogTitle>
           <DialogDescription>
