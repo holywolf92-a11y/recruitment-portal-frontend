@@ -45,9 +45,13 @@ const AppContent = () => {
     lastActive: 'Today'
   };
 
+  console.log('[App] User:', { email: user.email, role: user.role, rawRole: session?.user?.user_metadata?.role });
+
   // Route employees to their dashboard on login
   useEffect(() => {
+    console.log('[App] Checking redirect:', { sessionExists: !!session, userRole: user.role, activeTab, shouldRedirect: session && user.role === 'Employee' && activeTab === 'dashboard' });
     if (session && user.role === 'Employee' && activeTab === 'dashboard') {
+      console.log('[App] Redirecting to employee-dashboard');
       setActiveTab('employee-dashboard');
     }
   }, [session, user.role]);
