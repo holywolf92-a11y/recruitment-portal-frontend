@@ -173,13 +173,15 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Candidate Selection */}
           <div className="space-y-2">
-            <Label htmlFor="candidate" className="text-sm font-medium">
+            <Label htmlFor="candidate_id" className="text-sm font-medium">
               Candidate <span className="text-red-500">*</span>
             </Label>
+
+            <input type="hidden" name="candidate_id" value={formData.candidate_id} />
             <Select value={formData.candidate_id} onValueChange={(value) =>
               setFormData({ ...formData, candidate_id: value })
             }>
-              <SelectTrigger className="w-full">
+              <SelectTrigger id="candidate_id" className="w-full">
                 <SelectValue placeholder="Select a candidate..." />
               </SelectTrigger>
               <SelectContent className="max-h-64">
@@ -200,13 +202,15 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
 
           {/* Task Type Selection */}
           <div className="space-y-2">
-            <Label htmlFor="task-type" className="text-sm font-medium">
+            <Label htmlFor="task_type_id" className="text-sm font-medium">
               Task Type <span className="text-red-500">*</span>
             </Label>
+
+            <input type="hidden" name="task_type_id" value={formData.task_type_id} />
             <Select value={formData.task_type_id} onValueChange={(value) =>
               setFormData({ ...formData, task_type_id: value })
             }>
-              <SelectTrigger className="w-full">
+              <SelectTrigger id="task_type_id" className="w-full">
                 <SelectValue placeholder="Select a task type..." />
               </SelectTrigger>
               <SelectContent className="max-h-64">
@@ -232,6 +236,7 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
             </Label>
             <Textarea
               id="description"
+              name="description"
               placeholder="What exactly did you do? Be specific..."
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -249,6 +254,7 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
             </Label>
             <Input
               id="time-spent"
+              name="time_spent_minutes"
               type="number"
               min="0"
               max="480"
