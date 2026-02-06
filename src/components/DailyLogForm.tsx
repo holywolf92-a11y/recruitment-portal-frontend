@@ -49,6 +49,11 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loadingTaskTypes, setLoadingTaskTypes] = useState(true);
   const [loadingCandidates, setLoadingCandidates] = useState(true);
+  
+  // Search functionality for candidates
+  const [candidateSearch, setCandidateSearch] = useState('');
+  const [showCandidateDropdown, setShowCandidateDropdown] = useState(false);
+  const [selectedCandidateName, setSelectedCandidateName] = useState('');
 
   const token = (session as any)?.access_token || (session as any)?.session?.access_token;
   const authHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
@@ -69,6 +74,10 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
       console.log('[DailyLogForm] Dialog opened, fetching data...');
       fetchTaskTypes();
       fetchCandidates();
+      // Reset search state
+      setCandidateSearch('');
+      setSelectedCandidateName('');
+      setShowCandidateDropdown(false);
     }
   }, [open]);
 
@@ -130,6 +139,11 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
         description: '',
         time_spent_minutes: 30,
       });
+      
+      // Reset search state
+      setCandidateSearch('');
+      setSelectedCandidateName('');
+      setShowCandidateDropdown(false);
 
       setTimeout(() => {
         setOpen(false);
@@ -142,10 +156,6 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
       setLoading(false);
     }
   };
-
-  const candidateSearch = formData.candidate_id
-    ? candidates.find((c) => c.id === formData.candidate_id)?.name
-    : 'Select a candidate...';
 
   console.log('[DailyLogForm] Rendering return with open =', open);
   
@@ -186,29 +196,90 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
             width: '90%',
             maxHeight: '90vh',
             overflow: 'auto'
-          }} onClick={(e) => e.stopPropagation()}>
+          }} onClick={(e) => {
+            e.stopPropagation();
+            // Close candidate dropdown when clicking elsewhere in the modal
+            if (!(e.target as HTMLElement).closest('[data-candidate-search]')) {
+              setShowCandidateDropdown(false);
+            }
+          }}>
             <div style={{ marginBottom: '16px' }}>
               <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '8px' }}>📝 Add Daily Work Log</h2>
               <p style={{ fontSize: '14px', color: '#666' }}>Log the work you've done today for a candidate.</p>
             </div>
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Candidate */}
-              <div>
+              {/* Candidate - Searchable */}
+              <div style={{ position: 'relative' }} data-candidate-search>
                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
                   Candidate <span style={{ color: 'red' }}>*</span>
                 </label>
-                <select
-                  value={formData.candidate_id}
-                  onChange={(e) => setFormData({ ...formData, candidate_id: e.target.value })}
+                <input
+                  type="text"
+                  value={selectedCandidateName || candidateSearch}
+                  onChange={(e) => {
+                    setCandidateSearch(e.target.value);
+                    setSelectedCandidateName('');
+                    setFormData({ ...formData, candidate_id: '' });
+                    setShowCandidateDropdown(true);
+                  }}
+                  onFocus={() => setShowCandidateDropdown(true)}
+                  placeholder="Type to search candidates..."
                   style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
-                  required
-                >
-                  <option value="">Select a candidate...</option>
-                  {candidates.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name} ({c.candidate_code})</option>
-                  ))}
-                </select>
+                  required={!formData.candidate_id}
+                />
+                {showCandidateDropdown && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    maxHeight: '200px',
+                    overflowY: 'auto',
+                    backgroundColor: 'white',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    marginTop: '4px',
+                    zIndex: 1000,
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                  }}>
+                    {candidates
+                      .filter(c => 
+                        c.name.toLowerCase().includes(candidateSearch.toLowerCase()) ||
+                        c.candidate_code.toLowerCase().includes(candidateSearch.toLowerCase())
+                      )
+                      .slice(0, 50)
+                      .map((c) => (
+                        <div
+                          key={c.id}
+                          onClick={() => {
+                            setFormData({ ...formData, candidate_id: c.id });
+                            setSelectedCandidateName(`${c.name} (${c.candidate_code})`);
+                            setCandidateSearch('');
+                            setShowCandidateDropdown(false);
+                          }}
+                          style={{
+                            padding: '10px',
+                            cursor: 'pointer',
+                            borderBottom: '1px solid #f0f0f0',
+                            transition: 'background-color 0.2s'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                        >
+                          {c.name} ({c.candidate_code})
+                        </div>
+                      ))}
+                    {candidates.filter(c => 
+                      c.name.toLowerCase().includes(candidateSearch.toLowerCase()) ||
+                      c.candidate_code.toLowerCase().includes(candidateSearch.toLowerCase())
+                    ).length === 0 && (
+                      <div style={{ padding: '10px', color: '#999', textAlign: 'center' }}>
+                        No candidates found
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Tasktype */}
