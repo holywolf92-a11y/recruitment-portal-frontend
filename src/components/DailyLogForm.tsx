@@ -167,6 +167,23 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
         Add Daily Log
       </Button>
 
+      {/* DEBUG: Visible indicator when dialog should be open */}
+      {open && (
+        <div style={{
+          position: 'fixed',
+          top: '10px',
+          right: '10px',
+          background: 'red',
+          color: 'white',
+          padding: '20px',
+          zIndex: 99999,
+          fontSize: '18px',
+          fontWeight: 'bold'
+        }}>
+          DIALOG IS OPEN (DEBUG)
+        </div>
+      )}
+
       <Dialog open={open} onOpenChange={(newOpen) => {
         console.log('[DailyLogForm] Dialog onOpenChange:', newOpen);
         setOpen(newOpen);
