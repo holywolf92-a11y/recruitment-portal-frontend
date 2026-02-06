@@ -23,6 +23,14 @@ export function SendToEmployerModal({ isOpen, onClose, selectedCandidateIds, can
   const [employers, setEmployers] = useState<Array<{ id: string; company_name: string; email?: string | null }>>([]);
   const [loadingEmployers, setLoadingEmployers] = useState(false);
 
+  // Debug logging
+  console.log('[SendToEmployerModal] Props received:', {
+    selectedCandidateIds,
+    selectedCandidateIdsLength: selectedCandidateIds?.length,
+    candidatesLength: candidates?.length,
+    candidatesList: candidates?.map(c => ({ id: c.id, name: c.name }))
+  });
+
   // Load employers when switching to select tab
   const loadEmployers = async () => {
     if (employers.length > 0) return; // Already loaded
