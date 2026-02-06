@@ -32,6 +32,7 @@ import { toast } from 'sonner';
 import { Toaster } from './ui/sonner';
 import { apiClient, Candidate, CandidateFilters } from '../lib/apiClient';
 import { useCandidates } from '../lib/candidateContext';
+import { SendToEmployerModal } from './SendToEmployerModal';
 
 interface FolderNode {
   id: string;
@@ -326,6 +327,7 @@ export function CandidateBrowserExcel() {
   const [viewMode, setViewMode] = useState<'basic' | 'detailed'>('basic');
   const [professionMode, setProfessionMode] = useState<string | null>(null);
   const [activeMenu, setActiveMenu] = useState<'dashboard' | 'browser'>('dashboard');
+  const [showSendModal, setShowSendModal] = useState(false);
 
   // Debounce search input to prevent API spam
   useEffect(() => {
@@ -1037,6 +1039,15 @@ export function CandidateBrowserExcel() {
                   }`}
                 >
                   Detailed View
+                              {selectedCandidates.size > 0 && (
+                                <button
+                                  onClick={() => setShowSendModal(true)}
+                                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center gap-2"
+                                >
+                                  <Mail className="w-4 h-4" />
+                                  Send to Employer
+                                </button>
+                              )}
                 </button>
               </div>
               <div className="relative">
@@ -1423,6 +1434,14 @@ export function CandidateBrowserExcel() {
       </section>
       </div>
       <Toaster position="top-right" richColors closeButton />
+
+          {/* Send to Employer Modal */}
+          <SendToEmployerModal
+            isOpen={showSendModal}
+            onClose={() => setShowSendModal(false)}
+            selectedCandidateIds={Array.from(selectedCandidates)}
+            candidates={filteredCandidates}
+          />
     </div>
   );
 }
