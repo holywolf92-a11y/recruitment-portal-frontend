@@ -73,6 +73,11 @@ export function SendToEmployerModal({ isOpen, onClose, selectedCandidateIds, can
         message: message.trim() || undefined,
       };
 
+      console.log('[SendToEmployerModal] Sending payload:', payload);
+      console.log('[SendToEmployerModal] candidateIds type:', typeof selectedCandidateIds, Array.isArray(selectedCandidateIds));
+      console.log('[SendToEmployerModal] candidateIds length:', selectedCandidateIds.length);
+      console.log('[SendToEmployerModal] candidateIds content:', selectedCandidateIds);
+
       const response = await apiClient.post<{ success: boolean; message: string; candidateCount: number }>('/email/send-to-employer', payload);
 
       toast.success(response.message || `Email sent successfully to ${employerEmail}`);
@@ -84,8 +89,20 @@ export function SendToEmployerModal({ isOpen, onClose, selectedCandidateIds, can
       onClose();
 
     } catch (error: any) {
-      console.error('Failed to send email:', error);
-      toast.error(error.response?.data?.error || error.message || 'Failed to send email');
+      console.error('[SendToEmployerModal] Failed to send email:', error);
+      const errorMessage = error.message || 'Failed to send email';
+      // Try to extract the actual error from the fetch error message
+      const match = errorMessage.match(/\{.*\}/);
+      if (match) {
+        try {
+          const errorObj = JSON.parse(match[0]);
+          toast.error(errorObj.error || errorMessage);
+        } catch {
+          toast.error(errorMessage);
+        }
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
