@@ -167,178 +167,124 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
         Add Daily Log
       </Button>
 
-      {/* DEBUG: Visible indicator when dialog should be open */}
+      {/* FALLBACK: Simple HTML modal when Radix fails */}
       {open && (
         <div style={{
           position: 'fixed',
-          top: '10px',
-          right: '10px',
-          background: 'red',
-          color: 'white',
-          padding: '20px',
+          inset: 0,
           zIndex: 99999,
-          fontSize: '18px',
-          fontWeight: 'bold'
-        }}>
-          DIALOG IS OPEN (DEBUG)
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: 'rgba(0,0,0,0.5)'
+        }} onClick={() => setOpen(false)}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '24px',
+            borderRadius: '8px',
+            maxWidth: '500px',
+            width: '90%',
+            maxHeight: '90vh',
+            overflow: 'auto'
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '8px' }}>📝 Add Daily Work Log</h2>
+              <p style={{ fontSize: '14px', color: '#666' }}>Log the work you've done today for a candidate.</p>
+            </div>
+
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Candidate */}
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                  Candidate <span style={{ color: 'red' }}>*</span>
+                </label>
+                <select
+                  value={formData.candidate_id}
+                  onChange={(e) => setFormData({ ...formData, candidate_id: e.target.value })}
+                  style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+                  required
+                >
+                  <option value="">Select a candidate...</option>
+                  {candidates.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.candidate_code})</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Tasktype */}
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                  Task Type <span style={{ color: 'red' }}>*</span>
+                </label>
+                <select
+                  value={formData.task_type_id}
+                  onChange={(e) => setFormData({ ...formData, task_type_id: e.target.value })}
+                  style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+                  required
+                >
+                  <option value="">Select a task type...</option>
+                  {taskTypes.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                  Description <span style={{ color: 'red' }}>*</span>
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="What exactly did you do? Be specific..."
+                  rows={4}
+                  style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px', resize: 'vertical' }}
+                  required
+                />
+              </div>
+
+              {/* Time Spent */}
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                  Time Spent (minutes)
+                </label>
+                <input
+                  type="number"
+                  value={formData.time_spent_minutes}
+                  onChange={(e) => setFormData({ ...formData, time_spent_minutes: parseInt(e.target.value) || 0 })}
+                  min="0"
+                  max="480"
+                  style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+                />
+              </div>
+
+              {/* Error/Success */}
+              {error && <div style={{ padding: '12px', backgroundColor: '#fee', border: '1px solid #fcc', borderRadius: '4px', color: '#c00' }}>{error}</div>}
+              {success && <div style={{ padding: '12px', backgroundColor: '#efe', border: '1px solid #cfc', borderRadius: '4px', color: '#0a0' }}>✓ Log created successfully!</div>}
+
+              {/* Buttons */}
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  disabled={loading}
+                  style={{ flex: 1, padding: '10px', border: '1px solid #ddd', borderRadius: '4px', background: 'white', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{ flex: 1, padding: '10px', border: 'none', borderRadius: '4px', background: '#2563eb', color: 'white', cursor: 'pointer' }}
+                >
+                  {loading ? 'Creating...' : 'Create Log'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
-
-      <Dialog open={open} onOpenChange={(newOpen) => {
-        console.log('[DailyLogForm] Dialog onOpenChange:', newOpen);
-        setOpen(newOpen);
-      }}>
-        <DialogContent
-          className="sm:max-w-md"
-          onPointerDownOutside={(e) => {
-            console.log('[DailyLogForm] onPointerDownOutside prevented');
-            e.preventDefault();
-          }}
-          onInteractOutside={(e) => {
-            console.log('[DailyLogForm] onInteractOutside prevented');
-            e.preventDefault();
-          }}
-        >
-        <DialogHeader>
-          <DialogTitle>📝 Add Daily Work Log</DialogTitle>
-          <DialogDescription>
-            Log the work you've done today for a candidate. The log date is auto-set to today.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Candidate Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="candidate_id" className="text-sm font-medium">
-              Candidate <span className="text-red-500">*</span>
-            </Label>
-
-            <input type="hidden" name="candidate_id" value={formData.candidate_id} />
-            <Select value={formData.candidate_id} onValueChange={(value) =>
-              setFormData({ ...formData, candidate_id: value })
-            }>
-              <SelectTrigger id="candidate_id" className="w-full">
-                <SelectValue placeholder="Select a candidate..." />
-              </SelectTrigger>
-              <SelectContent className="max-h-64">
-                {loadingCandidates ? (
-                  <div className="p-3 text-sm text-gray-500">Loading candidates...</div>
-                ) : candidates.length === 0 ? (
-                  <div className="p-3 text-sm text-gray-500">No candidates found</div>
-                ) : (
-                  candidates.map((candidate) => (
-                    <SelectItem key={candidate.id} value={candidate.id}>
-                      {candidate.name} ({candidate.candidate_code})
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Task Type Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="task_type_id" className="text-sm font-medium">
-              Task Type <span className="text-red-500">*</span>
-            </Label>
-
-            <input type="hidden" name="task_type_id" value={formData.task_type_id} />
-            <Select value={formData.task_type_id} onValueChange={(value) =>
-              setFormData({ ...formData, task_type_id: value })
-            }>
-              <SelectTrigger id="task_type_id" className="w-full">
-                <SelectValue placeholder="Select a task type..." />
-              </SelectTrigger>
-              <SelectContent className="max-h-64">
-                {loadingTaskTypes ? (
-                  <div className="p-3 text-sm text-gray-500">Loading task types...</div>
-                ) : taskTypes.length === 0 ? (
-                  <div className="p-3 text-sm text-gray-500">No task types available</div>
-                ) : (
-                  taskTypes.map((taskType) => (
-                    <SelectItem key={taskType.id} value={taskType.id}>
-                      {taskType.name}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Description */}
-          <div className="space-y-2">
-            <Label htmlFor="description" className="text-sm font-medium">
-              Description <span className="text-red-500">*</span>
-            </Label>
-            <Textarea
-              id="description"
-              name="description"
-              placeholder="What exactly did you do? Be specific..."
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={4}
-              className="resize-none"
-            />
-            <p className="text-xs text-gray-500">Be specific about the work performed.</p>
-          </div>
-
-          {/* Time Spent */}
-          <div className="space-y-2">
-            <Label htmlFor="time-spent" className="text-sm font-medium flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              Time Spent (minutes)
-            </Label>
-            <Input
-              id="time-spent"
-              name="time_spent_minutes"
-              type="number"
-              min="0"
-              max="480"
-              value={formData.time_spent_minutes}
-              onChange={(e) =>
-                setFormData({ ...formData, time_spent_minutes: parseInt(e.target.value) || 0 })
-              }
-              className="w-full"
-            />
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex gap-2">
-              <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-          )}
-
-          {/* Success Message */}
-          {success && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex gap-2">
-              <p className="text-sm text-green-700">✓ Log created successfully!</p>
-            </div>
-          )}
-
-          {/* Submit Button */}
-          <div className="flex gap-3 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={loading}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading} className="flex-1">
-              {loading ? 'Creating...' : 'Create Log'}
-            </Button>
-          </div>
-
-          <p className="text-xs text-gray-500 text-center">
-            💡 Logs must be structured and candidate-linked. This ensures accountability and audit trails.
-          </p>
-        </form>
-        </DialogContent>
-      </Dialog>
     </>
   );
 };
