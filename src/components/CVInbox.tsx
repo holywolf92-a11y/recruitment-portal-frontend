@@ -251,7 +251,17 @@ export function CVInbox() {
   };
 
   const handleRetry = (cvId: string) => {
-    handleProcess(cvId);
+    setCvs((prev) => prev.map(cv => cv.id === cvId ? { ...cv, status: 'processing', errorMessage: undefined } : cv));
+    void (async () => {
+      try {
+        const res = await api.retryParsing(cvId);
+        const jobId = res.job_id;
+        setCvs((prev) => prev.map(cv => cv.id === cvId ? { ...cv, jobId, status: res.status as IncomingCV['status'] } : cv));
+        await pollJob(jobId, cvId);
+      } catch (e: any) {
+        setCvs((prev) => prev.map(cv => cv.id === cvId ? { ...cv, status: 'error', errorMessage: `Retry failed: ${e?.message || 'unknown error'}` } : cv));
+      }
+    })();
   };
 
   const filteredCVs = filterStatus === 'all' 

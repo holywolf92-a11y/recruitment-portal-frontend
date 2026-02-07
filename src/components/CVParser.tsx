@@ -73,15 +73,46 @@ export function CVParser({ cv, onClose, onSaved, jobId }: CVParserProps) {
   // Poll real parsing job if provided
   useEffect(() => {
     if (stage !== 'extracting') return;
-    let timer: any;
+    let stopped = false;
+    let timer: number | undefined;
     let localProgress = 0;
-    async function poll() {
+    let delayMs = 2000;
+    const maxDelayMs = 10000;
+
+    const stop = () => {
+      stopped = true;
+      if (timer) window.clearTimeout(timer);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+      }
+    };
+
+    const schedule = () => {
+      if (stopped) return;
+      timer = window.setTimeout(() => {
+        void tick();
+      }, delayMs);
+    };
+
+    const onVisibilityChange = () => {
+      if (stopped) return;
+      if (typeof document !== 'undefined' && document.hidden) return;
+      delayMs = 2000;
+      void tick();
+    };
+
+    const tick = async () => {
+      if (stopped) return;
+      if (typeof document !== 'undefined' && document.hidden) return;
+
       try {
         if (!jobId) {
           setErrorMessage('No parsing job to poll');
           setStage('review');
+          stop();
           return;
         }
+
         const job: ParsingJob = await api.getParsingJob(jobId);
         if (typeof job.progress === 'number') {
           setProgress(Math.max(progress, job.progress));
@@ -89,26 +120,38 @@ export function CVParser({ cv, onClose, onSaved, jobId }: CVParserProps) {
           localProgress = Math.min(95, localProgress + 5);
           setProgress(localProgress);
         }
+
         if (job.status === 'extracted') {
           setProgress(100);
           setExtractedData(job.result || null);
           setStage('review');
+          stop();
           return;
         }
+
         if (job.status === 'failed') {
           setErrorMessage(job.error_message || 'Parsing failed');
           setStage('review');
+          stop();
           return;
         }
       } catch (e: any) {
         setErrorMessage(e?.message || 'Failed to fetch job status');
         setStage('review');
+        stop();
         return;
       }
-      timer = setTimeout(poll, 2000);
+
+      delayMs = Math.min(Math.round(delayMs * 1.5), maxDelayMs);
+      schedule();
+    };
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', onVisibilityChange);
     }
-    poll();
-    return () => { if (timer) clearTimeout(timer); };
+
+    void tick();
+    return () => stop();
   }, [stage, jobId]);
 
   const handleSave = () => {

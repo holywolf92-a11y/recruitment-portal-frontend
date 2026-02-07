@@ -137,6 +137,13 @@ export const api = {
   async getParsingJob(jobId: string) {
     return request<ParsingJob>(`/parsing-jobs/${jobId}`);
   },
+
+  async retryParsing(attachmentId: string) {
+    return request<{ job_id: string; status: string }>(`/cv-inbox/attachments/${attachmentId}/retry`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
 };
 
 export interface Candidate {
