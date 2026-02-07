@@ -348,48 +348,59 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
     if (candidateIds.length === 0) return;
 
     const syncProcessingFromBackend = async () => {
-      const updates = new Map<string, { isProcessing: boolean; documentCount: number; startTime: number; lastUpdate: number }>();
-      const resolvedIds = new Set<string>();
-      for (const id of candidateIds) {
-        try {
-          const documents = (await apiClient.listCandidateDocumentsNew(id)) as any[];
-          resolvedIds.add(id);
-          const hasPending = documents.some(
-            (d) =>
-              d.verification_status === 'pending_ai' ||
-              d.verification_status === 'pending' ||
-              (typeof d.status === 'string' && (d.status === 'queued' || d.status === 'processing'))
-          );
-          if (hasPending) {
-            updates.set(id, {
-              isProcessing: true,
-              documentCount: documents.length,
-              startTime: Date.now(),
-              lastUpdate: Date.now(),
-            });
+      // Avoid background polling when tab is hidden
+      if (typeof document !== 'undefined' && document.hidden) return;
+
+      try {
+        const result = await apiClient.getCandidatesProcessingStatus(candidateIds);
+        const statuses = result?.statuses || {};
+        const now = Date.now();
+
+        setProcessingDocuments((prev) => {
+          const next = new Map(prev);
+
+          for (const id of candidateIds) {
+            const status = statuses[id];
+            const shouldShow = !!status?.isProcessing;
+            const existing = next.get(id);
+
+            if (shouldShow) {
+              next.set(id, {
+                isProcessing: true,
+                documentCount: status.pendingCount || existing?.documentCount || 0,
+                startTime: existing?.startTime || now,
+                lastUpdate: now,
+              });
+            } else {
+              next.delete(id);
+            }
           }
-        } catch {
-          // On error: do not change this candidate's processing state (avoids flicker)
-        }
-      }
-      setProcessingDocuments((prev) => {
-        const next = new Map(prev);
-        resolvedIds.forEach((id) => {
-          if (updates.has(id)) {
-            next.set(id, updates.get(id)!);
-          } else {
-            next.delete(id);
-          }
+
+          return next;
         });
-        return next;
-      });
+      } catch {
+        // On error: keep previous state to avoid flicker
+      }
     };
 
     const t = setTimeout(syncProcessingFromBackend, 600);
     const interval = setInterval(syncProcessingFromBackend, POLL_INTERVAL_MS);
+
+    const onVisibility = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        syncProcessingFromBackend();
+      }
+    };
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', onVisibility);
+    }
+
     return () => {
       clearTimeout(t);
       clearInterval(interval);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', onVisibility);
+      }
     };
   }, [candidateIds]);
 

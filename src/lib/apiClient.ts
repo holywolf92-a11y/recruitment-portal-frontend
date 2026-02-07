@@ -757,6 +757,19 @@ class ApiClient {
     });
   }
 
+  /**
+   * Bulk processing status for candidates (reduces per-candidate polling)
+   * POST /api/documents/processing-status
+   */
+  async getCandidatesProcessingStatus(candidateIds: string[]): Promise<{
+    statuses: Record<string, { isProcessing: boolean; pendingCount: number }>;
+  }> {
+    return await this.request('/documents/processing-status', {
+      method: 'POST',
+      body: JSON.stringify({ candidate_ids: candidateIds }),
+    });
+  }
+
   async linkCandidateCV(candidateId: string): Promise<{ document: any; message: string }> {
     return await this.request<{ document: any; message: string }>(`/candidates/${candidateId}/link-cv`, {
       method: 'POST',

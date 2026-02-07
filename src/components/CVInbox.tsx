@@ -92,31 +92,86 @@ export function CVInbox() {
 
   async function pollJob(jobId: string, attachmentId: string) {
     let attempts = 0;
-    const maxAttempts = 60; // ~2 minutes if 2s interval
-    const interval = setInterval(async () => {
+    const maxAttempts = 60; // ~2 minutes at baseline
+
+    let stopped = false;
+    let timeoutId: number | undefined;
+    let delayMs = 2000;
+    const maxDelayMs = 10000;
+
+    const stop = () => {
+      stopped = true;
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+      }
+    };
+
+    const schedule = () => {
+      if (stopped) return;
+      timeoutId = window.setTimeout(() => {
+        void tick();
+      }, delayMs);
+    };
+
+    const onVisibilityChange = () => {
+      if (stopped) return;
+      if (typeof document !== 'undefined' && document.hidden) return;
+      // Resume immediately on return to tab
+      delayMs = 2000;
+      void tick();
+    };
+
+    const tick = async () => {
+      if (stopped) return;
+
+      // Pause polling when tab is hidden
+      if (typeof document !== 'undefined' && document.hidden) {
+        return;
+      }
+
       attempts += 1;
       try {
         const job = await api.getParsingJob(jobId);
         if (job.status === 'completed') {
-          clearInterval(interval);
+          stop();
           setCvs((prev) => prev.map(cv => cv.id === attachmentId ? { ...cv, status: 'extracted', candidateId: job.candidate_id || cv.candidateId } : cv));
-        } else if (job.status === 'failed') {
-          clearInterval(interval);
-          setCvs((prev) => prev.map(cv => cv.id === attachmentId ? { ...cv, status: 'error', errorMessage: job.error_message || 'Parsing failed' } : cv));
-        } else {
-          // queued/processing
-          setCvs((prev) => prev.map(cv => cv.id === attachmentId ? { ...cv, status: job.status } : cv));
+          return;
         }
+
+        if (job.status === 'failed') {
+          stop();
+          setCvs((prev) => prev.map(cv => cv.id === attachmentId ? { ...cv, status: 'error', errorMessage: job.error_message || 'Parsing failed' } : cv));
+          return;
+        }
+
+        // queued/processing
+        setCvs((prev) => prev.map(cv => cv.id === attachmentId ? { ...cv, status: job.status } : cv));
       } catch (e: any) {
         // Stop polling if endpoint missing
-        clearInterval(interval);
+        stop();
         setCvs((prev) => prev.map(cv => cv.id === attachmentId ? { ...cv, status: 'error', errorMessage: `Status check failed: ${e?.message || 'unknown error'}` } : cv));
+        return;
       }
+
       if (attempts >= maxAttempts) {
-        clearInterval(interval);
+        stop();
         setCvs((prev) => prev.map(cv => cv.id === attachmentId ? { ...cv, status: 'error', errorMessage: 'Processing timeout' } : cv));
+        return;
       }
-    }, 2000);
+
+      // Backoff while processing to reduce request volume
+      delayMs = Math.min(Math.round(delayMs * 1.5), maxDelayMs);
+      schedule();
+    };
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', onVisibilityChange);
+    }
+
+    await tick();
   }
 
   const toBase64 = (file: File) =>

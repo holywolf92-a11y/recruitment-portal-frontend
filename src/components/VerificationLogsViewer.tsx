@@ -39,8 +39,29 @@ export default function VerificationLogsViewer({
     fetchLogs();
     
     if (autoRefresh) {
-      const interval = setInterval(fetchLogs, 3000); // Refresh every 3 seconds
-      return () => clearInterval(interval);
+      // Avoid background polling when tab is hidden
+      const tick = () => {
+        if (typeof document !== 'undefined' && document.hidden) return;
+        fetchLogs();
+      };
+
+      const interval = setInterval(tick, 3000); // Refresh every 3 seconds
+
+      const onVisibility = () => {
+        if (typeof document !== 'undefined' && !document.hidden) {
+          fetchLogs();
+        }
+      };
+      if (typeof document !== 'undefined') {
+        document.addEventListener('visibilitychange', onVisibility);
+      }
+
+      return () => {
+        clearInterval(interval);
+        if (typeof document !== 'undefined') {
+          document.removeEventListener('visibilitychange', onVisibility);
+        }
+      };
     }
   }, [documentId, candidateId, requestId, autoRefresh]);
 

@@ -1016,13 +1016,23 @@ export function CandidateBrowserExcel() {
                 Showing {filteredCandidates.length} of {totalCandidates} candidates
                 {debouncedSearchQuery && ` (filtered by "${debouncedSearchQuery}")`}
               </p>
+
+              {selectedCandidates.size > 0 && (
+                <div className="mt-2 flex items-center gap-3">
+                  <span className="text-sm text-blue-600 font-medium">
+                    {selectedCandidates.size} selected
+                  </span>
+                  <button
+                    onClick={() => setShowSendModal(true)}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center gap-2"
+                  >
+                    <Mail className="w-4 h-4" />
+                    Send to Employer
+                  </button>
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-2">
-              {selectedCandidates.size > 0 && (
-                <span className="text-sm text-blue-600 font-medium">
-                  {selectedCandidates.size} selected
-                </span>
-              )}
               <div className="flex gap-1 bg-gray-200 rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('basic')}
@@ -1039,15 +1049,6 @@ export function CandidateBrowserExcel() {
                   }`}
                 >
                   Detailed View
-                              {selectedCandidates.size > 0 && (
-                                <button
-                                  onClick={() => setShowSendModal(true)}
-                                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center gap-2"
-                                >
-                                  <Mail className="w-4 h-4" />
-                                  Send to Employer
-                                </button>
-                              )}
                 </button>
               </div>
               <div className="relative">
