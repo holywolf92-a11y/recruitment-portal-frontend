@@ -89,7 +89,7 @@ export function CVParser({ cv, onClose, onSaved, jobId }: CVParserProps) {
           localProgress = Math.min(95, localProgress + 5);
           setProgress(localProgress);
         }
-        if (job.status === 'completed') {
+        if (job.status === 'extracted') {
           setProgress(100);
           setExtractedData(job.result || null);
           setStage('review');

@@ -75,19 +75,13 @@ export function CVInbox() {
   }
 
   async function handleProcess(attachmentId: string) {
-    // Call backend to enqueue parsing job; backend may not have endpoint yet
-    // Update UI optimistically
-    setCvs((prev) => prev.map(cv => cv.id === attachmentId ? { ...cv, status: 'processing', errorMessage: undefined } : cv));
-    try {
-      const res = await api.triggerParsing(attachmentId);
-      const jobId = res.job_id;
-      setCvs((prev) => prev.map(cv => cv.id === attachmentId ? { ...cv, jobId, status: 'processing' } : cv));
-      // Start polling
-      pollJob(jobId, attachmentId);
-    } catch (e: any) {
-      // Likely endpoint not implemented yet
-      setCvs((prev) => prev.map(cv => cv.id === attachmentId ? { ...cv, status: 'error', errorMessage: `Processing not available: ${e?.message || 'unknown error'}` } : cv));
+    const current = cvs.find((cv) => cv.id === attachmentId);
+    if (!current?.jobId) {
+      setCvs((prev) => prev.map(cv => cv.id === attachmentId ? { ...cv, status: 'error', errorMessage: 'No parsing job available for this CV' } : cv));
+      return;
     }
+    setCvs((prev) => prev.map(cv => cv.id === attachmentId ? { ...cv, status: 'processing', errorMessage: undefined } : cv));
+    pollJob(current.jobId, attachmentId);
   }
 
   async function pollJob(jobId: string, attachmentId: string) {
@@ -135,9 +129,10 @@ export function CVInbox() {
       attempts += 1;
       try {
         const job = await api.getParsingJob(jobId);
-        if (job.status === 'completed') {
+        if (job.status === 'extracted') {
           stop();
-          setCvs((prev) => prev.map(cv => cv.id === attachmentId ? { ...cv, status: 'extracted', candidateId: job.candidate_id || cv.candidateId } : cv));
+          setCvs((prev) => prev.map(cv => cv.id === attachmentId ? { ...cv, status: 'extracted' } : cv));
+          await loadData();
           return;
         }
 
@@ -201,14 +196,17 @@ export function CVInbox() {
         payload: { sender_name: 'Manual Upload', sender_contact: 'web' },
       });
 
-      const attachment = await api.uploadAttachment(message.id, {
+      const uploadResult = await api.uploadAttachment(message.id, {
         file_base64: base64,
         file_name: file.name,
         mime_type: file.type || 'application/octet-stream',
-        attachment_type: 'manual_upload',
+        attachment_type: 'cv',
         storage_bucket: 'documents',
         storage_path: `inbox/${file.name}`,
       });
+      const attachment = uploadResult.attachment;
+      const jobId = uploadResult.job_id || undefined;
+      const status = (uploadResult.status as IncomingCV['status'] | undefined) || 'queued';
 
       const newCv: IncomingCV = {
         id: attachment.id,
@@ -219,12 +217,15 @@ export function CVInbox() {
         senderContact: 'web',
         receivedDate: new Date().toLocaleString(),
         fileSize: `${(file.size / 1024).toFixed(1)} KB`,
-        status: 'queued',
+        status,
         candidateId: attachment.candidate_id || undefined,
+        jobId,
       };
 
       setCvs((prev) => [newCv, ...prev]);
-      await handleProcess(attachment.id);
+      if (jobId) {
+        await pollJob(jobId, attachment.id);
+      }
     } catch (e: any) {
       setError(e?.message || 'Manual upload failed');
     } finally {

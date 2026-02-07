@@ -81,7 +81,7 @@ export interface Attachment {
 
 export interface ParsingJob {
   id: string;
-  status: 'queued' | 'processing' | 'completed' | 'failed';
+  status: 'queued' | 'processing' | 'extracted' | 'failed';
   progress?: number;
   result?: any;
   error_message?: string;
@@ -122,7 +122,7 @@ export const api = {
       storage_path?: string;
     }
   ) {
-    return request<Attachment>(`/cv-inbox/${messageId}/attachments`, {
+    return request<{ attachment: Attachment; job_id?: string | null; status?: string | null }>(`/cv-inbox/${messageId}/attachments`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -131,14 +131,6 @@ export const api = {
   async deleteAttachment(attachmentId: string) {
     return request<Attachment>(`/cv-inbox/attachments/${attachmentId}`, {
       method: 'DELETE',
-    });
-  },
-
-  async triggerParsing(attachmentId: string) {
-    // Week 4 planned endpoint; backend may not have it yet
-    return request<{ job_id: string; status: string }>(`/cv-inbox/attachments/${attachmentId}/process`, {
-      method: 'POST',
-      body: JSON.stringify({}),
     });
   },
 
