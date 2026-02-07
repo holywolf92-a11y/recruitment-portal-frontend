@@ -37,6 +37,7 @@ import { apiClient, Candidate } from '../lib/apiClient';
 import { useCandidates } from '../lib/candidateContext';
 import { CandidateDetailsModal } from './CandidateDetailsModal';
 import { renderPdfFirstPageToDataUrl } from '../lib/pdfThumb';
+import { analyzeDocumentHealth, getHealthBadgeInfo, analyzeDocumentError } from '../lib/documentErrorUtils';
 
 interface CandidateManagementProps {
   initialProfessionFilter?: string;
@@ -1188,6 +1189,19 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
                         </button>
                       </div>
 
+                      {/* Error Summary Badge - Shows if there are document issues */}
+                      {!processingDocuments.get(c.id)?.isProcessing && docCount > 0 && !allDocsOk && (
+                        <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                          <div className="flex items-center gap-2 mb-1">
+                            <AlertTriangle className="w-4 h-4 text-red-600" />
+                            <span className="text-xs font-semibold text-red-700">Document Issues Detected</span>
+                          </div>
+                          <p className="text-xs text-red- 600">
+                            Some documents need attention. Click "View All" to review and resolve issues.
+                          </p>
+                        </div>
+                      )}
+
                       {processingDocuments.get(c.id)?.isProcessing ? (
                         // Premium Loading State with Shimmer Skeletons
                         <div className="space-y-3">
@@ -1229,6 +1243,14 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
                           ) : (
                             <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
                           )}
+                          {!cvOk && (
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50">
+                              <div className="bg-gray-900 text-white text-xs rounded-md px-2 py-1 whitespace-nowrap">
+                                Missing or invalid CV
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Passport */}
@@ -1246,6 +1268,14 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
                             <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
                           ) : (
                             <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
+                          )}
+                          {!passportOk && (
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50">
+                              <div className="bg-gray-900 text-white text-xs rounded-md px-2 py-1 whitespace-nowrap">
+                                Passport needs review
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                              </div>
+                            </div>
                           )}
                         </div>
 
@@ -1265,6 +1295,14 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
                           ) : (
                             <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
                           )}
+                          {!cnicOk && (
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50">
+                              <div className="bg-gray-900 text-white text-xs rounded-md px-2 py-1 whitespace-nowrap">
+                                CNIC needs review
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Driving License */}
@@ -1282,6 +1320,14 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
                             <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
                           ) : (
                             <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
+                          )}
+                          {!drivingLicenseOk && (
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50">
+                              <div className="bg-gray-900 text-white text-xs rounded-md px-2 py-1 whitespace-nowrap">
+                                License needs review
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                              </div>
+                            </div>
                           )}
                         </div>
 
@@ -1301,6 +1347,14 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
                           ) : (
                             <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
                           )}
+                          {!policeCharacterOk && (
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50">
+                              <div className="bg-gray-900 text-white text-xs rounded-md px-2 py-1 whitespace-nowrap">
+                                PCC needs review
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Certificate */}
@@ -1318,6 +1372,14 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
                             <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
                           ) : (
                             <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
+                          )}
+                          {!certificateOk && (
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50">
+                              <div className="bg-gray-900 text-white text-xs rounded-md px-2 py-1 whitespace-nowrap">
+                                Certificate needs review
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                              </div>
+                            </div>
                           )}
                         </div>
 
@@ -1337,6 +1399,14 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
                           ) : (
                             <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
                           )}
+                          {!photoOk && (
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50">
+                              <div className="bg-gray-900 text-white text-xs rounded-md px-2 py-1 whitespace-nowrap">
+                                Photo needs review
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Medical */}
@@ -1354,6 +1424,14 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
                             <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
                           ) : (
                             <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
+                          )}
+                          {!medicalOk && (
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50">
+                              <div className="bg-gray-900 text-white text-xs rounded-md px-2 py-1 whitespace-nowrap">
+                                Medical needs review
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                              </div>
+                            </div>
                           )}
                         </div>
                           </div>
