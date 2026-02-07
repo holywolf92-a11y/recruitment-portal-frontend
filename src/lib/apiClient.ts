@@ -149,7 +149,7 @@ export const api = {
       throw new Error(`${res.status}: ${text || res.statusText}`);
     }
     return (await res.json()) as ParsingJob;
-  }
+  },
 
   async retryParsing(attachmentId: string) {
     return request<{ job_id: string; status: string }>(`/cv-inbox/attachments/${attachmentId}/retry`, {
