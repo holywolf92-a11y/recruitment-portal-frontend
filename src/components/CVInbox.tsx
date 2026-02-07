@@ -25,6 +25,7 @@ export function CVInbox() {
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const activePollsRef = useRef<Set<string>>(new Set());
 
   const genExternalId = () => {
     if (typeof crypto !== 'undefined' && (crypto as any).randomUUID) {
@@ -66,7 +67,20 @@ export function CVInbox() {
           });
         }
       }
-      setCvs(items);
+      const hydrated = await Promise.all(
+        items.map(async (cv) => {
+          if (cv.candidateId) return cv;
+          try {
+            const job = await api.getParsingJobByAttachment(cv.id);
+            if (!job) return cv;
+            const status = job.status as IncomingCV['status'];
+            return { ...cv, jobId: job.id, status };
+          } catch {
+            return cv;
+          }
+        })
+      );
+      setCvs(hydrated);
     } catch (e: any) {
       setError(e?.message || 'Failed to load CV inbox');
     } finally {
@@ -92,6 +106,10 @@ export function CVInbox() {
     let timeoutId: number | undefined;
     let delayMs = 2000;
     const maxDelayMs = 10000;
+    let resolveDone: (() => void) | null = null;
+    const donePromise = new Promise<void>((resolve) => {
+      resolveDone = resolve;
+    });
 
     const stop = () => {
       stopped = true;
@@ -100,6 +118,9 @@ export function CVInbox() {
       }
       if (typeof document !== 'undefined') {
         document.removeEventListener('visibilitychange', onVisibilityChange);
+      }
+      if (resolveDone) {
+        resolveDone();
       }
     };
 
@@ -167,7 +188,31 @@ export function CVInbox() {
     }
 
     await tick();
+    return donePromise;
   }
+
+  const startAutoPolling = (items: IncomingCV[]) => {
+    for (const cv of items) {
+      if ((cv.status === 'queued' || cv.status === 'processing') && cv.jobId) {
+        if (activePollsRef.current.has(cv.jobId)) {
+          continue;
+        }
+        activePollsRef.current.add(cv.jobId);
+        void (async () => {
+          try {
+            await pollJob(cv.jobId as string, cv.id);
+          } finally {
+            activePollsRef.current.delete(cv.jobId as string);
+          }
+        })();
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!cvs.length) return;
+    startAutoPolling(cvs);
+  }, [cvs]);
 
   const toBase64 = (file: File) =>
     new Promise<string>((resolve, reject) => {

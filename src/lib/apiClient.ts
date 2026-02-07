@@ -138,6 +138,19 @@ export const api = {
     return request<ParsingJob>(`/parsing-jobs/${jobId}`);
   },
 
+  async getParsingJobByAttachment(attachmentId: string) {
+    const url = `${API_BASE_URL}/parsing-jobs/by-attachment/${attachmentId}`;
+    const res = await fetch(url, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`${res.status}: ${text || res.statusText}`);
+    }
+    return (await res.json()) as ParsingJob;
+  }
+
   async retryParsing(attachmentId: string) {
     return request<{ job_id: string; status: string }>(`/cv-inbox/attachments/${attachmentId}/retry`, {
       method: 'POST',
