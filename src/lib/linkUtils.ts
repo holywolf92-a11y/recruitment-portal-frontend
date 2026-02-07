@@ -7,7 +7,7 @@ export function generateProfileLink(candidate: Candidate): string {
   const candidateId = candidate.id || '';
   const baseUrl = typeof window !== 'undefined' 
     ? window.location.origin 
-    : 'https://exquisite-surprise-production.up.railway.app';
+    : 'https://falishamanpower.up.railway.app';
   return `${baseUrl}/profile/${candidateId}/${slug}`;
 }
 
@@ -18,7 +18,7 @@ export function generateCVShareLink(candidate: Candidate): string {
   const candidateId = candidate.id || '';
   const baseUrl = typeof window !== 'undefined' 
     ? window.location.origin 
-    : 'https://exquisite-surprise-production.up.railway.app';
+    : 'https://falishamanpower.up.railway.app';
   return `${baseUrl}/cv/${candidateId}/${slug}`;
 }
 
