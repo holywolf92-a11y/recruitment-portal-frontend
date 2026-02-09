@@ -17,6 +17,7 @@ import { InboxUI } from './components/InboxUI';
 import { CandidateBrowserExcel } from './components/CandidateBrowserExcel';
 import { PublicCandidateProfile } from './components/PublicCandidateProfile';
 import { EmployeesModule } from './components/EmployeesModule';
+import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { useAuth, AuthProvider } from './lib/authContext';
 import { CandidateProvider } from './lib/candidateContext';
 import { hasPermission } from './lib/authData';
@@ -499,6 +500,12 @@ export default function App() {
   if (typeof window !== 'undefined') {
     const pathname = window.location.pathname;
     console.log('[App] Checking route:', pathname);
+    
+    // Privacy Policy
+    if (pathname === '/privacy') {
+      console.log('[App] Rendering PrivacyPolicy');
+      return <PrivacyPolicy />;
+    }
     
     // Public application form
     if (pathname === '/apply') {
