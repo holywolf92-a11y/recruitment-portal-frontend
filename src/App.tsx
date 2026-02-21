@@ -14,6 +14,7 @@ import { CommunicationTemplates } from './components/CommunicationTemplates';
 import { UserManagement } from './components/UserManagement';
 import { Login } from './components/Login';
 import { InboxUI } from './components/InboxUI';
+import { WhatsAppInbox } from './components/WhatsAppInbox';
 import { CandidateBrowserExcel } from './components/CandidateBrowserExcel';
 import { PublicCandidateProfile } from './components/PublicCandidateProfile';
 import { EmployeesModule } from './components/EmployeesModule';
@@ -32,6 +33,37 @@ const AppContent = () => {
   const [showPublicForm, setShowPublicForm] = useState(false);
   const [selectedProfession, setSelectedProfession] = useState<string>('all');
   const [showUserMenu, setShowUserMenu] = useState(false);
+
+  const navigateTab = (tab: string) => {
+    setActiveTab(tab);
+    if (typeof window === 'undefined') return;
+
+    if (tab === 'whatsapp-inbox') {
+      window.history.pushState({}, '', '/admin/whatsapp');
+      return;
+    }
+
+    // If we're leaving the WhatsApp inbox route, reset URL back to root app.
+    if (window.location.pathname === '/admin/whatsapp') {
+      window.history.pushState({}, '', '/');
+    }
+  };
+
+  // Keep tab-based navigation in sync with /admin/whatsapp
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const syncFromPath = () => {
+      const pathname = window.location.pathname;
+      if (pathname === '/admin/whatsapp') {
+        setActiveTab('whatsapp-inbox');
+      }
+    };
+
+    syncFromPath();
+    window.addEventListener('popstate', syncFromPath);
+    return () => window.removeEventListener('popstate', syncFromPath);
+  }, []);
 
   // Mock user data - in production, this would come from user metadata in Supabase
   const user = session ? {
@@ -101,10 +133,12 @@ const AppContent = () => {
         return <CVInbox />;
       case 'inbox-ui':
         return <InboxUI apiBaseUrl={(import.meta as any).env?.VITE_API_BASE_URL || '/api'} />;
+      case 'whatsapp-inbox':
+        return <WhatsAppInbox />;
       case 'candidate-excel-browser':
         return <CandidateBrowserExcel onOpenCandidate={(candidateId) => {
           setCandidateToOpen(candidateId);
-          setActiveTab('candidates');
+          navigateTab('candidates');
         }} />;
       case 'candidates':
         return <CandidateManagement initialProfessionFilter={selectedProfession} />;
@@ -246,7 +280,7 @@ const AppContent = () => {
             <nav className="p-4 space-y-1">
               {/* Dashboard */}
               <button
-                onClick={() => setActiveTab('dashboard')}
+                onClick={() => navigateTab('dashboard')}
                 className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                   activeTab === 'dashboard'
                     ? 'bg-blue-50 text-blue-600 font-medium'
@@ -262,7 +296,7 @@ const AppContent = () => {
                 <p className="px-4 text-xs font-semibold text-gray-500 mb-2">CANDIDATE OPERATIONS</p>
                 
                 <button
-                  onClick={() => setActiveTab('cv-inbox')}
+                  onClick={() => navigateTab('cv-inbox')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                     activeTab === 'cv-inbox'
                       ? 'bg-blue-50 text-blue-600 font-medium'
@@ -275,7 +309,7 @@ const AppContent = () => {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab('inbox-ui')}
+                  onClick={() => navigateTab('inbox-ui')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                     activeTab === 'inbox-ui'
                       ? 'bg-blue-50 text-blue-600 font-medium'
@@ -287,7 +321,7 @@ const AppContent = () => {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab('candidate-excel-browser')}
+                  onClick={() => navigateTab('candidate-excel-browser')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                     activeTab === 'candidate-excel-browser'
                       ? 'bg-blue-50 text-blue-600 font-medium'
@@ -300,7 +334,7 @@ const AppContent = () => {
                 
                 <button
                   onClick={() => {
-                    setActiveTab('candidates');
+                    navigateTab('candidates');
                     setSelectedProfession('all');
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
@@ -319,7 +353,7 @@ const AppContent = () => {
                   <button
                     key={profession}
                     onClick={() => {
-                      setActiveTab('candidates');
+                      navigateTab('candidates');
                       setSelectedProfession(profession);
                     }}
                     className={`w-full flex items-center gap-3 pl-12 pr-4 py-2 rounded-lg transition-colors text-sm ${
@@ -340,7 +374,7 @@ const AppContent = () => {
                 <p className="px-4 text-xs font-semibold text-gray-500 mb-2">EMPLOYER & JOBS</p>
                 
                 <button
-                  onClick={() => setActiveTab('employers')}
+                  onClick={() => navigateTab('employers')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                     activeTab === 'employers'
                       ? 'bg-blue-50 text-blue-600 font-medium'
@@ -352,7 +386,7 @@ const AppContent = () => {
                 </button>
                 
                 <button
-                  onClick={() => setActiveTab('jobs')}
+                  onClick={() => navigateTab('jobs')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                     activeTab === 'jobs'
                       ? 'bg-blue-50 text-blue-600 font-medium'
@@ -369,7 +403,7 @@ const AppContent = () => {
                 <p className="px-4 text-xs font-semibold text-gray-500 mb-2">OPERATIONS</p>
                 
                 <button
-                  onClick={() => setActiveTab('employees')}
+                  onClick={() => navigateTab('employees')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                     activeTab === 'employees'
                       ? 'bg-blue-50 text-blue-600 font-medium'
@@ -386,7 +420,7 @@ const AppContent = () => {
                 <p className="px-4 text-xs font-semibold text-gray-500 mb-2">COMMUNICATION</p>
                 
                 <button
-                  onClick={() => setActiveTab('templates')}
+                  onClick={() => navigateTab('templates')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                     activeTab === 'templates'
                       ? 'bg-blue-50 text-blue-600 font-medium'
@@ -398,7 +432,19 @@ const AppContent = () => {
                 </button>
                 
                 <button
-                  onClick={() => setActiveTab('application-link')}
+                  onClick={() => navigateTab('whatsapp-inbox')}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
+                    activeTab === 'whatsapp-inbox'
+                      ? 'bg-blue-50 text-blue-600 font-medium'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <Phone className="w-4 h-4" />
+                  <span className="flex-1 text-left">WhatsApp Inbox</span>
+                </button>
+
+                <button
+                  onClick={() => navigateTab('application-link')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                     activeTab === 'application-link'
                       ? 'bg-blue-50 text-blue-600 font-medium'
@@ -416,7 +462,7 @@ const AppContent = () => {
                 
                 {user.role === 'Admin' && (
                   <button
-                    onClick={() => setActiveTab('admin-panel')}
+                    onClick={() => navigateTab('admin-panel')}
                     className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                       activeTab === 'admin-panel'
                         ? 'bg-blue-50 text-blue-600 font-medium'
@@ -430,7 +476,7 @@ const AppContent = () => {
                 
                 {hasPermission(user, 'users', 'view') && (
                   <button
-                    onClick={() => setActiveTab('users')}
+                    onClick={() => navigateTab('users')}
                     className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                       activeTab === 'users'
                         ? 'bg-blue-50 text-blue-600 font-medium'
@@ -443,7 +489,7 @@ const AppContent = () => {
                 )}
                 
                 <button
-                  onClick={() => setActiveTab('reports')}
+                  onClick={() => navigateTab('reports')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                     activeTab === 'reports'
                       ? 'bg-blue-50 text-blue-600 font-medium'
@@ -455,7 +501,7 @@ const AppContent = () => {
                 </button>
                 
                 <button
-                  onClick={() => setActiveTab('settings')}
+                  onClick={() => navigateTab('settings')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                     activeTab === 'settings'
                       ? 'bg-blue-50 text-blue-600 font-medium'
@@ -476,7 +522,7 @@ const AppContent = () => {
           {isBrowserView && (
             <div className="bg-white border-b border-gray-200 px-6 py-3">
               <button
-                onClick={() => setActiveTab('candidates')}
+                    onClick={() => navigateTab('candidates')}
                 className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
