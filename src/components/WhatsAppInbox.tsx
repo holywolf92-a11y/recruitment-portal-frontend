@@ -575,13 +575,11 @@ export function WhatsAppInbox() {
                   {messages.map((m) => {
                     const isInbound = m.direction === 'inbound';
                     const bubbleStyle = isInbound
-                      ? 'bg-card/60 border border-border/60 text-foreground backdrop-blur-xl'
-                      : m.direction === 'ai'
-                        ? 'bg-card/50 border border-border/60 text-foreground backdrop-blur-xl'
-                        : 'bg-emerald-600/10 border border-border/60 text-foreground backdrop-blur-xl';
+                      ? 'bg-background border border-border/60 text-foreground shadow-sm'
+                      : 'bg-primary/15 border border-primary/30 text-foreground shadow-sm';
 
                     const showTicks = !isInbound && m.direction !== 'ai';
-                    const tickColor = m.status === 'read' ? 'text-emerald-600' : 'text-muted-foreground';
+                    const tickColor = m.status === 'read' ? 'text-primary' : 'text-muted-foreground';
 
                     return (
                       <div key={m.id} className={`flex ${isInbound ? 'justify-start' : 'justify-end'}`}>
