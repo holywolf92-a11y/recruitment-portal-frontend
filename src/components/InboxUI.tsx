@@ -31,6 +31,45 @@ export const InboxUI: React.FC<InboxUIProps> = ({ apiBaseUrl = 'http://localhost
   const [showAttachmentModal, setShowAttachmentModal] = useState(false);
   const [selectedAttachment, setSelectedAttachment] = useState<Attachment | null>(null);
 
+  const getFromDisplay = (message: InboxMessage): string => {
+    const payload = message.payload;
+    if (!payload) return '';
+    if (typeof payload.from === 'string' && payload.from.trim()) return payload.from;
+    if (typeof payload.sender === 'string' && payload.sender.trim()) return payload.sender;
+    if (typeof payload.phone === 'string' && payload.phone.trim()) return payload.phone;
+    if (typeof payload.email === 'string' && payload.email.trim()) return payload.email;
+    if (typeof payload.wa_id === 'string' && payload.wa_id.trim()) return payload.wa_id;
+
+    const contactWaId = payload?.contacts?.[0]?.wa_id;
+    if (typeof contactWaId === 'string' && contactWaId.trim()) return contactWaId;
+
+    const contactName = payload?.contacts?.[0]?.profile?.name;
+    if (typeof contactName === 'string' && contactName.trim()) return contactName;
+
+    return '';
+  };
+
+  const getMessagePreview = (message: InboxMessage): string => {
+    const payload = message.payload;
+    if (!payload) return '';
+
+    if (message.source === 'whatsapp') {
+      if (typeof payload.text === 'string') return payload.text;
+      if (typeof payload.caption === 'string') return payload.caption;
+      if (typeof payload.type === 'string') return `[${payload.type}]`;
+      return '';
+    }
+
+    if (message.source === 'gmail') {
+      const subject = typeof payload.subject === 'string' ? payload.subject : '';
+      return subject || '';
+    }
+
+    if (typeof payload.text === 'string') return payload.text;
+    if (typeof payload.message === 'string') return payload.message;
+    return '';
+  };
+
   // Filters
   const [filterSource, setFilterSource] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('');
@@ -161,7 +200,7 @@ export const InboxUI: React.FC<InboxUIProps> = ({ apiBaseUrl = 'http://localhost
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <Mail className="w-8 h-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">CV Inbox</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Inbox Manager</h1>
           </div>
           <p className="text-gray-600">
             {total} total messages · Displaying {messages.length} on page {currentPage}
@@ -247,8 +286,9 @@ export const InboxUI: React.FC<InboxUIProps> = ({ apiBaseUrl = 'http://localhost
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Source</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Message ID</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Payload</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">From</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Message</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">External ID</th>
                     <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
                     <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Received</th>
                     <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
@@ -262,9 +302,20 @@ export const InboxUI: React.FC<InboxUIProps> = ({ apiBaseUrl = 'http://localhost
                           {message.source}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-700 font-mono">{message.external_message_id.slice(0, 20)}...</td>
                       <td className="px-6 py-4 text-sm text-gray-700">
-                        {message.payload?.text && message.payload.text.slice(0, 30)}...
+                        <div className="max-w-xs truncate" title={getFromDisplay(message)}>
+                          {getFromDisplay(message) || <span className="text-gray-400">—</span>}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-700">
+                        <div className="max-w-md truncate" title={getMessagePreview(message)}>
+                          {getMessagePreview(message) || <span className="text-gray-400">—</span>}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-700 font-mono">
+                        <div className="max-w-xs truncate" title={message.external_message_id}>
+                          {message.external_message_id || <span className="text-gray-400">—</span>}
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
@@ -281,7 +332,7 @@ export const InboxUI: React.FC<InboxUIProps> = ({ apiBaseUrl = 'http://localhost
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
-                        {new Date(message.received_at).toLocaleDateString()}
+                        {new Date(message.received_at).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 text-sm">
                         <div className="flex items-center gap-2">
