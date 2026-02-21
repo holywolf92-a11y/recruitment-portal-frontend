@@ -356,32 +356,32 @@ export function WhatsAppInbox() {
     <div className="rounded-xl border border-border/60 bg-background/60 dark:bg-background/40 backdrop-blur-xl overflow-hidden shadow-sm">
       <div className="h-[calc(100vh-73px-48px)] min-h-[520px] flex flex-col">
         {view === 'list' ? (
-          <div className="flex-1 flex flex-col bg-white">
+          <div className="flex-1 flex flex-col bg-background/40 dark:bg-background/20">
             <div className="px-4 py-3 border-b border-border/60 bg-background/60 dark:bg-background/40 backdrop-blur-xl sticky top-0 z-10">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="text-sm font-semibold tracking-tight">WhatsApp Inbox</h2>
+                  <h2 className="text-base font-semibold tracking-tight">WhatsApp Inbox</h2>
                   <p className="text-xs text-muted-foreground">Conversations</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {loadingConversations && <span className="text-xs text-muted-foreground">Loading...</span>}
                   <button
                     type="button"
-                    className="p-2 rounded-lg hover:bg-accent/60 transition-colors"
+                    className="p-2.5 rounded-lg hover:bg-accent/60 transition-colors disabled:opacity-50"
                     aria-label="Search"
                     disabled
                     title="Search (not implemented)"
                   >
-                    <Search className="w-4 h-4 text-muted-foreground" />
+                    <Search className="w-5 h-5 text-muted-foreground" />
                   </button>
                   <button
                     type="button"
-                    className="p-2 rounded-lg hover:bg-accent/60 transition-colors"
+                    className="p-2.5 rounded-lg hover:bg-accent/60 transition-colors disabled:opacity-50"
                     aria-label="Menu"
                     disabled
                     title="Menu (not implemented)"
                   >
-                    <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                    <MoreVertical className="w-5 h-5 text-muted-foreground" />
                   </button>
                 </div>
               </div>
@@ -392,7 +392,7 @@ export function WhatsAppInbox() {
               {conversations.length === 0 && !loadingConversations ? (
                 <div className="p-6 text-sm text-muted-foreground">No conversations yet.</div>
               ) : (
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-border/40">
                   {conversations.map((c) => {
                     const title = c.display_name || c.candidate_name || c.phone_number;
                     const avatar = initialsFromName(title);
@@ -400,10 +400,10 @@ export function WhatsAppInbox() {
                       <button
                         key={c.id}
                         onClick={() => setSelectedConversationId(c.id)}
-                        className="w-full text-left px-4 py-3 hover:bg-accent/40 transition-colors"
+                        className="w-full text-left px-4 py-4 hover:bg-accent/40 transition-colors"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-muted/60 border border-border/60 flex items-center justify-center text-xs font-semibold text-foreground">
+                          <div className="w-11 h-11 rounded-xl bg-muted/60 border border-border/60 flex items-center justify-center text-xs font-semibold text-foreground">
                             {avatar}
                           </div>
 
@@ -423,15 +423,15 @@ export function WhatsAppInbox() {
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
                                 {c.unread_count > 0 && (
-                                  <span className="text-xs bg-emerald-600/90 text-white px-2 py-0.5 rounded-full">
+                                  <span className="text-xs bg-primary text-primary-foreground px-2.5 py-1 rounded-full font-semibold">
                                     {c.unread_count}
                                   </span>
                                 )}
                                 <span
-                                  className={`text-[10px] px-2 py-0.5 rounded-full border backdrop-blur ${
+                                  className={`text-[11px] px-2.5 py-1 rounded-full border font-semibold backdrop-blur ${
                                     c.reply_mode === 'ai'
-                                      ? 'border-border/60 text-foreground bg-background/50'
-                                      : 'border-border/60 text-foreground bg-background/50'
+                                      ? 'border-primary/40 bg-primary text-primary-foreground'
+                                      : 'border-border/60 bg-secondary text-secondary-foreground'
                                   }`}
                                 >
                                   {c.reply_mode === 'ai' ? 'AI' : 'Human'}
@@ -457,37 +457,39 @@ export function WhatsAppInbox() {
                 <button
                   type="button"
                   onClick={() => setSelectedConversationId(null)}
-                    className="px-2 py-2 rounded-lg hover:bg-accent/60 transition-colors flex items-center gap-1"
+                    className="px-3 py-2 rounded-lg border border-border/60 bg-background/50 hover:bg-accent/60 transition-colors flex items-center gap-2"
                   aria-label="Back"
                   title="Back"
                 >
-                    <ArrowLeft className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">Back</span>
+                    <ArrowLeft className="w-5 h-5 text-muted-foreground" />
+                    <span className="text-sm font-medium">Back</span>
                 </button>
 
                 <div className="w-10 h-10 rounded-xl bg-muted/60 border border-border/60 flex items-center justify-center text-xs font-semibold text-foreground">
                   {initialsFromName(selectedTitle)}
                 </div>
                 <div className="min-w-0">
-                  <div className="text-sm font-semibold tracking-tight truncate">{selectedTitle}</div>
+                  <div className="text-base font-semibold tracking-tight truncate">{selectedTitle}</div>
                   <div className="text-xs text-muted-foreground truncate">
                     {selectedConversation.candidate_name || selectedConversation.phone_number}
                   </div>
                   <div className="mt-1 flex items-center gap-1.5 flex-wrap">
                     <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full border border-border/60 bg-background/50 backdrop-blur ${
-                        selectedConversation.reply_mode === 'ai' ? 'text-foreground' : 'text-foreground'
+                      className={`text-[11px] px-2.5 py-1 rounded-full border font-semibold backdrop-blur ${
+                        selectedConversation.reply_mode === 'ai'
+                          ? 'border-primary/40 bg-primary text-primary-foreground'
+                          : 'border-border/60 bg-secondary text-secondary-foreground'
                       }`}
                     >
                       {selectedConversation.reply_mode === 'ai' ? 'AI mode' : 'Human mode'}
                     </span>
                     {selectedConversation.reply_mode === 'human' && takeoverLabel && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full border border-border/60 bg-background/50 backdrop-blur text-foreground">
+                      <span className="text-[11px] px-2.5 py-1 rounded-full border border-border/60 bg-accent text-accent-foreground font-medium">
                         Taken: {takeoverLabel}
                       </span>
                     )}
                     {isTakenOverByOther && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full border border-border/60 bg-background/50 backdrop-blur text-foreground">
+                      <span className="text-[11px] px-2.5 py-1 rounded-full border border-destructive/40 bg-destructive text-white font-semibold">
                         Locked
                       </span>
                     )}
@@ -498,16 +500,16 @@ export function WhatsAppInbox() {
                 <div className="flex items-center justify-end gap-1 flex-wrap">
                 <button
                   type="button"
-                    className="p-2 rounded-lg hover:bg-accent/60 transition-colors"
+                    className="p-2.5 rounded-lg hover:bg-accent/60 transition-colors disabled:opacity-50"
                   aria-label="Video"
                   disabled
                   title="Video (not implemented)"
                 >
-                    <Video className="w-4 h-4 text-muted-foreground" />
+                    <Video className="w-5 h-5 text-muted-foreground" />
                 </button>
                 <button
                   type="button"
-                    className="p-2 rounded-lg hover:bg-accent/60 transition-colors"
+                    className="p-2.5 rounded-lg hover:bg-accent/60 transition-colors disabled:opacity-50"
                   aria-label="Call"
                   disabled={!selectedConversation.phone_number}
                   title={selectedConversation.phone_number ? `Call ${selectedConversation.phone_number}` : 'Call (no number)'}
@@ -518,25 +520,25 @@ export function WhatsAppInbox() {
                     window.location.href = `tel:${tel}`;
                   }}
                 >
-                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    <Phone className="w-5 h-5 text-muted-foreground" />
                 </button>
                 <button
                   type="button"
-                    className="p-2 rounded-lg hover:bg-accent/60 transition-colors"
+                    className="p-2.5 rounded-lg hover:bg-accent/60 transition-colors disabled:opacity-50"
                   aria-label="Search"
                   disabled
                   title="Search (not implemented)"
                 >
-                    <Search className="w-4 h-4 text-muted-foreground" />
+                    <Search className="w-5 h-5 text-muted-foreground" />
                 </button>
                 <button
                   type="button"
-                    className="p-2 rounded-lg hover:bg-accent/60 transition-colors"
+                    className="p-2.5 rounded-lg hover:bg-accent/60 transition-colors disabled:opacity-50"
                   aria-label="Menu"
                   disabled
                   title="Menu (not implemented)"
                 >
-                    <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                    <MoreVertical className="w-5 h-5 text-muted-foreground" />
                 </button>
 
                 <div className="w-px h-6 bg-border/60 mx-1" />
@@ -546,7 +548,7 @@ export function WhatsAppInbox() {
                     onClick={() => takeOver(selectedConversation.id)}
                     disabled={isTakenOverByOther || modeLoading}
                     title={isTakenOverByOther ? 'Taken over by another admin' : modeLoading ? 'Updating...' : 'Take over'}
-                    className="px-3 py-1.5 text-xs rounded-full border border-border/60 bg-background/50 backdrop-blur hover:bg-accent/50 transition-colors disabled:opacity-50"
+                    className="px-4 py-2 text-sm font-semibold rounded-lg border border-border/60 bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50"
                   >
                     Take Over
                   </button>
@@ -555,7 +557,7 @@ export function WhatsAppInbox() {
                     onClick={() => returnToAI(selectedConversation.id)}
                     disabled={isTakenOverByOther || modeLoading}
                     title={isTakenOverByOther ? 'Taken over by another admin' : modeLoading ? 'Updating...' : 'Return to AI'}
-                    className="px-3 py-1.5 text-xs rounded-full border border-border/60 bg-background/50 backdrop-blur hover:bg-accent/50 transition-colors disabled:opacity-50"
+                    className="px-4 py-2 text-sm font-semibold rounded-lg border border-primary/40 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
                   >
                     Return to AI
                   </button>
