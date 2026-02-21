@@ -427,16 +427,18 @@ export function WhatsAppInbox() {
           <div className="flex-1 flex items-center justify-center text-sm text-gray-500">Loading…</div>
         ) : (
           <div className="flex-1 flex flex-col">
-            <div className="px-4 py-3 border-b border-gray-200 bg-emerald-600 text-white flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 min-w-0">
+            <div className="px-4 py-3 border-b border-gray-200 bg-emerald-600 text-white">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
                 <button
                   type="button"
                   onClick={() => setSelectedConversationId(null)}
-                  className="p-2 rounded-md hover:bg-emerald-700/40"
+                  className="px-2 py-2 rounded-md hover:bg-emerald-700/40 flex items-center gap-1"
                   aria-label="Back"
                   title="Back"
                 >
                   <ArrowLeft className="w-4 h-4" />
+                  <span className="text-xs">Back</span>
                 </button>
 
                 <div className="w-10 h-10 rounded-full bg-emerald-700/40 flex items-center justify-center text-xs font-semibold">
@@ -456,9 +458,9 @@ export function WhatsAppInbox() {
                     <div className="text-[11px] text-orange-100 mt-0.5">Sending disabled (taken over).</div>
                   )}
                 </div>
-              </div>
+                </div>
 
-              <div className="flex items-center gap-1">
+                <div className="flex items-center justify-end gap-1 flex-wrap">
                 <button
                   type="button"
                   className="p-2 rounded-md hover:bg-emerald-700/40"
@@ -515,6 +517,7 @@ export function WhatsAppInbox() {
                     Return to AI
                   </button>
                 )}
+                </div>
               </div>
             </div>
 
