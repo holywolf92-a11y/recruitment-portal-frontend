@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { API_BASE_URL } from '../lib/apiClient';
 import { useAuth, supabase } from '../lib/authContext';
-import { CheckCheck, MoreVertical, Phone, Search, Send, Smile, Paperclip, Video } from 'lucide-react';
+import { ArrowLeft, CheckCheck, MoreVertical, Phone, Search, Send, Smile, Paperclip, Video } from 'lucide-react';
 
 type ReplyMode = 'ai' | 'human';
 
@@ -86,6 +86,10 @@ export function WhatsAppInbox() {
     if (!selectedConversationId) return null;
     return conversations.find((c) => c.id === selectedConversationId) ?? null;
   }, [conversations, selectedConversationId]);
+
+  const view = useMemo<'list' | 'chat'>(() => {
+    return selectedConversationId ? 'chat' : 'list';
+  }, [selectedConversationId]);
 
   const selectedTitle = useMemo(() => {
     if (!selectedConversation) return '';
@@ -301,151 +305,17 @@ export function WhatsAppInbox() {
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-      <div className="flex h-[calc(100vh-73px-48px)] min-h-[520px]">
-        {/* Conversation List */}
-        <div className="w-[360px] border-r border-gray-200 flex flex-col bg-white">
-          <div className="px-4 py-3 border-b border-gray-200 bg-emerald-600 text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-semibold">WhatsApp Inbox</h2>
-                <p className="text-xs text-emerald-100">Conversations</p>
-              </div>
-              <div className="flex items-center gap-2">
-                {loadingConversations && <span className="text-xs text-emerald-100">Loading...</span>}
-                <button
-                  type="button"
-                  className="p-2 rounded-md hover:bg-emerald-700/40"
-                  aria-label="Search"
-                  disabled
-                  title="Search (not implemented)"
-                >
-                  <Search className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  className="p-2 rounded-md hover:bg-emerald-700/40"
-                  aria-label="Menu"
-                  disabled
-                  title="Menu (not implemented)"
-                >
-                  <MoreVertical className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-            {loadError && <div className="mt-2 text-xs text-red-100 break-words">{loadError}</div>}
-          </div>
-
-          <div className="flex-1 overflow-auto">
-            {conversations.length === 0 && !loadingConversations ? (
-              <div className="p-6 text-sm text-gray-500">No conversations yet.</div>
-            ) : (
-              <div className="divide-y divide-gray-100">
-                {conversations.map((c) => {
-                  const isActive = c.id === selectedConversationId;
-                  const title = c.display_name || c.candidate_name || c.phone_number;
-                  const avatar = initialsFromName(title);
-                  return (
-                    <button
-                      key={c.id}
-                      onClick={() => setSelectedConversationId(c.id)}
-                      className={`w-full text-left px-4 py-3 hover:bg-gray-50 ${isActive ? 'bg-emerald-50' : ''}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold text-gray-700">
-                          {avatar}
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="text-sm font-semibold text-gray-900 truncate">{title}</div>
-                            <div className="text-xs text-gray-500 shrink-0">{formatListTime(c.last_message_at)}</div>
-                          </div>
-                          <div className="flex items-center justify-between gap-2 mt-0.5">
-                            <div className="min-w-0">
-                              <div className="text-xs text-gray-500 truncate">{c.last_message_preview || ''}</div>
-                              {c.reply_mode === 'human' && (c.taken_over_by_name || c.taken_over_by) && (
-                                <div className="text-[11px] text-orange-700 truncate">
-                                  Taken by: {c.taken_over_by_name || 'Another admin'}
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              {c.unread_count > 0 && (
-                                <span className="text-xs bg-emerald-600 text-white px-2 py-0.5 rounded-full">
-                                  {c.unread_count}
-                                </span>
-                              )}
-                              <span
-                                className={`text-[10px] px-2 py-0.5 rounded-full border ${
-                                  c.reply_mode === 'ai'
-                                    ? 'border-purple-200 text-purple-700 bg-purple-50'
-                                    : 'border-orange-200 text-orange-700 bg-orange-50'
-                                }`}
-                              >
-                                {c.reply_mode === 'ai' ? 'AI' : 'Human'}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Chat Window */}
-        <div className="flex-1 flex flex-col">
-          {!selectedConversation ? (
-            <div className="flex-1 flex items-center justify-center text-sm text-gray-500">
-              Select a conversation to view messages.
-            </div>
-          ) : (
-            <>
-              <div className="px-4 py-3 border-b border-gray-200 bg-emerald-600 text-white flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-emerald-700/40 flex items-center justify-center text-xs font-semibold">
-                    {initialsFromName(selectedTitle)}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold truncate">{selectedTitle}</div>
-                    <div className="text-xs text-emerald-100 truncate">
-                      {selectedConversation.candidate_name ? `Candidate: ${selectedConversation.candidate_name}` : selectedConversation.phone_number}
-                    </div>
-                    {takeoverLabel && (
-                      <div className="text-[11px] text-emerald-100 mt-0.5">
-                        Human takeover by: {takeoverLabel}
-                      </div>
-                    )}
-                    {isTakenOverByOther && (
-                      <div className="text-[11px] text-orange-100 mt-0.5">
-                        Sending disabled (taken over).
-                      </div>
-                    )}
-                  </div>
+      <div className="h-[calc(100vh-73px-48px)] min-h-[520px] flex flex-col">
+        {view === 'list' ? (
+          <div className="flex-1 flex flex-col bg-white">
+            <div className="px-4 py-3 border-b border-gray-200 bg-emerald-600 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold">WhatsApp Inbox</h2>
+                  <p className="text-xs text-emerald-100">Conversations</p>
                 </div>
-
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    className="p-2 rounded-md hover:bg-emerald-700/40"
-                    aria-label="Video"
-                    disabled
-                    title="Video (not implemented)"
-                  >
-                    <Video className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    className="p-2 rounded-md hover:bg-emerald-700/40"
-                    aria-label="Call"
-                    disabled
-                    title="Call (not implemented)"
-                  >
-                    <Phone className="w-4 h-4" />
-                  </button>
+                <div className="flex items-center gap-2">
+                  {loadingConversations && <span className="text-xs text-emerald-100">Loading...</span>}
                   <button
                     type="button"
                     className="p-2 rounded-md hover:bg-emerald-700/40"
@@ -464,141 +334,271 @@ export function WhatsAppInbox() {
                   >
                     <MoreVertical className="w-4 h-4" />
                   </button>
+                </div>
+              </div>
+              {loadError && <div className="mt-2 text-xs text-red-100 break-words">{loadError}</div>}
+            </div>
 
-                  <div className="w-px h-6 bg-emerald-200/30 mx-1" />
+            <div className="flex-1 overflow-auto">
+              {conversations.length === 0 && !loadingConversations ? (
+                <div className="p-6 text-sm text-gray-500">No conversations yet.</div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {conversations.map((c) => {
+                    const title = c.display_name || c.candidate_name || c.phone_number;
+                    const avatar = initialsFromName(title);
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => setSelectedConversationId(c.id)}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold text-gray-700">
+                            {avatar}
+                          </div>
 
-                  {selectedConversation.reply_mode === 'ai' ? (
-                    <button
-                      onClick={() => takeOver(selectedConversation.id)}
-                      disabled={isTakenOverByOther}
-                      className="px-3 py-1.5 text-xs rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-50"
-                    >
-                      Take Over
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => returnToAI(selectedConversation.id)}
-                      disabled={isTakenOverByOther}
-                      className="px-3 py-1.5 text-xs rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-50"
-                    >
-                      Return to AI
-                    </button>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="text-sm font-semibold text-gray-900 truncate">{title}</div>
+                              <div className="text-xs text-gray-500 shrink-0">{formatListTime(c.last_message_at)}</div>
+                            </div>
+                            <div className="flex items-center justify-between gap-2 mt-0.5">
+                              <div className="min-w-0">
+                                <div className="text-xs text-gray-500 truncate">{c.last_message_preview || ''}</div>
+                                {c.reply_mode === 'human' && (c.taken_over_by_name || c.taken_over_by) && (
+                                  <div className="text-[11px] text-orange-700 truncate">
+                                    Taken by: {c.taken_over_by_name || 'Another admin'}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                {c.unread_count > 0 && (
+                                  <span className="text-xs bg-emerald-600 text-white px-2 py-0.5 rounded-full">
+                                    {c.unread_count}
+                                  </span>
+                                )}
+                                <span
+                                  className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                                    c.reply_mode === 'ai'
+                                      ? 'border-purple-200 text-purple-700 bg-purple-50'
+                                      : 'border-orange-200 text-orange-700 bg-orange-50'
+                                  }`}
+                                >
+                                  {c.reply_mode === 'ai' ? 'AI' : 'Human'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : !selectedConversation ? (
+          <div className="flex-1 flex items-center justify-center text-sm text-gray-500">Loading…</div>
+        ) : (
+          <div className="flex-1 flex flex-col">
+            <div className="px-4 py-3 border-b border-gray-200 bg-emerald-600 text-white flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => setSelectedConversationId(null)}
+                  className="p-2 rounded-md hover:bg-emerald-700/40"
+                  aria-label="Back"
+                  title="Back"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+
+                <div className="w-10 h-10 rounded-full bg-emerald-700/40 flex items-center justify-center text-xs font-semibold">
+                  {initialsFromName(selectedTitle)}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold truncate">{selectedTitle}</div>
+                  <div className="text-xs text-emerald-100 truncate">
+                    {selectedConversation.candidate_name
+                      ? `Candidate: ${selectedConversation.candidate_name}`
+                      : selectedConversation.phone_number}
+                  </div>
+                  {takeoverLabel && (
+                    <div className="text-[11px] text-emerald-100 mt-0.5">Human takeover by: {takeoverLabel}</div>
+                  )}
+                  {isTakenOverByOther && (
+                    <div className="text-[11px] text-orange-100 mt-0.5">Sending disabled (taken over).</div>
                   )}
                 </div>
               </div>
 
-              <div className="flex-1 overflow-auto p-4 bg-emerald-50/40">
-                {loadingMessages ? (
-                  <div className="text-sm text-gray-500">Loading messages...</div>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  className="p-2 rounded-md hover:bg-emerald-700/40"
+                  aria-label="Video"
+                  disabled
+                  title="Video (not implemented)"
+                >
+                  <Video className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  className="p-2 rounded-md hover:bg-emerald-700/40"
+                  aria-label="Call"
+                  disabled
+                  title="Call (not implemented)"
+                >
+                  <Phone className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  className="p-2 rounded-md hover:bg-emerald-700/40"
+                  aria-label="Search"
+                  disabled
+                  title="Search (not implemented)"
+                >
+                  <Search className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  className="p-2 rounded-md hover:bg-emerald-700/40"
+                  aria-label="Menu"
+                  disabled
+                  title="Menu (not implemented)"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+
+                <div className="w-px h-6 bg-emerald-200/30 mx-1" />
+
+                {selectedConversation.reply_mode === 'ai' ? (
+                  <button
+                    onClick={() => takeOver(selectedConversation.id)}
+                    disabled={isTakenOverByOther}
+                    className="px-3 py-1.5 text-xs rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-50"
+                  >
+                    Take Over
+                  </button>
                 ) : (
-                  <div className="space-y-2">
-                    {messages.map((m) => {
-                      const isInbound = m.direction === 'inbound';
-                      const bubbleStyle = isInbound
-                        ? 'bg-white border border-gray-200 text-gray-900'
-                        : m.direction === 'ai'
-                          ? 'bg-purple-50 border border-purple-200 text-gray-900'
-                          : 'bg-emerald-100 text-gray-900';
+                  <button
+                    onClick={() => returnToAI(selectedConversation.id)}
+                    disabled={isTakenOverByOther}
+                    className="px-3 py-1.5 text-xs rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-50"
+                  >
+                    Return to AI
+                  </button>
+                )}
+              </div>
+            </div>
 
-                      const showTicks = !isInbound && m.direction !== 'ai';
-                      const tickColor = m.status === 'read' ? 'text-emerald-600' : 'text-gray-400';
+            <div className="flex-1 overflow-auto p-4 bg-emerald-50/40">
+              {loadingMessages ? (
+                <div className="text-sm text-gray-500">Loading messages...</div>
+              ) : (
+                <div className="space-y-2">
+                  {messages.map((m) => {
+                    const isInbound = m.direction === 'inbound';
+                    const bubbleStyle = isInbound
+                      ? 'bg-white border border-gray-200 text-gray-900'
+                      : m.direction === 'ai'
+                        ? 'bg-purple-50 border border-purple-200 text-gray-900'
+                        : 'bg-emerald-100 text-gray-900';
 
-                      return (
-                        <div
-                          key={m.id}
-                          className={`flex ${isInbound ? 'justify-start' : 'justify-end'}`}
-                        >
-                          <div className={`max-w-[72%] rounded-2xl px-3 py-2 text-sm shadow-sm ${bubbleStyle}`}>
-                            <div className="whitespace-pre-wrap break-words leading-5">{m.body || ''}</div>
-                            <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-gray-500">
-                              <span>{formatBubbleTime(m.created_at)}</span>
-                              {showTicks && <CheckCheck className={`w-3.5 h-3.5 ${tickColor}`} />}
-                            </div>
+                    const showTicks = !isInbound && m.direction !== 'ai';
+                    const tickColor = m.status === 'read' ? 'text-emerald-600' : 'text-gray-400';
+
+                    return (
+                      <div key={m.id} className={`flex ${isInbound ? 'justify-start' : 'justify-end'}`}>
+                        <div className={`max-w-[72%] rounded-2xl px-3 py-2 text-sm shadow-sm ${bubbleStyle}`}>
+                          <div className="whitespace-pre-wrap break-words leading-5">{m.body || ''}</div>
+                          <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-gray-500">
+                            <span>{formatBubbleTime(m.created_at)}</span>
+                            {showTicks && <CheckCheck className={`w-3.5 h-3.5 ${tickColor}`} />}
                           </div>
                         </div>
-                      );
-                    })}
-                    <div ref={messagesEndRef} />
-                  </div>
-                )}
+                      </div>
+                    );
+                  })}
+                  <div ref={messagesEndRef} />
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-gray-200 bg-white p-3">
+              {sendError && <div className="mb-2 text-xs text-red-600">{sendError}</div>}
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="p-2 rounded-full hover:bg-gray-100"
+                  aria-label="Emoji"
+                  disabled
+                  title="Emoji (not implemented)"
+                >
+                  <Smile className="w-5 h-5 text-gray-500" />
+                </button>
+                <button
+                  type="button"
+                  className="p-2 rounded-full hover:bg-gray-100"
+                  aria-label="Attach"
+                  disabled
+                  title="Attach (not implemented)"
+                >
+                  <Paperclip className="w-5 h-5 text-gray-500" />
+                </button>
+
+                <input
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      sendText(selectedConversation.id);
+                    }
+                  }}
+                  disabled={isTakenOverByOther}
+                  className="flex-1 bg-gray-100 border border-gray-200 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="Type a message"
+                />
+
+                <button
+                  onClick={() => sendText(selectedConversation.id)}
+                  disabled={isTakenOverByOther}
+                  className="p-2 rounded-full bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+                  aria-label="Send"
+                  title="Send"
+                >
+                  <Send className="w-5 h-5" />
+                </button>
               </div>
 
-              <div className="border-t border-gray-200 bg-white p-3">
-                {sendError && (
-                  <div className="mb-2 text-xs text-red-600">{sendError}</div>
-                )}
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className="p-2 rounded-full hover:bg-gray-100"
-                    aria-label="Emoji"
-                    disabled
-                    title="Emoji (not implemented)"
-                  >
-                    <Smile className="w-5 h-5 text-gray-500" />
-                  </button>
-                  <button
-                    type="button"
-                    className="p-2 rounded-full hover:bg-gray-100"
-                    aria-label="Attach"
-                    disabled
-                    title="Attach (not implemented)"
-                  >
-                    <Paperclip className="w-5 h-5 text-gray-500" />
-                  </button>
-
+              {showTemplateComposer && !isTakenOverByOther && (
+                <div className="mt-3 flex items-center gap-2">
                   <input
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        sendText(selectedConversation.id);
-                      }
-                    }}
-                    disabled={isTakenOverByOther}
-                    className="flex-1 bg-gray-100 border border-gray-200 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    placeholder="Type a message"
+                    value={templateName}
+                    onChange={(e) => setTemplateName(e.target.value)}
+                    className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Template name (approved)"
                   />
-
+                  <input
+                    value={templateLanguage}
+                    onChange={(e) => setTemplateLanguage(e.target.value)}
+                    className="w-[110px] border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="en_US"
+                  />
                   <button
-                    onClick={() => sendText(selectedConversation.id)}
-                    disabled={isTakenOverByOther}
-                    className="p-2 rounded-full bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
-                    aria-label="Send"
-                    title="Send"
+                    onClick={() => sendTemplate(selectedConversation.id)}
+                    className="px-4 py-2 text-sm rounded-md border border-gray-200 hover:bg-gray-50"
                   >
-                    <Send className="w-5 h-5" />
+                    Send Template
                   </button>
                 </div>
-
-                {showTemplateComposer && !isTakenOverByOther && (
-                  <div className="mt-3 flex items-center gap-2">
-                    <input
-                      value={templateName}
-                      onChange={(e) => setTemplateName(e.target.value)}
-                      className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Template name (approved)"
-                    />
-                    <input
-                      value={templateLanguage}
-                      onChange={(e) => setTemplateLanguage(e.target.value)}
-                      className="w-[110px] border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="en_US"
-                    />
-                    <button
-                      onClick={() => sendTemplate(selectedConversation.id)}
-                      className="px-4 py-2 text-sm rounded-md border border-gray-200 hover:bg-gray-50"
-                    >
-                      Send Template
-                    </button>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
