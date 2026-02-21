@@ -272,6 +272,18 @@ export function WhatsAppInbox() {
 
   useEffect(() => {
     if (!authHeader) return;
+
+    let refreshTimer: number | undefined;
+    const scheduleRefresh = (conversationId?: string) => {
+      if (refreshTimer) window.clearTimeout(refreshTimer);
+      refreshTimer = window.setTimeout(() => {
+        loadConversations();
+        if (conversationId && selectedConversationId && conversationId === selectedConversationId) {
+          loadMessages(selectedConversationId);
+        }
+      }, 250);
+    };
+
     const channel = supabase
       .channel('whatsapp-inbox-realtime')
       .on(
@@ -281,23 +293,36 @@ export function WhatsAppInbox() {
           const newMsg = payload.new as any;
           const convId = String(newMsg?.conversation_id || '');
 
-          // Keep it simple and consistent: refresh conversations; refresh open thread if affected.
-          loadConversations();
-          if (selectedConversationId && convId === selectedConversationId) {
-            loadMessages(selectedConversationId);
-          }
+          // Refresh list + open thread if affected.
+          scheduleRefresh(convId);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'whatsapp_messages' },
+        (payload) => {
+          const newMsg = payload.new as any;
+          const convId = String(newMsg?.conversation_id || '');
+
+          // Update ticks/status changes etc.
+          scheduleRefresh(convId);
         }
       )
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'whatsapp_conversations' },
         () => {
-          loadConversations();
+          scheduleRefresh();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        // Helpful when diagnosing why realtime isn't updating.
+        // eslint-disable-next-line no-console
+        console.log('[WhatsAppInbox] Realtime status:', status);
+      });
 
     return () => {
+      if (refreshTimer) window.clearTimeout(refreshTimer);
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
