@@ -73,6 +73,8 @@ export function WhatsAppInbox() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [modeError, setModeError] = useState<string | null>(null);
+  const [modeLoading, setModeLoading] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -179,26 +181,48 @@ export function WhatsAppInbox() {
 
   async function takeOver(conversationId: string) {
     if (!authHeader) return;
-    await fetchJson(`${API_BASE_URL}/whatsapp-inbox/conversations/${conversationId}/takeover`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...authHeader,
-      },
-    });
-    await loadConversations();
+    setModeError(null);
+    setModeLoading(true);
+    try {
+      const updated = (await fetchJson(`${API_BASE_URL}/whatsapp-inbox/conversations/${conversationId}/takeover`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeader,
+        },
+      })) as Partial<Conversation>;
+
+      setConversations((prev) => prev.map((c) => (c.id === conversationId ? ({ ...c, ...updated } as Conversation) : c)));
+      await loadConversations();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setModeError(msg);
+    } finally {
+      setModeLoading(false);
+    }
   }
 
   async function returnToAI(conversationId: string) {
     if (!authHeader) return;
-    await fetchJson(`${API_BASE_URL}/whatsapp-inbox/conversations/${conversationId}/return-to-ai`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...authHeader,
-      },
-    });
-    await loadConversations();
+    setModeError(null);
+    setModeLoading(true);
+    try {
+      const updated = (await fetchJson(`${API_BASE_URL}/whatsapp-inbox/conversations/${conversationId}/return-to-ai`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeader,
+        },
+      })) as Partial<Conversation>;
+
+      setConversations((prev) => prev.map((c) => (c.id === conversationId ? ({ ...c, ...updated } as Conversation) : c)));
+      await loadConversations();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setModeError(msg);
+    } finally {
+      setModeLoading(false);
+    }
   }
 
   async function sendText(conversationId: string) {
@@ -485,8 +509,14 @@ export function WhatsAppInbox() {
                   type="button"
                     className="p-2 rounded-lg hover:bg-accent/60 transition-colors"
                   aria-label="Call"
-                  disabled
-                  title="Call (not implemented)"
+                  disabled={!selectedConversation.phone_number}
+                  title={selectedConversation.phone_number ? `Call ${selectedConversation.phone_number}` : 'Call (no number)'}
+                  onClick={() => {
+                    const raw = selectedConversation.phone_number || '';
+                    const tel = raw.replace(/[^\d+]/g, '');
+                    if (!tel) return;
+                    window.location.href = `tel:${tel}`;
+                  }}
                 >
                     <Phone className="w-4 h-4 text-muted-foreground" />
                 </button>
@@ -514,7 +544,8 @@ export function WhatsAppInbox() {
                 {selectedConversation.reply_mode === 'ai' ? (
                   <button
                     onClick={() => takeOver(selectedConversation.id)}
-                    disabled={isTakenOverByOther}
+                    disabled={isTakenOverByOther || modeLoading}
+                    title={isTakenOverByOther ? 'Taken over by another admin' : modeLoading ? 'Updating...' : 'Take over'}
                     className="px-3 py-1.5 text-xs rounded-full border border-border/60 bg-background/50 backdrop-blur hover:bg-accent/50 transition-colors disabled:opacity-50"
                   >
                     Take Over
@@ -522,7 +553,8 @@ export function WhatsAppInbox() {
                 ) : (
                   <button
                     onClick={() => returnToAI(selectedConversation.id)}
-                    disabled={isTakenOverByOther}
+                    disabled={isTakenOverByOther || modeLoading}
+                    title={isTakenOverByOther ? 'Taken over by another admin' : modeLoading ? 'Updating...' : 'Return to AI'}
                     className="px-3 py-1.5 text-xs rounded-full border border-border/60 bg-background/50 backdrop-blur hover:bg-accent/50 transition-colors disabled:opacity-50"
                   >
                     Return to AI
@@ -530,6 +562,7 @@ export function WhatsAppInbox() {
                 )}
                 </div>
               </div>
+              {modeError && <div className="mt-2 text-xs text-destructive break-words">{modeError}</div>}
             </div>
 
             <div className="flex-1 overflow-auto p-4 bg-muted/20">
