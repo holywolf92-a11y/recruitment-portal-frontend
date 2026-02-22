@@ -338,10 +338,10 @@ const AppContent = () => {
         </div>
       </header>
 
-      <div className="flex flex-col sm:flex-row min-w-0 flex-1 min-h-0">
+      <div className="admin-shell flex flex-col min-w-0 flex-1 min-h-0">
         {/* Sidebar - Hidden when in browser view */}
         {!isBrowserView && (
-          <aside className="w-full sm:w-64 sm:shrink-0 bg-white border-b sm:border-b-0 sm:border-r border-gray-200 sm:overflow-y-auto sm:min-h-0">
+          <aside className="admin-sidebar w-full bg-white border-b border-gray-200 overflow-y-auto min-h-0">
             <nav className="p-4 space-y-1">
               {/* Dashboard */}
               <a
