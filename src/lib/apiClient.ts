@@ -31,28 +31,13 @@ console.log('[API Client] API_BASE_URL:', API_BASE_URL);
 console.log('[API Client] Environment:', import.meta.env.MODE);
 console.log('[API Client] Hostname:', typeof window !== 'undefined' ? window.location.hostname : 'server');
 
-import { supabase } from './authContext';
-
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...((options.headers as Record<string, string> | undefined) || {}),
-  };
-
-  // Attach Supabase user JWT when available (helps backend under RLS)
-  if (!headers.Authorization && !headers.authorization) {
-    try {
-      const { data } = await supabase.auth.getSession();
-      const token = data?.session?.access_token;
-      if (token) headers.Authorization = `Bearer ${token}`;
-    } catch {
-      // ignore
-    }
-  }
-
   const res = await fetch(url, {
-    headers,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
     ...options,
   });
   if (!res.ok) {
@@ -411,24 +396,11 @@ class ApiClient {
 
     let response: Response;
     try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        ...((options.headers as Record<string, string> | undefined) || {}),
-      };
-
-      // Attach Supabase user JWT when available (helps backend under RLS)
-      if (!headers.Authorization && !headers.authorization) {
-        try {
-          const { data } = await supabase.auth.getSession();
-          const token = data?.session?.access_token;
-          if (token) headers.Authorization = `Bearer ${token}`;
-        } catch {
-          // ignore
-        }
-      }
-
       response = await fetch(url, {
-        headers,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
         ...options,
         signal: options.signal || controller?.signal,
       });
