@@ -13,6 +13,7 @@ interface Document {
   category: string;
   verification_status: string;
   document_type?: string;
+  detected_category?: string;
 }
 
 export function PublicCandidateProfile() {
@@ -65,15 +66,23 @@ export function PublicCandidateProfile() {
             
             // Exclude CV/resume documents - these are classified and should not be downloadable
             const category = (doc.category || '').toLowerCase();
+            const detectedCategory = (doc.detected_category || '').toLowerCase();
             const docType = (doc.document_type || '').toLowerCase();
             const fileName = (doc.file_name || '').toLowerCase();
             
-            const isCV = category === 'cv' || 
-                        category === 'resume' ||
-                        docType === 'cv' || 
-                        docType === 'resume' ||
-                        fileName.includes('cv') ||
-                        fileName.includes('resume');
+            // IMPORTANT RULE: never show original CV on public profile link.
+            // (Employer-safe CV is downloaded via separate button.)
+            const isCV =
+              category === 'cv_resume' ||
+              category === 'cv' ||
+              category === 'resume' ||
+              detectedCategory === 'cv_resume' ||
+              detectedCategory === 'cv' ||
+              detectedCategory === 'resume' ||
+              docType === 'cv' ||
+              docType === 'resume' ||
+              fileName.includes('cv') ||
+              fileName.includes('resume');
             
             return !isCV; // Only include non-CV documents
           });
