@@ -34,35 +34,100 @@ const AppContent = () => {
   const [selectedProfession, setSelectedProfession] = useState<string>('all');
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  const navigateTab = (tab: string) => {
+  const TAB_PATHS: Record<string, string> = {
+    dashboard: '/admin/dashboard',
+    'employee-dashboard': '/admin/employee-dashboard',
+    'cv-inbox': '/admin/cv-inbox',
+    'inbox-ui': '/admin/inbox',
+    'whatsapp-inbox': '/admin/whatsapp',
+    'candidate-excel-browser': '/admin/excel-browser',
+    candidates: '/admin/candidates',
+    employers: '/admin/employers',
+    jobs: '/admin/jobs',
+    employees: '/admin/employees',
+    templates: '/admin/templates',
+    'application-link': '/admin/application-link',
+    reports: '/admin/reports',
+    settings: '/admin/settings',
+    'admin-panel': '/admin/admin',
+    users: '/admin/users',
+  };
+
+  function buildAdminUrl(tab: string, opts?: { profession?: string }) {
+    const base = TAB_PATHS[tab] || '/admin/dashboard';
+    const url = new URL(base, window.location.origin);
+    if (tab === 'candidates') {
+      const profession = (opts?.profession ?? selectedProfession ?? 'all').toString();
+      if (profession && profession !== 'all') {
+        url.searchParams.set('profession', profession);
+      }
+    }
+    return `${url.pathname}${url.search}`;
+  }
+
+  function parseAdminLocation() {
+    const { pathname, search } = window.location;
+    const normalizedPathname = pathname.replace(/\/+$/, '') || '/';
+
+    // Treat "/" and "/admin" as dashboard.
+    if (normalizedPathname === '/' || normalizedPathname === '/admin') {
+      return { tab: 'dashboard', profession: 'all' };
+    }
+
+    // Public routes are handled before auth in App(); ignore here.
+    if (!normalizedPathname.startsWith('/admin/')) {
+      return { tab: 'dashboard', profession: 'all' };
+    }
+
+    const adminPath = normalizedPathname;
+    const match = Object.entries(TAB_PATHS).find(([, path]) => path === adminPath);
+    const tab = match?.[0] || 'dashboard';
+
+    let profession: string | null = null;
+    if (tab === 'candidates') {
+      const params = new URLSearchParams(search);
+      profession = params.get('profession');
+    }
+
+    return { tab, profession: profession || 'all' };
+  }
+
+  const navigateTab = (tab: string, opts?: { profession?: string }) => {
     setActiveTab(tab);
     if (typeof window === 'undefined') return;
 
-    if (tab === 'whatsapp-inbox') {
-      window.history.pushState({}, '', '/admin/whatsapp');
-      return;
-    }
-
-    // If we're leaving the WhatsApp inbox route, reset URL back to root app.
-    if (window.location.pathname === '/admin/whatsapp') {
-      window.history.pushState({}, '', '/');
+    const nextUrl = buildAdminUrl(tab, opts);
+    if (window.location.pathname + window.location.search !== nextUrl) {
+      window.history.pushState({}, '', nextUrl);
     }
   };
 
-  // Keep tab-based navigation in sync with /admin/whatsapp
+  const onNavClick = (e: React.MouseEvent<HTMLAnchorElement>, tab: string, opts?: { profession?: string }) => {
+    // Let browser handle: new tab/window, middle-click, right-click, downloads, etc.
+    if (e.defaultPrevented) return;
+    if (e.button !== 0) return;
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+    e.preventDefault();
+    navigateTab(tab, opts);
+  };
+
+  // Keep tab-based navigation in sync with /admin/* (supports refresh + back/forward)
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const syncFromPath = () => {
-      const pathname = window.location.pathname;
-      if (pathname === '/admin/whatsapp') {
-        setActiveTab('whatsapp-inbox');
+      const parsed = parseAdminLocation();
+      setActiveTab(parsed.tab);
+      if (parsed.tab === 'candidates') {
+        setSelectedProfession(parsed.profession);
       }
     };
 
     syncFromPath();
     window.addEventListener('popstate', syncFromPath);
     return () => window.removeEventListener('popstate', syncFromPath);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Mock user data - in production, this would come from user metadata in Supabase
@@ -186,7 +251,7 @@ const AppContent = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200">
-        <div className="px-6 py-4">
+        <div className="px-4 md:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               {/* Logo */}
@@ -273,14 +338,15 @@ const AppContent = () => {
         </div>
       </header>
 
-      <div className="flex">
+      <div className="flex flex-col md:flex-row min-w-0">
         {/* Sidebar - Hidden when in browser view */}
         {!isBrowserView && (
-          <aside className="w-64 bg-white border-r border-gray-200 min-h-[calc(100vh-73px)]">
+          <aside className="w-full md:w-64 md:shrink-0 bg-white border-b md:border-b-0 md:border-r border-gray-200 md:h-[calc(100vh-73px)] md:overflow-y-auto">
             <nav className="p-4 space-y-1">
               {/* Dashboard */}
-              <button
-                onClick={() => navigateTab('dashboard')}
+              <a
+                href={buildAdminUrl('dashboard')}
+                onClick={(e) => onNavClick(e, 'dashboard')}
                 className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                   activeTab === 'dashboard'
                     ? 'bg-blue-50 text-blue-600 font-medium'
@@ -289,14 +355,15 @@ const AppContent = () => {
               >
                 <LayoutDashboard className="w-4 h-4" />
                 Dashboard
-              </button>
+              </a>
               
               {/* Section: Candidate Operations */}
               <div className="pt-4">
                 <p className="px-4 text-xs font-semibold text-gray-500 mb-2">CANDIDATE OPERATIONS</p>
                 
-                <button
-                  onClick={() => navigateTab('cv-inbox')}
+                <a
+                  href={buildAdminUrl('cv-inbox')}
+                  onClick={(e) => onNavClick(e, 'cv-inbox')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                     activeTab === 'cv-inbox'
                       ? 'bg-blue-50 text-blue-600 font-medium'
@@ -306,10 +373,11 @@ const AppContent = () => {
                   <Inbox className="w-4 h-4" />
                   <span className="flex-1 text-left">CV Inbox</span>
                   <span className="bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded text-xs">5 New</span>
-                </button>
+                </a>
 
-                <button
-                  onClick={() => navigateTab('inbox-ui')}
+                <a
+                  href={buildAdminUrl('inbox-ui')}
+                  onClick={(e) => onNavClick(e, 'inbox-ui')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                     activeTab === 'inbox-ui'
                       ? 'bg-blue-50 text-blue-600 font-medium'
@@ -318,10 +386,11 @@ const AppContent = () => {
                 >
                   <Mail className="w-4 h-4" />
                   <span className="flex-1 text-left">Inbox Manager</span>
-                </button>
+                </a>
 
-                <button
-                  onClick={() => navigateTab('candidate-excel-browser')}
+                <a
+                  href={buildAdminUrl('candidate-excel-browser')}
+                  onClick={(e) => onNavClick(e, 'candidate-excel-browser')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                     activeTab === 'candidate-excel-browser'
                       ? 'bg-blue-50 text-blue-600 font-medium'
@@ -330,12 +399,14 @@ const AppContent = () => {
                 >
                   <FileText className="w-4 h-4" />
                   <span className="flex-1 text-left">Excel Browser</span>
-                </button>
+                </a>
                 
-                <button
-                  onClick={() => {
-                    navigateTab('candidates');
+                <a
+                  href={buildAdminUrl('candidates', { profession: 'all' })}
+                  onClick={(e) => {
+                    // Keep local state in sync immediately for the highlight.
                     setSelectedProfession('all');
+                    onNavClick(e, 'candidates', { profession: 'all' });
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                     activeTab === 'candidates'
@@ -346,15 +417,16 @@ const AppContent = () => {
                   <Users className="w-4 h-4" />
                   <span className="flex-1 text-left">Candidates</span>
                   <span className="text-xs text-gray-500">{professionCounts['all'] ?? 0}</span>
-                </button>
+                </a>
 
                 {/* Profession Sub-items */}
                 {professions.map((profession) => (
-                  <button
+                  <a
                     key={profession}
-                    onClick={() => {
-                      navigateTab('candidates');
+                    href={buildAdminUrl('candidates', { profession })}
+                    onClick={(e) => {
                       setSelectedProfession(profession);
+                      onNavClick(e, 'candidates', { profession });
                     }}
                     className={`w-full flex items-center gap-3 pl-12 pr-4 py-2 rounded-lg transition-colors text-sm ${
                       activeTab === 'candidates' && selectedProfession === profession
@@ -364,7 +436,7 @@ const AppContent = () => {
                   >
                     <span className="flex-1 text-left">{profession}</span>
                     <span className="text-xs text-gray-500">{professionCounts[profession]}</span>
-                  </button>
+                  </a>
                 ))}
 
               </div>
@@ -373,8 +445,9 @@ const AppContent = () => {
               <div className="pt-4">
                 <p className="px-4 text-xs font-semibold text-gray-500 mb-2">EMPLOYER & JOBS</p>
                 
-                <button
-                  onClick={() => navigateTab('employers')}
+                <a
+                  href={buildAdminUrl('employers')}
+                  onClick={(e) => onNavClick(e, 'employers')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                     activeTab === 'employers'
                       ? 'bg-blue-50 text-blue-600 font-medium'
@@ -383,10 +456,11 @@ const AppContent = () => {
                 >
                   <Building2 className="w-4 h-4" />
                   Employers
-                </button>
+                </a>
                 
-                <button
-                  onClick={() => navigateTab('jobs')}
+                <a
+                  href={buildAdminUrl('jobs')}
+                  onClick={(e) => onNavClick(e, 'jobs')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                     activeTab === 'jobs'
                       ? 'bg-blue-50 text-blue-600 font-medium'
@@ -395,15 +469,16 @@ const AppContent = () => {
                 >
                   <Briefcase className="w-4 h-4" />
                   Job Orders
-                </button>
+                </a>
               </div>
 
               {/* Section: Operations & Management */}
               <div className="pt-4">
                 <p className="px-4 text-xs font-semibold text-gray-500 mb-2">OPERATIONS</p>
                 
-                <button
-                  onClick={() => navigateTab('employees')}
+                <a
+                  href={buildAdminUrl('employees')}
+                  onClick={(e) => onNavClick(e, 'employees')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                     activeTab === 'employees'
                       ? 'bg-blue-50 text-blue-600 font-medium'
@@ -412,15 +487,16 @@ const AppContent = () => {
                 >
                   <ClipboardList className="w-4 h-4" />
                   Employees
-                </button>
+                </a>
               </div>
 
               {/* Section: Communication */}
               <div className="pt-4">
                 <p className="px-4 text-xs font-semibold text-gray-500 mb-2">COMMUNICATION</p>
                 
-                <button
-                  onClick={() => navigateTab('templates')}
+                <a
+                  href={buildAdminUrl('templates')}
+                  onClick={(e) => onNavClick(e, 'templates')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                     activeTab === 'templates'
                       ? 'bg-blue-50 text-blue-600 font-medium'
@@ -429,10 +505,11 @@ const AppContent = () => {
                 >
                   <MessageSquare className="w-4 h-4" />
                   Templates
-                </button>
+                </a>
                 
-                <button
-                  onClick={() => navigateTab('whatsapp-inbox')}
+                <a
+                  href={buildAdminUrl('whatsapp-inbox')}
+                  onClick={(e) => onNavClick(e, 'whatsapp-inbox')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                     activeTab === 'whatsapp-inbox'
                       ? 'bg-blue-50 text-blue-600 font-medium'
@@ -441,10 +518,11 @@ const AppContent = () => {
                 >
                   <Phone className="w-4 h-4" />
                   <span className="flex-1 text-left">WhatsApp Inbox</span>
-                </button>
+                </a>
 
-                <button
-                  onClick={() => navigateTab('application-link')}
+                <a
+                  href={buildAdminUrl('application-link')}
+                  onClick={(e) => onNavClick(e, 'application-link')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                     activeTab === 'application-link'
                       ? 'bg-blue-50 text-blue-600 font-medium'
@@ -453,7 +531,7 @@ const AppContent = () => {
                 >
                   <Link2 className="w-4 h-4" />
                   Application Link
-                </button>
+                </a>
               </div>
 
               {/* Section: Reports & Settings */}
@@ -461,8 +539,9 @@ const AppContent = () => {
                 <p className="px-4 text-xs font-semibold text-gray-500 mb-2">SYSTEM</p>
                 
                 {user.role === 'Admin' && (
-                  <button
-                    onClick={() => navigateTab('admin-panel')}
+                  <a
+                    href={buildAdminUrl('admin-panel')}
+                    onClick={(e) => onNavClick(e, 'admin-panel')}
                     className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                       activeTab === 'admin-panel'
                         ? 'bg-blue-50 text-blue-600 font-medium'
@@ -471,12 +550,13 @@ const AppContent = () => {
                   >
                     <Shield className="w-4 h-4" />
                     Admin Panel
-                  </button>
+                  </a>
                 )}
                 
                 {hasPermission(user, 'users', 'view') && (
-                  <button
-                    onClick={() => navigateTab('users')}
+                  <a
+                    href={buildAdminUrl('users')}
+                    onClick={(e) => onNavClick(e, 'users')}
                     className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                       activeTab === 'users'
                         ? 'bg-blue-50 text-blue-600 font-medium'
@@ -485,11 +565,12 @@ const AppContent = () => {
                   >
                     <Shield className="w-4 h-4" />
                     User Management
-                  </button>
+                  </a>
                 )}
                 
-                <button
-                  onClick={() => navigateTab('reports')}
+                <a
+                  href={buildAdminUrl('reports')}
+                  onClick={(e) => onNavClick(e, 'reports')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                     activeTab === 'reports'
                       ? 'bg-blue-50 text-blue-600 font-medium'
@@ -498,10 +579,11 @@ const AppContent = () => {
                 >
                   <FileText className="w-4 h-4" />
                   Reports
-                </button>
+                </a>
                 
-                <button
-                  onClick={() => navigateTab('settings')}
+                <a
+                  href={buildAdminUrl('settings')}
+                  onClick={(e) => onNavClick(e, 'settings')}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
                     activeTab === 'settings'
                       ? 'bg-blue-50 text-blue-600 font-medium'
@@ -510,17 +592,17 @@ const AppContent = () => {
                 >
                   <SettingsIcon className="w-4 h-4" />
                   Settings
-                </button>
+                </a>
               </div>
             </nav>
           </aside>
         )}
 
         {/* Main Content */}
-        <main className="flex-1">
+        <main className="flex-1 min-w-0">
           {/* Back button for Browser view */}
           {isBrowserView && (
-            <div className="bg-white border-b border-gray-200 px-6 py-3">
+            <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-3">
               <button
                     onClick={() => navigateTab('candidates')}
                 className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors"
@@ -531,7 +613,7 @@ const AppContent = () => {
             </div>
           )}
           
-          <div className={isBrowserView ? '' : 'p-6'}>
+          <div className={isBrowserView ? '' : 'p-4 md:p-6'}>
             {renderContent()}
           </div>
         </main>

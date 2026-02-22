@@ -541,7 +541,7 @@ export function WhatsAppInbox() {
                     <MoreVertical className="w-5 h-5 text-muted-foreground" />
                 </button>
 
-                <div className="w-px h-6 bg-border/60 mx-1" />
+                <div className="hidden sm:block w-px h-6 bg-border/60 mx-1" />
 
                 {selectedConversation.reply_mode === 'ai' ? (
                   <button

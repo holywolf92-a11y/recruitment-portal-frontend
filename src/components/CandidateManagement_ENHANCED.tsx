@@ -880,8 +880,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
 
         {/* Bulk Actions Bar */}
         {selectedIds.size > 0 && (
-          <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <span className="text-sm font-medium text-blue-900">
                 {selectedIds.size} candidate{selectedIds.size > 1 ? 's' : ''} selected
               </span>
@@ -892,7 +892,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
                 Clear selection
               </button>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <select
                 value={bulkStatus}
                 onChange={(e) => setBulkStatus(e.target.value as any)}
@@ -1074,7 +1074,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
                     </div>
 
                     {/* Status and Score Row */}
-                    <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200">
+                    <div className="flex flex-wrap items-center gap-2 mb-4 pb-4 border-b border-gray-200">
                       <span className={`px-4 py-2 rounded-lg text-sm font-medium flex-shrink-0 ${
                         statusLabel === 'Applied' ? 'bg-blue-100 text-blue-700' :
                         statusLabel === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
@@ -1084,14 +1084,14 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
                         {statusLabel}
                       </span>
                       {score != null && (
-                        <div className="flex items-center gap-2 bg-yellow-50 px-4 py-2 rounded-lg">
+                        <div className="flex items-center gap-2 bg-yellow-50 px-4 py-2 rounded-lg flex-shrink-0">
                           <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
                           <span className="text-lg font-bold text-gray-900">{score.toFixed(1)}</span>
                           <span className="text-xs text-gray-500">/10</span>
                         </div>
                       )}
                       {c.experience_years != null && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 text-sm text-gray-600 flex-shrink-0">
                           <Briefcase className="w-4 h-4" />
                           <span className="font-medium">{c.experience_years}y exp</span>
                         </div>
@@ -1214,7 +1214,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
                             </span>
                             <span className="text-gray-500">Usually takes 30-60 seconds</span>
                           </div>
-                          <div className="grid grid-cols-4 gap-2">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                             <DocumentSkeletonCard delay={0} />
                             <DocumentSkeletonCard delay={100} />
                             <DocumentSkeletonCard delay={200} />
@@ -1226,7 +1226,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
                         </div>
                       ) : docCount > 0 ? (
                         <>
-                          <div className="grid grid-cols-4 gap-2">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         {/* CV */}
                         <div 
                           onClick={() => handleDocumentClick(c.id, 'cv', cvOk)}
