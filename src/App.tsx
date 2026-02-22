@@ -248,9 +248,9 @@ const AppContent = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
+      <header className="bg-white border-b border-gray-200 shrink-0">
         <div className="px-4 md:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -338,10 +338,10 @@ const AppContent = () => {
         </div>
       </header>
 
-      <div className="flex flex-col sm:flex-row min-w-0">
+      <div className="flex flex-col sm:flex-row min-w-0 flex-1 min-h-0">
         {/* Sidebar - Hidden when in browser view */}
         {!isBrowserView && (
-          <aside className="w-full sm:w-64 sm:shrink-0 bg-white border-b sm:border-b-0 sm:border-r border-gray-200 sm:h-[calc(100vh-73px)] sm:overflow-y-auto">
+          <aside className="w-full sm:w-64 sm:shrink-0 bg-white border-b sm:border-b-0 sm:border-r border-gray-200 sm:overflow-y-auto sm:min-h-0">
             <nav className="p-4 space-y-1">
               {/* Dashboard */}
               <a
@@ -599,7 +599,7 @@ const AppContent = () => {
         )}
 
         {/* Main Content */}
-        <main className="flex-1 min-w-0">
+        <main className="flex-1 min-w-0 min-h-0 overflow-y-auto">
           {/* Back button for Browser view */}
           {isBrowserView && (
             <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-3">
