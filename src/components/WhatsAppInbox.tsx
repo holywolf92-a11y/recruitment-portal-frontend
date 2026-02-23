@@ -95,7 +95,7 @@ export function WhatsAppInbox() {
 
   const selectedTitle = useMemo(() => {
     if (!selectedConversation) return '';
-    return selectedConversation.display_name || selectedConversation.candidate_name || selectedConversation.phone_number;
+    return selectedConversation.candidate_name || selectedConversation.display_name || selectedConversation.phone_number;
   }, [selectedConversation]);
 
   const isTakenOverByOther = useMemo(() => {
@@ -394,7 +394,7 @@ export function WhatsAppInbox() {
               ) : (
                 <div className="divide-y divide-border/40">
                   {conversations.map((c) => {
-                    const title = c.display_name || c.candidate_name || c.phone_number;
+                    const title = c.candidate_name || c.display_name || c.phone_number;
                     const avatar = initialsFromName(title);
                     return (
                       <button
