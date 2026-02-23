@@ -70,6 +70,7 @@ export interface Attachment {
   id: string;
   inbox_message_id: string;
   candidate_id?: string | null;
+  linked_candidate_id?: string | null;
   storage_bucket?: string;
   storage_path?: string;
   file_name?: string;

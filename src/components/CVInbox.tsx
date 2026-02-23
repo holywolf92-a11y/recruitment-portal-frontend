@@ -53,6 +53,9 @@ export function CVInbox() {
         const msg = messages[i];
         const atts = allAttachmentsArrays[i] || [];
         for (const a of atts) {
+          // WhatsApp identity-first flow writes linked_candidate_id (not candidate_id).
+          // Treat either field as a signal that the attachment was successfully extracted.
+          const resolvedCandidateId = a.candidate_id || a.linked_candidate_id;
           items.push({
             id: a.id,
             messageId: msg.id,
@@ -62,8 +65,8 @@ export function CVInbox() {
             senderContact: (msg.payload?.sender_contact || 'Unknown'),
             receivedDate: msg.received_at ? new Date(msg.received_at).toLocaleString() : '-',
             fileSize: '-',
-            status: a.candidate_id ? 'extracted' : 'queued',
-            candidateId: a.candidate_id || undefined,
+            status: resolvedCandidateId ? 'extracted' : 'queued',
+            candidateId: resolvedCandidateId || undefined,
           });
         }
       }
@@ -91,7 +94,7 @@ export function CVInbox() {
   async function handleProcess(attachmentId: string) {
     const current = cvs.find((cv) => cv.id === attachmentId);
     if (!current?.jobId) {
-      setCvs((prev) => prev.map(cv => cv.id === attachmentId ? { ...cv, status: 'error', errorMessage: 'No parsing job available for this CV' } : cv));
+      handleRetry(attachmentId);
       return;
     }
     setCvs((prev) => prev.map(cv => cv.id === attachmentId ? { ...cv, status: 'processing', errorMessage: undefined } : cv));
