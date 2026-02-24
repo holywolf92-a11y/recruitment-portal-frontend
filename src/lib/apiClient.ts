@@ -157,8 +157,41 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({}),
     });
-  }
+  },
+
+  async getUnmatchedDocuments(params?: { limit?: number; offset?: number; status?: 'needs_review' | 'pending' }) {
+    const query = new URLSearchParams();
+    if (params?.limit != null) query.set('limit', String(params.limit));
+    if (params?.offset != null) query.set('offset', String(params.offset));
+    if (params?.status) query.set('status', params.status);
+    return request<{
+      documents: UnmatchedDocument[];
+      total: number;
+      limit: number;
+      offset: number;
+    }>(`/documents/unmatched?${query.toString()}`);
+  },
+
+  async linkUnmatchedDocument(documentId: string, candidateId: string) {
+    return request<{ success: boolean; message: string }>(`/documents/unmatched/${documentId}/link`, {
+      method: 'POST',
+      body: JSON.stringify({ candidateId }),
+    });
+  },
 };
+
+export interface UnmatchedDocument {
+  id: string;
+  document_type: string;
+  file_name: string;
+  storage_path: string;
+  received_at: string;
+  source: string;
+  extracted_metadata?: any;
+  needs_manual_review: boolean;
+  review_reasons?: string[];
+  downloadUrl?: string | null;
+}
 
 export interface Candidate {
   id: string;

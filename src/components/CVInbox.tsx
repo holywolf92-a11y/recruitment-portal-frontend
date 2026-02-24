@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
-import { Inbox, Upload, FileText, Mail, MessageSquare, Calendar, CheckCircle, Sparkles, Eye, Download, AlertTriangle, Play, Trash } from 'lucide-react';
+import { Inbox, Upload, FileText, Mail, MessageSquare, Calendar, CheckCircle, Sparkles, Eye, Download, AlertTriangle, Play, Trash, Link2 } from 'lucide-react';
 import { api, Attachment, InboxMessage } from '../lib/apiClient';
+import { UnmatchedDocumentsQueue } from './UnmatchedDocumentsQueue';
 
 interface IncomingCV {
   id: string; // attachment id
@@ -26,6 +27,8 @@ export function CVInbox() {
   const [uploading, setUploading] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const activePollsRef = useRef<Set<string>>(new Set());
+  const [activeView, setActiveView] = useState<'inbox' | 'unmatched'>('inbox');
+  const [unmatchedCount, setUnmatchedCount] = useState<number>(0);
 
   const genExternalId = () => {
     if (typeof crypto !== 'undefined' && (crypto as any).randomUUID) {
@@ -37,6 +40,10 @@ export function CVInbox() {
 
   useEffect(() => {
     loadData().catch(() => {});
+    // Pre-fetch unmatched count for the badge
+    api.getUnmatchedDocuments({ limit: 1 })
+      .then(r => setUnmatchedCount(r.total))
+      .catch(() => {});
   }, []);
 
   async function loadData() {
@@ -166,8 +173,8 @@ export function CVInbox() {
           return;
         }
 
-        // queued/processing
-        setCvs((prev) => prev.map(cv => cv.id === attachmentId ? { ...cv, status: job.status } : cv));
+        // queued/processing — 'failed' is already handled above so cast is safe
+        setCvs((prev) => prev.map(cv => cv.id === attachmentId ? { ...cv, status: job.status as IncomingCV['status'] } : cv));
       } catch (e: any) {
         // Stop polling if endpoint missing
         stop();
@@ -350,6 +357,46 @@ export function CVInbox() {
           </button>
         </div>
       </div>
+
+      {/* View switcher */}
+      <div className="flex gap-2 border-b border-gray-200 pb-1">
+        <button
+          onClick={() => setActiveView('inbox')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${
+            activeView === 'inbox'
+              ? 'bg-white border border-b-white border-gray-200 text-blue-700 -mb-px z-10 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <Inbox size={15} />
+          CV Inbox
+        </button>
+        <button
+          onClick={() => setActiveView('unmatched')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${
+            activeView === 'unmatched'
+              ? 'bg-white border border-b-white border-gray-200 text-amber-600 -mb-px z-10 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <Link2 size={15} />
+          Unmatched Queue
+          {unmatchedCount > 0 && (
+            <span className="px-1.5 py-0.5 bg-amber-500 text-white text-xs font-bold rounded-full min-w-[20px] text-center">
+              {unmatchedCount}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {activeView === 'unmatched' ? (
+        <UnmatchedDocumentsQueue
+          onLinked={() => {
+            setUnmatchedCount(prev => Math.max(0, prev - 1));
+          }}
+        />
+      ) : (
+        <>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -651,6 +698,8 @@ export function CVInbox() {
           </div>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }
