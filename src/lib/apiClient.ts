@@ -1208,6 +1208,30 @@ class ApiClient {
   async getCandidateMergeHistory(candidateId: string): Promise<{ merges: CandidateMerge[] }> {
     return this.request(`/candidates/${candidateId}/merges`);
   }
+
+  /** Fetch matching governance health metrics for the admin dashboard. */
+  async getMatchingMetrics(): Promise<MatchingMetrics> {
+    return this.request('/candidates/matching-metrics');
+  }
+}
+
+export interface MatchingMetrics {
+  totals: {
+    activeCandidates: number;
+    totalMerges: number;
+  };
+  merges: {
+    byStrategy: Record<string, number>;
+    byActor: Record<string, number>;
+  };
+  confidence: {
+    high: number;
+    medium: number;
+    low: number;
+    nameOnlyManualReview: number;
+    withConfidenceData: number;
+  };
+  signals: Record<string, number>;
 }
 
 export const apiClient = new ApiClient();
