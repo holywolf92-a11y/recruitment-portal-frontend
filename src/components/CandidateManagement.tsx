@@ -24,6 +24,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { apiClient, Candidate } from '../lib/apiClient';
+import { MergeCandidatesModal } from './MergeCandidatesModal';
 
 interface CandidateManagementProps {
   initialProfessionFilter?: string;
@@ -78,6 +79,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = useState<'Applied' | 'Pending' | 'Deployed' | 'Cancelled'>('Pending');
   const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [mergeTarget, setMergeTarget] = useState<Candidate | null>(null);
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     position: initialProfessionFilter || 'all',
@@ -671,6 +673,14 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                           <MessageSquare className="w-4 h-4" />
                           Edit
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => setMergeTarget(c)}
+                          className="h-10 rounded-xl bg-gray-50 border border-purple-200 text-purple-700 font-semibold hover:bg-purple-50 inline-flex items-center justify-center gap-2"
+                          title="Merge duplicate"
+                        >
+                          Merge
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -783,6 +793,19 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
           </div>
         )}
       </div>
+
+      {/* Merge modal */}
+      {mergeTarget && (
+        <MergeCandidatesModal
+          candidate={mergeTarget}
+          onClose={() => setMergeTarget(null)}
+          onMerged={() => {
+            setMergeTarget(null);
+            // Refresh the list so the soft-deleted loser disappears
+            setFilters(f => ({ ...f }));
+          }}
+        />
+      )}
     </div>
   );
 }

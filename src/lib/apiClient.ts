@@ -193,6 +193,26 @@ export interface UnmatchedDocument {
   downloadUrl?: string | null;
 }
 
+export interface MergeResult {
+  winnerId: string;
+  loserId: string;
+  mergeAuditId: string;
+  documentsMoved: number;
+  attachmentsRelinked: number;
+  fieldsFilledIn: string[];
+}
+
+export interface CandidateMerge {
+  id: string;
+  winner_id: string;
+  loser_id: string;
+  merged_by: string;
+  merge_strategy: 'winner_wins' | 'loser_wins' | 'manual';
+  field_overrides?: Record<string, any> | null;
+  review_reasons?: string[] | null;
+  created_at: string;
+}
+
 export interface Candidate {
   id: string;
   candidate_code: string;
@@ -1163,6 +1183,30 @@ class ApiClient {
 
   async getExtractionHistory(id: string): Promise<{ history: any[] }> {
     return this.request(`/candidates/${id}/extraction-history`);
+  }
+
+  /**
+   * Merge loserId into winnerId (winner survives, loser is soft-deleted).
+   * Writes an audit row to candidate_merges.
+   */
+  async mergeCandidates(
+    winnerId: string,
+    loserId: string,
+    options?: { strategy?: 'winner_wins' | 'loser_wins'; reason?: string }
+  ): Promise<{ success: boolean; merge: MergeResult }> {
+    return this.request(`/candidates/${winnerId}/merge`, {
+      method: 'POST',
+      body: JSON.stringify({
+        loserId,
+        strategy: options?.strategy ?? 'winner_wins',
+        reason: options?.reason,
+      }),
+    });
+  }
+
+  /** Fetch candidate merge history (as winner or former loser). */
+  async getCandidateMergeHistory(candidateId: string): Promise<{ merges: CandidateMerge[] }> {
+    return this.request(`/candidates/${candidateId}/merges`);
   }
 }
 
