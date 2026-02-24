@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDebounce } from '../hooks/useDebounce';
 import {
   Award,
   AlertCircle,
@@ -80,6 +81,12 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
   const [bulkStatus, setBulkStatus] = useState<'Applied' | 'Pending' | 'Deployed' | 'Cancelled'>('Pending');
   const [bulkUpdating, setBulkUpdating] = useState(false);
   const [mergeTarget, setMergeTarget] = useState<Candidate | null>(null);
+  // ── Search: separate the raw input value from the debounced API query ────────
+  // Enterprise pattern: user sees instant feedback in the input box while we
+  // wait 400 ms of inactivity before firing the network request.
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebounce(searchInput, 400);
+
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     position: initialProfessionFilter || 'all',
@@ -90,46 +97,67 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
   const [countries, setCountries] = useState<string[]>([]);
   const [statuses, setStatuses] = useState<string[]>([]);
 
+  // In-flight request cancellation: abort the previous XHR when deps change.
+  const abortRef = useRef<AbortController | null>(null);
+
   useEffect(() => {
+    // Cancel any previous in-flight request.
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     let isMounted = true;
+
+    setLoading(true);
+    setError(null);
+
     (async () => {
       try {
         const response = await apiClient.getCandidates({
-          search: filters.search,
+          search: debouncedSearch || undefined,
           position: filters.position,
           country_of_interest: filters.country,
           status: filters.status,
         });
-        if (isMounted) {
-          setCandidates(response.candidates || []);
-          const uniquePositions = Array.from(
-            new Set((response.candidates || []).map(c => c.position).filter(Boolean))
-          ).sort() as string[];
-          setPositions(uniquePositions);
+        if (!isMounted || controller.signal.aborted) return;
+        setCandidates(response.candidates || []);
+        const uniquePositions = Array.from(
+          new Set((response.candidates || []).map(c => c.position).filter(Boolean))
+        ).sort() as string[];
+        setPositions(uniquePositions);
 
-          const uniqueCountries = Array.from(
-            new Set((response.candidates || []).map((c) => c.country_of_interest).filter(Boolean))
-          ).sort() as string[];
-          setCountries(uniqueCountries);
+        const uniqueCountries = Array.from(
+          new Set((response.candidates || []).map((c) => c.country_of_interest).filter(Boolean))
+        ).sort() as string[];
+        setCountries(uniqueCountries);
 
-          const uniqueStatuses = Array.from(
-            new Set((response.candidates || []).map((c) => (c.status || 'Applied')).filter(Boolean))
-          ).sort() as string[];
-          setStatuses(uniqueStatuses.length ? uniqueStatuses : ['Applied', 'Pending', 'Deployed', 'Cancelled']);
-        }
+        const uniqueStatuses = Array.from(
+          new Set((response.candidates || []).map((c) => (c.status || 'Applied')).filter(Boolean))
+        ).sort() as string[];
+        setStatuses(uniqueStatuses.length ? uniqueStatuses : ['Applied', 'Pending', 'Deployed', 'Cancelled']);
       } catch (e: any) {
-        if (isMounted) setError(e?.message || 'Failed to load candidates');
+        if (!isMounted || controller.signal.aborted) return;
+        setError(e?.message || 'Failed to load candidates');
       } finally {
         if (isMounted) setLoading(false);
       }
     })();
-    return () => { isMounted = false; };
-  }, [filters]);
 
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+    // NOTE: debouncedSearch fires only after 400 ms quiet time;
+    //       discrete selects (position/country/status) fire immediately.
+  }, [debouncedSearch, filters.position, filters.country, filters.status]);
+
+  // Client-side guard filter: mirrors the server filter so the list stays
+  // consistent during the 400 ms debounce window while the user is still
+  // typing.  Uses `debouncedSearch` (not the raw input) so it stays in sync
+  // with what the API actually sent.
   const filteredCandidates = useMemo(() => {
     return candidates.filter(c => {
-      const searchLower = filters.search.toLowerCase();
-      const matchesSearch = !filters.search || 
+      const searchLower = debouncedSearch.toLowerCase();
+      const matchesSearch = !debouncedSearch ||
         c.name.toLowerCase().includes(searchLower) ||
         c.email?.toLowerCase().includes(searchLower) ||
         c.phone?.toLowerCase().includes(searchLower) ||
@@ -139,7 +167,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
       const matchesStatus = filters.status === 'all' || (c.status || 'Applied') === filters.status;
       return matchesSearch && matchesPosition && matchesCountry && matchesStatus;
     });
-  }, [candidates, filters]);
+  }, [candidates, debouncedSearch, filters.position, filters.country, filters.status]);
 
   const stats = useMemo(() => {
     const totalCandidates = candidates.length;
@@ -379,14 +407,28 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                   </select>
 
                   <div className="relative flex-1">
-                    <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
-                      type="text"
-                      placeholder="Search candidates by name, position, email..."
-                      value={filters.search}
-                      onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                      className="h-10 w-full pl-10 pr-4 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      type="search"
+                      role="searchbox"
+                      aria-label="Search candidates"
+                      placeholder="Search by name, CNIC, phone, email…"
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      // Prevent accidental form submission on Enter
+                      onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+                      className="h-10 w-full pl-10 pr-8 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
+                    {searchInput && (
+                      <button
+                        type="button"
+                        aria-label="Clear search"
+                        onClick={() => setSearchInput('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
 

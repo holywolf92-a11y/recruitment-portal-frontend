@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useDebounce } from '../hooks/useDebounce';
 import { 
   ChevronRight, 
   ChevronDown, 
@@ -317,10 +318,7 @@ export function CandidateBrowserExcel() {
   const [allCandidatesForNavigation, setAllCandidatesForNavigation] = useState<Candidate[]>([]); // Keep all candidates for folder structure
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Debounced search state
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  
+
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [selectedFolder, setSelectedFolder] = useState<FolderNode | null>(null);
   const [selectedCandidates, setSelectedCandidates] = useState<Set<string>>(new Set());
@@ -329,18 +327,19 @@ export function CandidateBrowserExcel() {
   const [activeMenu, setActiveMenu] = useState<'dashboard' | 'browser'>('dashboard');
   const [showSendModal, setShowSendModal] = useState(false);
 
-  // Debounce search input to prevent API spam
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-      setCurrentPage(1); // Reset to first page when search changes
-    }, 500); // Wait 500ms after user stops typing
-    
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+  // ── Enterprise debounce: replaces the old manual setTimeout pattern ──────────
+  // One derived value; no extra state, no timer bookkeeping in component body.
+  const debouncedSearchQuery = useDebounce(searchQuery, 400);
+  // In-flight request cancellation — aborts the previous fetch before starting a new one.
+  const fetchAbortRef = useRef<AbortController | null>(null);
 
   // Fetch candidates with server-side filtering
   const fetchCandidatesWithFilters = useCallback(async () => {
+    // Cancel any previous in-flight request to avoid stale-response races.
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
+
     setLoading(true);
     setError(null);
     try {
@@ -399,21 +398,24 @@ export function CandidateBrowserExcel() {
       }
       
       const result = await apiClient.getCandidates(activeFilters);
+      if (controller.signal.aborted) return;
       setCandidates(result.candidates || []);
       setTotalCandidates(result.total || 0);
     } catch (e: any) {
+      if (controller.signal.aborted) return;
       setError(e?.message || 'Failed to load candidates');
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   }, [filters, debouncedSearchQuery, appliedFrom, appliedTo, sortBy, sortOrder, currentPage, selectedFolder, selectedCountry]);
 
-  // Fetch daily stats
+  // Fetch daily stats — uses debouncedSearchQuery so it stays in sync with the
+  // candidate list and does NOT fire on every keystroke.
   const fetchDailyStats = useCallback(async () => {
     setLoadingStats(true);
     try {
       const statsFilters: any = {
-        search: searchQuery.trim() || undefined,
+        search: debouncedSearchQuery.trim() || undefined,
         applied_from: appliedFrom || undefined,
         applied_to: appliedTo || undefined,
       };
@@ -437,7 +439,7 @@ export function CandidateBrowserExcel() {
     } finally {
       setLoadingStats(false);
     }
-  }, [searchQuery, appliedFrom, appliedTo, selectedFolder, selectedCountry]);
+  }, [debouncedSearchQuery, appliedFrom, appliedTo, selectedFolder, selectedCountry]);
 
   // Fetch data when filters change
   useEffect(() => {
@@ -629,11 +631,12 @@ export function CandidateBrowserExcel() {
     }
   }, [appliedFrom, appliedTo, applyQuickDateFilter]);
   
-  // Export function
+  // Export uses the same debouncedSearchQuery as the visible table so the
+  // downloaded file always matches exactly what the user sees on screen.
   const handleExport = async (format: 'csv' | 'xlsx') => {
     try {
       const activeFilters: CandidateFilters = {
-        search: searchQuery.trim() || undefined,
+        search: debouncedSearchQuery.trim() || undefined,
         applied_from: appliedFrom || undefined,
         applied_to: appliedTo || undefined,
         sort_by: sortBy,
@@ -867,21 +870,26 @@ export function CandidateBrowserExcel() {
             <div className="relative">
               <Search className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
               <input
-                type="text"
-                placeholder="Name / Passport / CNIC / Phone..."
+                type="search"
+                role="searchbox"
+                aria-label="Search candidates"
+                placeholder="Name / Passport / CNIC / Phone…"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+                className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
               />
               {searchQuery && (
                 <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => { setSearchQuery(''); setCurrentPage(1); }}
+                  className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  ✕
+                  <X className="w-4 h-4" />
                 </button>
               )}
             </div>
