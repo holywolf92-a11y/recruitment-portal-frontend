@@ -318,6 +318,7 @@ export function CandidateBrowserExcel() {
   const [allCandidatesForNavigation, setAllCandidatesForNavigation] = useState<Candidate[]>([]); // Keep all candidates for folder structure
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedOnceRef = useRef(false);
 
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [selectedFolder, setSelectedFolder] = useState<FolderNode | null>(null);
@@ -405,7 +406,10 @@ export function CandidateBrowserExcel() {
       if (controller.signal.aborted) return;
       setError(e?.message || 'Failed to load candidates');
     } finally {
-      if (!controller.signal.aborted) setLoading(false);
+      if (!controller.signal.aborted) {
+        hasLoadedOnceRef.current = true;
+        setLoading(false);
+      }
     }
   }, [filters, debouncedSearchQuery, appliedFrom, appliedTo, sortBy, sortOrder, currentPage, selectedFolder, selectedCountry]);
 
@@ -703,7 +707,7 @@ export function CandidateBrowserExcel() {
     }
   };
 
-  if (loading) {
+  if (loading && !hasLoadedOnceRef.current) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-200px)]">
         <div className="text-center">
@@ -714,7 +718,7 @@ export function CandidateBrowserExcel() {
     );
   }
 
-  if (error) {
+  if (error && !hasLoadedOnceRef.current) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-200px)]">
         <div className="bg-white border border-red-200 rounded-lg p-6 text-center">
@@ -860,7 +864,9 @@ export function CandidateBrowserExcel() {
           <section className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
             <div className="mb-6">
               <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
-              <p className="text-sm text-gray-600 mt-1">{filteredCandidates.length} candidates found</p>
+              <p className="text-sm text-gray-600 mt-1">
+                {filteredCandidates.length} candidates found{loading ? ' (Loading...)' : ''}
+              </p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
