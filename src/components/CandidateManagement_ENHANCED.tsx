@@ -35,6 +35,7 @@ import {
 import { toast } from 'sonner';
 import { apiClient, Candidate } from '../lib/apiClient';
 import { useCandidates } from '../lib/candidateContext';
+import { useDebounce } from '../hooks/useDebounce';
 import { CandidateDetailsModal } from './CandidateDetailsModal';
 import { renderPdfFirstPageToDataUrl } from '../lib/pdfThumb';
 import { analyzeDocumentHealth, getHealthBadgeInfo, analyzeDocumentError } from '../lib/documentErrorUtils';
@@ -147,6 +148,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
     country: 'all',
     status: 'all',
   });
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebounce(searchInput.trim(), 400);
   const [positions, setPositions] = useState<string[]>([]);
   const [countries, setCountries] = useState<string[]>([]);
   const [statuses, setStatuses] = useState<string[]>([]);
@@ -312,12 +315,12 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
     return () => {
       cancelled = true;
     };
-  }, [candidates, filters, photoUrls, pdfThumbs]);
+    }, [candidates, photoUrls, pdfThumbs]);
   
   // Fetch candidates using context
   const fetchCandidates = async () => {
     await fetchCandidatesFromContext({
-      search: filters.search,
+      search: debouncedSearch,
       position: filters.position === 'all' ? undefined : filters.position,
       country_of_interest: filters.country === 'all' ? undefined : filters.country,
       status: filters.status === 'all' ? undefined : filters.status,
@@ -421,7 +424,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
       if (!loading) setSlowLoadWarning(false); // Clear warning when loading finishes
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.search, filters.position, filters.country, filters.status]);
+  }, [debouncedSearch, filters.position, filters.country, filters.status]);
   
   // Clear slow-load warning when loading finishes
   useEffect(() => {
@@ -450,18 +453,18 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
 
   const filteredCandidates = useMemo(() => {
     return candidates.filter(c => {
-      const searchLower = filters.search.toLowerCase();
-      const matchesSearch = !filters.search || 
-        c.name.toLowerCase().includes(searchLower) ||
-        c.email?.toLowerCase().includes(searchLower) ||
-        c.phone?.toLowerCase().includes(searchLower) ||
-        c.candidate_code?.toLowerCase().includes(searchLower);
+      const searchLower = debouncedSearch.toLowerCase();
+      const matchesSearch = !debouncedSearch ||
+        (c.name || '').toLowerCase().includes(searchLower) ||
+        (c.email || '').toLowerCase().includes(searchLower) ||
+        (c.phone || '').toLowerCase().includes(searchLower) ||
+        (c.candidate_code || '').toLowerCase().includes(searchLower);
       const matchesPosition = filters.position === 'all' || c.position === filters.position;
       const matchesCountry = filters.country === 'all' || (c.country_of_interest || '—') === filters.country;
       const matchesStatus = filters.status === 'all' || (c.status || 'Applied') === filters.status;
       return matchesSearch && matchesPosition && matchesCountry && matchesStatus;
     });
-  }, [candidates, filters]);
+  }, [candidates, debouncedSearch, filters.position, filters.country, filters.status]);
 
   const stats = useMemo(() => {
     const totalCandidates = candidates.length;
@@ -847,12 +850,29 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
           <div className="md:col-span-2 relative">
             <Search className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
             <input
-              type="text"
+              type="search"
               placeholder="Search candidates by name, email, phone..."
-              value={filters.search}
-              onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') e.preventDefault();
+              }}
+              role="searchbox"
+              aria-label="Search candidates"
+              className="w-full pl-12 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
+
+            {searchInput && (
+              <button
+                type="button"
+                onClick={() => setSearchInput('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                aria-label="Clear search"
+                title="Clear"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
           {/* View Toggle */}
