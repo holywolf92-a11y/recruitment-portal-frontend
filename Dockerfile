@@ -8,6 +8,10 @@ WORKDIR /app
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
 
+# Skip Puppeteer's Chromium download — not needed at build time.
+# Without this, `npm ci` downloads ~170 MB of Chrome unnecessarily.
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+
 # Copy package files
 COPY package.json package-lock.json ./
 
@@ -25,12 +29,17 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Skip Puppeteer's Chromium download — server.js only uses Express + Axios.
+# Without this, `npm ci --only=production` hangs downloading Chrome in Alpine.
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
 # Copy only built artifacts and package files from builder
 COPY --from=builder /app/build ./build
 COPY --from=builder /app/package.json /app/package-lock.json ./
 COPY --from=builder /app/server.js ./server.js
 
-# Install only production dependencies
+# Install only production dependencies (fast — no Chrome download)
 RUN npm ci --only=production && \
     npm cache clean --force && \
     rm -rf /tmp/* /var/cache/apk/*
@@ -39,4 +48,4 @@ RUN npm ci --only=production && \
 EXPOSE 3000
 
 # Start the server
-CMD ["npm", "start"]
+CMD ["node", "server.js"]
