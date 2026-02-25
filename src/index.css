@@ -2391,10 +2391,121 @@
       width: calc(var(--spacing) * 64);
       flex-shrink: 0;
       border-bottom-width: 0;
-      border-right: 1px solid var(--color-gray-200);
+      border-right: none;
       overflow-y: auto;
       min-height: 0;
     }
+  }
+
+  /* ── Glassmorphism sidebar ────────────────────────────────────────────────── */
+  .glass-sidebar {
+    background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 55%, #0f172a 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  .glass-sidebar::before {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(139,92,246,0.18) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 40% at 80% 110%, rgba(59,130,246,0.12) 0%, transparent 70%);
+  }
+
+  /* glass active pill */
+  .glass-nav-active {
+    background: rgba(139,92,246,0.22);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(139,92,246,0.35);
+    box-shadow: 0 2px 16px 0 rgba(139,92,246,0.18), inset 0 1px 0 rgba(255,255,255,0.07);
+  }
+  .glass-nav-idle {
+    border: 1px solid transparent;
+  }
+  .glass-nav-idle:hover {
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-color: rgba(255,255,255,0.10);
+  }
+
+  /* sidebar section label */
+  .glass-section-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: rgba(148,163,184,0.55);
+  }
+
+  /* ── SVG icon animations ──────────────────────────────────────────────────── */
+  @keyframes icon-spin-slow {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes icon-pulse-scale {
+    0%,100% { transform: scale(1); }
+    50%      { transform: scale(1.18); }
+  }
+  @keyframes icon-bounce-y {
+    0%,100% { transform: translateY(0); }
+    45%     { transform: translateY(-3px); }
+    65%     { transform: translateY(1px); }
+  }
+  @keyframes icon-swing {
+    0%,100% { transform: rotate(0deg); }
+    25%     { transform: rotate(-12deg); }
+    75%     { transform: rotate(12deg); }
+  }
+  @keyframes icon-bar-grow {
+    0%,100% { transform: scaleY(1); }
+    50%     { transform: scaleY(1.3); }
+  }
+  @keyframes icon-ring {
+    0%,100% { transform: rotate(0deg); }
+    15%     { transform: rotate(14deg); }
+    30%     { transform: rotate(-12deg); }
+    45%     { transform: rotate(8deg); }
+    60%     { transform: rotate(-6deg); }
+    75%     { transform: rotate(3deg); }
+  }
+  @keyframes icon-link-slide {
+    0%,100% { transform: translateX(0); }
+    50%     { transform: translateX(2px); }
+  }
+  @keyframes icon-float {
+    0%,100% { transform: translateY(0px); }
+    50%     { transform: translateY(-2.5px); }
+  }
+  @keyframes icon-shimmer {
+    0%     { opacity: 0.7; }
+    50%    { opacity: 1; }
+    100%   { opacity: 0.7; }
+  }
+
+  .icon-anim-spin     { animation: icon-spin-slow  3s linear infinite; }
+  .icon-anim-pulse    { animation: icon-pulse-scale 2s ease-in-out infinite; }
+  .icon-anim-bounce   { animation: icon-bounce-y   1.6s ease-in-out infinite; }
+  .icon-anim-swing    { animation: icon-swing       2s ease-in-out infinite; }
+  .icon-anim-bar      { animation: icon-bar-grow    1.4s ease-in-out infinite; }
+  .icon-anim-ring     { animation: icon-ring         2.4s ease-in-out infinite; }
+  .icon-anim-link     { animation: icon-link-slide   1.8s ease-in-out infinite; }
+  .icon-anim-float    { animation: icon-float        2.4s ease-in-out infinite; }
+  .icon-anim-shimmer  { animation: icon-shimmer      2s ease-in-out infinite; }
+
+  /* animated badge dot */
+  @keyframes badge-ping {
+    0%   { transform: scale(1);   opacity: 0.9; }
+    70%  { transform: scale(1.8); opacity: 0; }
+    100% { transform: scale(1.8); opacity: 0; }
+  }
+  .badge-ping::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background: inherit;
+    animation: badge-ping 1.4s cubic-bezier(0,0,0.2,1) infinite;
   }
 
   @media (width >= 48rem) {
