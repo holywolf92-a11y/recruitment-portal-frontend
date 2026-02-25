@@ -342,9 +342,9 @@ const AppContent = () => {
       <div className="admin-shell flex flex-col min-w-0 flex-1 min-h-0">
         {/* Sidebar - Hidden when in browser view */}
         {!isBrowserView && (
-          <aside className="admin-sidebar glass-sidebar w-full border-b border-slate-700/40 overflow-y-auto min-h-0">
+          <aside className="admin-sidebar glass-sidebar w-full border-b border-gray-200 overflow-y-auto min-h-0">
             {/* Brand stripe at top of sidebar */}
-            <div className="relative px-5 py-5 border-b border-white/[0.07]">
+            <div className="relative px-5 py-5 border-b border-gray-200/80">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center shadow-lg shadow-violet-500/30">
                   <svg viewBox="0 0 20 20" className="w-4 h-4 text-white fill-current">
@@ -352,8 +352,8 @@ const AppContent = () => {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-white text-xs font-bold tracking-wide leading-none">FALISHA</p>
-                  <p className="text-slate-400 text-[10px] mt-0.5 leading-none">Recruitment Portal</p>
+                  <p className="text-slate-900 text-xs font-bold tracking-wide leading-none">FALISHA</p>
+                  <p className="text-slate-600 text-[10px] mt-0.5 leading-none">Recruitment Portal</p>
                 </div>
               </div>
             </div>
@@ -372,16 +372,16 @@ const AppContent = () => {
                 <span className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
                   activeTab === 'dashboard'
                     ? 'bg-violet-500/30 shadow shadow-violet-500/20'
-                    : 'bg-white/[0.06] group-hover:bg-white/[0.10]'
+                    : 'bg-slate-900/[0.03] group-hover:bg-slate-900/[0.06]'
                 }`}>
-                  <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'dashboard' ? 'text-violet-300 icon-anim-spin' : 'text-slate-400'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
+                  <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'dashboard' ? 'text-violet-700 icon-anim-spin' : 'text-slate-600'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
                     <rect x="2" y="2" width="7" height="7" rx="1.5"/>
                     <rect x="11" y="2" width="7" height="7" rx="1.5"/>
                     <rect x="2" y="11" width="7" height="7" rx="1.5"/>
                     <rect x="11" y="11" width="7" height="7" rx="1.5"/>
                   </svg>
                 </span>
-                <span className={`font-medium tracking-wide ${activeTab === 'dashboard' ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>Dashboard</span>
+                <span className={`font-medium tracking-wide ${activeTab === 'dashboard' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>Dashboard</span>
                 {activeTab === 'dashboard' && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-violet-400 shadow-sm shadow-violet-400" />}
               </a>
               
@@ -399,14 +399,14 @@ const AppContent = () => {
                   }`}
                 >
                   <span className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
-                    activeTab === 'cv-inbox' ? 'bg-emerald-500/30 shadow shadow-emerald-500/20' : 'bg-white/[0.06] group-hover:bg-white/[0.10]'
+                    activeTab === 'cv-inbox' ? 'bg-emerald-500/30 shadow shadow-emerald-500/20' : 'bg-slate-900/[0.03] group-hover:bg-slate-900/[0.06]'
                   }`}>
-                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'cv-inbox' ? 'text-emerald-300 icon-anim-bounce' : 'text-slate-400'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'cv-inbox' ? 'text-emerald-700 icon-anim-bounce' : 'text-slate-600'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
                       <path d="M3 8l7 5 7-5"/>
                       <rect x="2" y="5" width="16" height="12" rx="2"/>
                     </svg>
                   </span>
-                  <span className={`flex-1 font-medium tracking-wide ${activeTab === 'cv-inbox' ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>CV Inbox</span>
+                  <span className={`flex-1 font-medium tracking-wide ${activeTab === 'cv-inbox' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>CV Inbox</span>
                   <span className="relative inline-flex">
                     <span className="relative badge-ping bg-emerald-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">5</span>
                   </span>
@@ -421,14 +421,14 @@ const AppContent = () => {
                   }`}
                 >
                   <span className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
-                    activeTab === 'inbox-ui' ? 'bg-sky-500/30 shadow shadow-sky-500/20' : 'bg-white/[0.06] group-hover:bg-white/[0.10]'
+                    activeTab === 'inbox-ui' ? 'bg-sky-500/30 shadow shadow-sky-500/20' : 'bg-slate-900/[0.03] group-hover:bg-slate-900/[0.06]'
                   }`}>
-                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'inbox-ui' ? 'text-sky-300 icon-anim-shimmer' : 'text-slate-400'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'inbox-ui' ? 'text-sky-700 icon-anim-shimmer' : 'text-slate-600'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
                       <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
                       <path d="M2 8l8 5 8-5"/>
                     </svg>
                   </span>
-                  <span className={`font-medium tracking-wide ${activeTab === 'inbox-ui' ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>Inbox Manager</span>
+                  <span className={`font-medium tracking-wide ${activeTab === 'inbox-ui' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>Inbox Manager</span>
                   {activeTab === 'inbox-ui' && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-sky-400" />}
                 </a>
 
@@ -441,9 +441,9 @@ const AppContent = () => {
                   }`}
                 >
                   <span className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
-                    activeTab === 'candidate-excel-browser' ? 'bg-teal-500/30 shadow shadow-teal-500/20' : 'bg-white/[0.06] group-hover:bg-white/[0.10]'
+                    activeTab === 'candidate-excel-browser' ? 'bg-teal-500/30 shadow shadow-teal-500/20' : 'bg-slate-900/[0.03] group-hover:bg-slate-900/[0.06]'
                   }`}>
-                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'candidate-excel-browser' ? 'text-teal-300 icon-anim-bar' : 'text-slate-400'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'candidate-excel-browser' ? 'text-teal-700 icon-anim-bar' : 'text-slate-600'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
                       <rect x="2" y="3" width="16" height="14" rx="1.5"/>
                       <line x1="2" y1="7" x2="18" y2="7"/>
                       <line x1="2" y1="11" x2="18" y2="11"/>
@@ -451,7 +451,7 @@ const AppContent = () => {
                       <line x1="13" y1="3" x2="13" y2="17"/>
                     </svg>
                   </span>
-                  <span className={`flex-1 font-medium tracking-wide ${activeTab === 'candidate-excel-browser' ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>Excel Browser</span>
+                  <span className={`flex-1 font-medium tracking-wide ${activeTab === 'candidate-excel-browser' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>Excel Browser</span>
                   {activeTab === 'candidate-excel-browser' && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-teal-400" />}
                 </a>
 
@@ -467,18 +467,18 @@ const AppContent = () => {
                   }`}
                 >
                   <span className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
-                    activeTab === 'candidates' ? 'bg-blue-500/30 shadow shadow-blue-500/20' : 'bg-white/[0.06] group-hover:bg-white/[0.10]'
+                    activeTab === 'candidates' ? 'bg-blue-500/30 shadow shadow-blue-500/20' : 'bg-slate-900/[0.03] group-hover:bg-slate-900/[0.06]'
                   }`}>
-                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'candidates' ? 'text-blue-300 icon-anim-float' : 'text-slate-400'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'candidates' ? 'text-blue-700 icon-anim-float' : 'text-slate-600'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
                       <circle cx="8" cy="6" r="3"/>
                       <path d="M2 18c0-3.314 2.686-6 6-6"/>
                       <circle cx="14" cy="8" r="2.5"/>
                       <path d="M11 18c0-2.761 2.239-5 5-5"/>
                     </svg>
                   </span>
-                  <span className={`flex-1 font-medium tracking-wide ${activeTab === 'candidates' ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>Candidates</span>
+                  <span className={`flex-1 font-medium tracking-wide ${activeTab === 'candidates' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>Candidates</span>
                   <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                    activeTab === 'candidates' ? 'bg-blue-500/30 text-blue-200' : 'text-slate-500 bg-white/[0.06]'
+                    activeTab === 'candidates' ? 'bg-blue-500/15 text-blue-800' : 'text-slate-600 bg-slate-900/[0.03]'
                   }`}>{professionCounts['all'] ?? 0}</span>
                 </a>
 
@@ -493,15 +493,15 @@ const AppContent = () => {
                     }}
                     className={`w-full flex items-center gap-2 pl-14 pr-3 py-1.5 rounded-lg transition-all duration-200 text-xs group ${
                       activeTab === 'candidates' && selectedProfession === profession
-                        ? 'text-blue-300 font-semibold'
-                        : 'text-slate-500 hover:text-slate-300'
+                        ? 'text-blue-700 font-semibold'
+                        : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     <span className={`w-1 h-1 rounded-full shrink-0 ${
-                      activeTab === 'candidates' && selectedProfession === profession ? 'bg-blue-400' : 'bg-slate-600'
+                      activeTab === 'candidates' && selectedProfession === profession ? 'bg-blue-500' : 'bg-slate-400'
                     }`} />
                     <span className="flex-1 truncate">{profession}</span>
-                    <span className="text-[10px] text-slate-600">{professionCounts[profession]}</span>
+                    <span className="text-[10px] text-slate-500">{professionCounts[profession]}</span>
                   </a>
                 ))}
               </div>
@@ -519,16 +519,16 @@ const AppContent = () => {
                   }`}
                 >
                   <span className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
-                    activeTab === 'employers' ? 'bg-amber-500/30 shadow shadow-amber-500/20' : 'bg-white/[0.06] group-hover:bg-white/[0.10]'
+                    activeTab === 'employers' ? 'bg-amber-500/30 shadow shadow-amber-500/20' : 'bg-slate-900/[0.03] group-hover:bg-slate-900/[0.06]'
                   }`}>
-                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'employers' ? 'text-amber-300 icon-anim-pulse' : 'text-slate-400'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'employers' ? 'text-amber-700 icon-anim-pulse' : 'text-slate-600'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
                       <path d="M3 17V7l7-4 7 4v10"/>
                       <rect x="8" y="11" width="4" height="6"/>
                       <rect x="4" y="9" width="3" height="3"/>
                       <rect x="13" y="9" width="3" height="3"/>
                     </svg>
                   </span>
-                  <span className={`font-medium tracking-wide ${activeTab === 'employers' ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>Employers</span>
+                  <span className={`font-medium tracking-wide ${activeTab === 'employers' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>Employers</span>
                   {activeTab === 'employers' && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-400" />}
                 </a>
 
@@ -540,15 +540,15 @@ const AppContent = () => {
                   }`}
                 >
                   <span className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
-                    activeTab === 'jobs' ? 'bg-orange-500/30 shadow shadow-orange-500/20' : 'bg-white/[0.06] group-hover:bg-white/[0.10]'
+                    activeTab === 'jobs' ? 'bg-orange-500/30 shadow shadow-orange-500/20' : 'bg-slate-900/[0.03] group-hover:bg-slate-900/[0.06]'
                   }`}>
-                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'jobs' ? 'text-orange-300 icon-anim-swing' : 'text-slate-400'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'jobs' ? 'text-orange-700 icon-anim-swing' : 'text-slate-600'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
                       <rect x="2" y="7" width="16" height="11" rx="2"/>
                       <path d="M7 7V5a2 2 0 012-2h2a2 2 0 012 2v2"/>
                       <line x1="10" y1="11" x2="10" y2="14"/>
                     </svg>
                   </span>
-                  <span className={`font-medium tracking-wide ${activeTab === 'jobs' ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>Job Orders</span>
+                  <span className={`font-medium tracking-wide ${activeTab === 'jobs' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>Job Orders</span>
                   {activeTab === 'jobs' && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-orange-400" />}
                 </a>
               </div>
@@ -565,15 +565,15 @@ const AppContent = () => {
                   }`}
                 >
                   <span className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
-                    activeTab === 'employees' ? 'bg-indigo-500/30 shadow shadow-indigo-500/20' : 'bg-white/[0.06] group-hover:bg-white/[0.10]'
+                    activeTab === 'employees' ? 'bg-indigo-500/30 shadow shadow-indigo-500/20' : 'bg-slate-900/[0.03] group-hover:bg-slate-900/[0.06]'
                   }`}>
-                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'employees' ? 'text-indigo-300 icon-anim-shimmer' : 'text-slate-400'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'employees' ? 'text-indigo-700 icon-anim-shimmer' : 'text-slate-600'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
                       <rect x="3" y="2" width="14" height="16" rx="2"/>
                       <circle cx="10" cy="8" r="2.5"/>
                       <path d="M5 17c0-2.761 2.24-5 5-5s5 2.239 5 5"/>
                     </svg>
                   </span>
-                  <span className={`font-medium tracking-wide ${activeTab === 'employees' ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>Employees</span>
+                  <span className={`font-medium tracking-wide ${activeTab === 'employees' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>Employees</span>
                   {activeTab === 'employees' && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-400" />}
                 </a>
 
@@ -585,16 +585,16 @@ const AppContent = () => {
                   }`}
                 >
                   <span className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
-                    activeTab === 'reports' ? 'bg-pink-500/30 shadow shadow-pink-500/20' : 'bg-white/[0.06] group-hover:bg-white/[0.10]'
+                    activeTab === 'reports' ? 'bg-pink-500/30 shadow shadow-pink-500/20' : 'bg-slate-900/[0.03] group-hover:bg-slate-900/[0.06]'
                   }`}>
-                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'reports' ? 'text-pink-300' : 'text-slate-400'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'reports' ? 'text-pink-700' : 'text-slate-600'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
                       <rect x="2" y="2" width="16" height="16" rx="2"/>
                       <line x1="6" y1="14" x2="6" y2="10"/>
                       <line x1="10" y1="14" x2="10" y2="7"/>
                       <line x1="14" y1="14" x2="14" y2="5"/>
                     </svg>
                   </span>
-                  <span className={`font-medium tracking-wide ${activeTab === 'reports' ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>Reports</span>
+                  <span className={`font-medium tracking-wide ${activeTab === 'reports' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>Reports</span>
                   {activeTab === 'reports' && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-pink-400" />}
                 </a>
               </div>
@@ -611,13 +611,13 @@ const AppContent = () => {
                   }`}
                 >
                   <span className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
-                    activeTab === 'templates' ? 'bg-cyan-500/30 shadow shadow-cyan-500/20' : 'bg-white/[0.06] group-hover:bg-white/[0.10]'
+                    activeTab === 'templates' ? 'bg-cyan-500/30 shadow shadow-cyan-500/20' : 'bg-slate-900/[0.03] group-hover:bg-slate-900/[0.06]'
                   }`}>
-                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'templates' ? 'text-cyan-300 icon-anim-bounce' : 'text-slate-400'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'templates' ? 'text-cyan-700 icon-anim-bounce' : 'text-slate-600'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
                       <path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H6l-4 3V5z"/>
                     </svg>
                   </span>
-                  <span className={`font-medium tracking-wide ${activeTab === 'templates' ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>Templates</span>
+                  <span className={`font-medium tracking-wide ${activeTab === 'templates' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>Templates</span>
                   {activeTab === 'templates' && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-cyan-400" />}
                 </a>
 
@@ -629,15 +629,15 @@ const AppContent = () => {
                   }`}
                 >
                   <span className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
-                    activeTab === 'whatsapp-inbox' ? 'bg-green-500/30 shadow shadow-green-500/20' : 'bg-white/[0.06] group-hover:bg-white/[0.10]'
+                    activeTab === 'whatsapp-inbox' ? 'bg-green-500/30 shadow shadow-green-500/20' : 'bg-slate-900/[0.03] group-hover:bg-slate-900/[0.06]'
                   }`}>
                     {/* WhatsApp phone icon rings when active */}
-                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'whatsapp-inbox' ? 'text-green-300 icon-anim-ring' : 'text-slate-400'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'whatsapp-inbox' ? 'text-green-700 icon-anim-ring' : 'text-slate-600'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
                       <path d="M10 2a8 8 0 00-6.93 11.97L2 18l4.16-1.06A8 8 0 1010 2z"/>
                       <path d="M7 8.5c.5 1 1.5 2 2.5 2.5"/>
                     </svg>
                   </span>
-                  <span className={`flex-1 font-medium tracking-wide ${activeTab === 'whatsapp-inbox' ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>WhatsApp Inbox</span>
+                  <span className={`flex-1 font-medium tracking-wide ${activeTab === 'whatsapp-inbox' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>WhatsApp Inbox</span>
                   {activeTab === 'whatsapp-inbox' && <span className="w-1.5 h-1.5 rounded-full bg-green-400" />}
                 </a>
 
@@ -649,15 +649,15 @@ const AppContent = () => {
                   }`}
                 >
                   <span className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
-                    activeTab === 'application-link' ? 'bg-violet-500/30 shadow shadow-violet-500/20' : 'bg-white/[0.06] group-hover:bg-white/[0.10]'
+                    activeTab === 'application-link' ? 'bg-violet-500/30 shadow shadow-violet-500/20' : 'bg-slate-900/[0.03] group-hover:bg-slate-900/[0.06]'
                   }`}>
-                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'application-link' ? 'text-violet-300 icon-anim-link' : 'text-slate-400'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'application-link' ? 'text-violet-700 icon-anim-link' : 'text-slate-600'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
                       <path d="M7.5 12.5l5-5"/>
                       <path d="M8.5 5.5l1.5-1.5a3.536 3.536 0 015 5L13.5 10.5"/>
                       <path d="M11.5 14.5l-1.5 1.5a3.536 3.536 0 01-5-5l1.5-1.5"/>
                     </svg>
                   </span>
-                  <span className={`font-medium tracking-wide ${activeTab === 'application-link' ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>Application Link</span>
+                  <span className={`font-medium tracking-wide ${activeTab === 'application-link' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>Application Link</span>
                   {activeTab === 'application-link' && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-violet-400" />}
                 </a>
               </div>
@@ -675,13 +675,13 @@ const AppContent = () => {
                     }`}
                   >
                     <span className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
-                      activeTab === 'admin-panel' ? 'bg-red-500/30 shadow shadow-red-500/20' : 'bg-white/[0.06] group-hover:bg-white/[0.10]'
+                      activeTab === 'admin-panel' ? 'bg-red-500/30 shadow shadow-red-500/20' : 'bg-slate-900/[0.03] group-hover:bg-slate-900/[0.06]'
                     }`}>
-                      <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'admin-panel' ? 'text-red-300 icon-anim-pulse' : 'text-slate-400'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
+                      <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'admin-panel' ? 'text-red-700 icon-anim-pulse' : 'text-slate-600'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
                         <path d="M10 2l1.8 5.4H17l-4.5 3.3 1.7 5.3L10 13l-4.2 3 1.7-5.3L3 7.4h5.2L10 2z"/>
                       </svg>
                     </span>
-                    <span className={`font-medium tracking-wide ${activeTab === 'admin-panel' ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>Admin Panel</span>
+                    <span className={`font-medium tracking-wide ${activeTab === 'admin-panel' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>Admin Panel</span>
                     {activeTab === 'admin-panel' && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-red-400" />}
                   </a>
                 )}
@@ -695,16 +695,16 @@ const AppContent = () => {
                     }`}
                   >
                     <span className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
-                      activeTab === 'users' ? 'bg-fuchsia-500/30 shadow shadow-fuchsia-500/20' : 'bg-white/[0.06] group-hover:bg-white/[0.10]'
+                      activeTab === 'users' ? 'bg-fuchsia-500/30 shadow shadow-fuchsia-500/20' : 'bg-slate-900/[0.03] group-hover:bg-slate-900/[0.06]'
                     }`}>
-                      <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'users' ? 'text-fuchsia-300 icon-anim-float' : 'text-slate-400'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
+                      <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'users' ? 'text-fuchsia-700 icon-anim-float' : 'text-slate-600'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
                         <circle cx="7" cy="7" r="3"/>
                         <path d="M1 17c0-3.314 2.686-6 6-6"/>
                         <circle cx="14" cy="7" r="3"/>
                         <path d="M11 17c0-3.314 2.686-6 6-6"/>
                       </svg>
                     </span>
-                    <span className={`font-medium tracking-wide ${activeTab === 'users' ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>User Management</span>
+                    <span className={`font-medium tracking-wide ${activeTab === 'users' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>User Management</span>
                     {activeTab === 'users' && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-fuchsia-400" />}
                   </a>
                 )}
@@ -717,22 +717,22 @@ const AppContent = () => {
                   }`}
                 >
                   <span className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
-                    activeTab === 'settings' ? 'bg-slate-500/40 shadow shadow-slate-500/20' : 'bg-white/[0.06] group-hover:bg-white/[0.10]'
+                    activeTab === 'settings' ? 'bg-slate-500/20 shadow shadow-slate-500/15' : 'bg-slate-900/[0.03] group-hover:bg-slate-900/[0.06]'
                   }`}>
-                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'settings' ? 'text-slate-200 icon-anim-spin' : 'text-slate-400'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'settings' ? 'text-slate-700 icon-anim-spin' : 'text-slate-600'}`} fill="none" stroke="currentColor" strokeWidth="1.6">
                       <circle cx="10" cy="10" r="2.5"/>
                       <path d="M10 2v1.5M10 16.5V18M2 10h1.5M16.5 10H18M4.22 4.22l1.06 1.06M14.72 14.72l1.06 1.06M4.22 15.78l1.06-1.06M14.72 5.28l1.06-1.06"/>
                     </svg>
                   </span>
-                  <span className={`font-medium tracking-wide ${activeTab === 'settings' ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>Settings</span>
+                  <span className={`font-medium tracking-wide ${activeTab === 'settings' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>Settings</span>
                   {activeTab === 'settings' && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-slate-300" />}
                 </a>
               </div>
 
               {/* ── Footer spacer ─────────────────────────────────────────── */}
               <div className="pt-6 pb-2 px-3">
-                <div className="rounded-xl bg-white/[0.04] border border-white/[0.07] p-3 text-center">
-                  <p className="text-[10px] text-slate-500 leading-relaxed">Falisha Manpower<br/>Recruitment Portal v2</p>
+                <div className="rounded-xl bg-white/70 border border-gray-200/80 p-3 text-center">
+                  <p className="text-[10px] text-slate-600 leading-relaxed">Falisha Manpower<br/>Recruitment Portal v2</p>
                 </div>
               </div>
 
