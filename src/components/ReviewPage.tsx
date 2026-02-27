@@ -76,6 +76,13 @@ function injectStyles() {
       40%      { transform: scale(1.22) rotate(-6deg); }
       70%      { transform: scale(1.12) rotate(4deg); }
     }
+    @keyframes slideInLeft {
+      from { transform: translateX(-100%); opacity: 0; }
+      to   { transform: translateX(0);     opacity: 1; }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; } to { opacity: 1; }
+    }
   `;
   document.head.appendChild(el);
 }
@@ -135,23 +142,122 @@ function StarSmall({ filled }: { filled: boolean }) {
   );
 }
 
+// ─── QR Code Share helpers ───────────────────────────────────────────────────
+function ShareButton({ color, icon, label, onClick }: { color: string; icon: string; label: string; onClick: () => void }) {
+  return (
+    <button onClick={onClick} title={label} style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+      background: color, border: 'none', borderRadius: 14, padding: '10px 14px',
+      cursor: 'pointer', color: '#fff', minWidth: 60,
+      boxShadow: '0 2px 8px rgba(0,0,0,0.18)', transition: 'transform 0.15s, opacity 0.15s',
+    }}
+      onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.08)'; }}
+      onMouseOut={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'; }}
+    >
+      <span style={{ fontSize: 24, lineHeight: 1 }}>{icon}</span>
+      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.03em' }}>{label}</span>
+    </button>
+  );
+}
+
 // ─── QR Code Page ─────────────────────────────────────────────────────────────
 function QRCodePage() {
+  useEffect(() => { injectStyles(); }, []);
   const reviewUrl = `${window.location.origin}/review`;
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&ecc=H&data=${encodeURIComponent(reviewUrl)}`;
+  const shareText = `Rate your experience with ${BUSINESS_NAME} — it only takes 30 seconds!`;
+  const [copied, setCopied] = useState(false);
+
+  const shareLinks = [
+    {
+      label: 'WhatsApp',
+      icon: '💬',
+      color: '#25D366',
+      url: `https://wa.me/?text=${encodeURIComponent(`${shareText}\n${reviewUrl}`)}`,
+    },
+    {
+      label: 'Telegram',
+      icon: '✈️',
+      color: '#229ED9',
+      url: `https://t.me/share/url?url=${encodeURIComponent(reviewUrl)}&text=${encodeURIComponent(shareText)}`,
+    },
+    {
+      label: 'Facebook',
+      icon: '👍',
+      color: '#1877F2',
+      url: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(reviewUrl)}`,
+    },
+    {
+      label: 'Twitter / X',
+      icon: '🐦',
+      color: '#000000',
+      url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(reviewUrl)}`,
+    },
+  ];
+
+  const handleNativeShare = () => {
+    if (navigator.share) {
+      navigator.share({ title: BUSINESS_NAME, text: shareText, url: reviewUrl }).catch(() => {});
+    }
+  };
+  const handleCopy = () => {
+    navigator.clipboard?.writeText(reviewUrl).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(() => {});
+  };
+
   return (
-    <div style={{ minHeight: '100vh', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-      <div style={{ maxWidth: 360, width: '100%', textAlign: 'center', boxShadow: '0 4px 24px rgba(0,0,0,0.10)', borderRadius: 24, padding: 40, border: '1px solid #f0f0f0' }}>
-        <div style={{ fontSize: 22, fontWeight: 700, color: '#1e40af', marginBottom: 8 }}>{BUSINESS_NAME}</div>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(155deg,#f0f9ff 0%,#ffffff 48%,#f5f3ff 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif' }}>
+      <div style={{ maxWidth: 380, width: '100%', textAlign: 'center', boxShadow: '0 8px 36px rgba(0,0,0,0.10)', borderRadius: 28, padding: '36px 28px 28px', background: '#fff', border: '1px solid #f0f0f0', animation: 'fadeSlideUp 0.4s ease both' }}>
+
+        {/* Header */}
+        <div style={{ fontSize: 22, fontWeight: 800, color: '#1e40af', marginBottom: 4 }}>{BUSINESS_NAME}</div>
         <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 24 }}>Scan to rate your experience</p>
-        <img src={qrSrc} alt="Review QR Code" style={{ width: 240, height: 240, margin: '0 auto', borderRadius: 16, border: '1px solid #e5e7eb', display: 'block' }} />
-        <p style={{ color: '#9ca3af', fontSize: 11, marginTop: 16, wordBreak: 'break-all' }}>{reviewUrl}</p>
-        <button onClick={() => window.print()} style={{ marginTop: 24, padding: '10px 28px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 50, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
-          Print QR Code
+
+        {/* QR */}
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+          <img src={qrSrc} alt="Review QR Code" style={{ width: 230, height: 230, borderRadius: 18, border: '1.5px solid #e5e7eb', display: 'block' }} />
+        </div>
+        <p style={{ color: '#9ca3af', fontSize: 11, marginTop: 10, wordBreak: 'break-all', padding: '0 8px' }}>{reviewUrl}</p>
+
+        {/* Print + Download */}
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 18, marginBottom: 22 }}>
+          <button onClick={() => window.print()} style={{ padding: '9px 22px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 50, fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 2px 10px rgba(37,99,235,0.28)' }}>
+            🖨️ Print
+          </button>
+          <a href={qrSrc} download="review-qr.png" style={{ padding: '9px 22px', background: '#f3f4f6', color: '#374151', borderRadius: 50, fontWeight: 700, fontSize: 13, textDecoration: 'none', display: 'inline-block', border: '1.5px solid #e5e7eb' }}>
+            ⬇️ Download
+          </a>
+        </div>
+
+        {/* Divider */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <div style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
+          <span style={{ color: '#9ca3af', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>SHARE THIS LINK</span>
+          <div style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
+        </div>
+
+        {/* Social share buttons */}
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
+          {shareLinks.map(s => (
+            <ShareButton key={s.label} label={s.label} icon={s.icon} color={s.color}
+              onClick={() => window.open(s.url, '_blank', 'noopener,noreferrer')} />
+          ))}
+          {typeof navigator !== 'undefined' && 'share' in navigator && (
+            <ShareButton label="More" icon="📤" color="#6366f1" onClick={handleNativeShare} />
+          )}
+        </div>
+
+        {/* Copy link */}
+        <button onClick={handleCopy} style={{
+          width: '100%', padding: '12px', background: copied ? '#d1fae5' : '#f9fafb',
+          border: `1.5px solid ${copied ? '#6ee7b7' : '#e5e7eb'}`, borderRadius: 14,
+          fontSize: 14, fontWeight: 700, cursor: 'pointer',
+          color: copied ? '#065f46' : '#374151', transition: 'all 0.2s',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        }}>
+          {copied ? '✅ Link Copied!' : '🔗 Copy Review Link'}
         </button>
-        <a href={qrSrc} download="review-qr.png" style={{ display: 'block', marginTop: 12, color: '#2563eb', fontSize: 13, textDecoration: 'underline' }}>
-          Download PNG
-        </a>
+
+        <a href="/review" style={{ display: 'block', marginTop: 14, color: '#6b7280', fontSize: 12, textDecoration: 'underline' }}>← Back to Review Page</a>
       </div>
     </div>
   );
@@ -177,6 +283,7 @@ export function ReviewPage() {
   const [submitting, setSubmitting]       = useState(false);
   const [copyStatus, setCopyStatus]       = useState<'idle' | 'copied' | 'failed'>('idle');
   const [animatingMood, setAnimatingMood] = useState<number | null>(null);
+  const [sidebarOpen, setSidebarOpen]       = useState(false);
   const textRef = useRef<HTMLTextAreaElement>(null);
 
   const displayRating = hoverRating || rating;
@@ -538,6 +645,119 @@ export function ReviewPage() {
     </div>
   );
 
+  // ── Nav menu items ───────────────────────────────────────────────────────
+  const NAV_ITEMS = [
+    { icon: '⭐', label: 'Leave a Review', href: '/review' },
+    { icon: '📋', label: 'QR Code & Share', href: '/review/qr' },
+    { icon: '💼', label: 'Apply for Jobs',  href: '/apply' },
+    { icon: '🏢', label: 'Falisha Manpower', href: 'https://falishamanpower.up.railway.app', external: true },
+  ];
+
+  // ── Sidebar ──────────────────────────────────────────────────────────────
+  const renderSidebar = () => (
+    <>
+      {/* Backdrop */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.38)',
+            zIndex: 999, animation: 'fadeIn 0.2s ease both',
+          }}
+        />
+      )}
+      {/* Drawer */}
+      <div style={{
+        position: 'fixed', top: 0, left: 0, bottom: 0, width: 270,
+        background: '#fff', zIndex: 1000, boxShadow: '4px 0 30px rgba(0,0,0,0.15)',
+        display: 'flex', flexDirection: 'column',
+        transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
+        transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1)',
+        borderRadius: '0 24px 24px 0',
+      }}>
+        {/* Drawer header */}
+        <div style={{
+          background: 'linear-gradient(135deg,#2563eb,#1d4ed8)',
+          padding: '28px 20px 20px',
+          borderRadius: '0 24px 0 0',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: '#fff', letterSpacing: '0.01em' }}>{BUSINESS_NAME}</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.72)', marginTop: 3, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Review Portal</div>
+          </div>
+          <button onClick={() => setSidebarOpen(false)} style={{
+            background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 10,
+            width: 34, height: 34, cursor: 'pointer', color: '#fff', fontSize: 18,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>✕</button>
+        </div>
+
+        {/* Nav items */}
+        <nav style={{ flex: 1, padding: '16px 12px', overflowY: 'auto' }}>
+          {NAV_ITEMS.map(item => {
+            const current = !item.external && window.location.pathname === item.href;
+            return (
+              <a
+                key={item.label}
+                href={item.href}
+                target={item.external ? '_blank' : '_self'}
+                rel={item.external ? 'noopener noreferrer' : undefined}
+                onClick={() => setSidebarOpen(false)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '13px 16px', borderRadius: 14, marginBottom: 4,
+                  background: current ? '#eff6ff' : 'transparent',
+                  color: current ? '#1d4ed8' : '#374151',
+                  fontWeight: current ? 700 : 500, fontSize: 15,
+                  textDecoration: 'none', transition: 'background 0.15s, color 0.15s',
+                  border: `1.5px solid ${current ? '#bfdbfe' : 'transparent'}`,
+                }}
+                onMouseOver={e => { if (!current) { (e.currentTarget as HTMLAnchorElement).style.background = '#f9fafb'; } }}
+                onMouseOut={e => { if (!current) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; } }}
+              >
+                <span style={{ fontSize: 22, width: 28, textAlign: 'center' }}>{item.icon}</span>
+                <span>{item.label}</span>
+                {item.external && <span style={{ marginLeft: 'auto', fontSize: 12, color: '#9ca3af' }}>↗</span>}
+              </a>
+            );
+          })}
+        </nav>
+
+        {/* Drawer footer */}
+        <div style={{ padding: '14px 20px', borderTop: '1px solid #f3f4f6' }}>
+          {/* Quick share review link */}
+          <p style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>Share Review Link</p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {[
+              { label: 'WhatsApp', icon: '💬', color: '#25D366', url: `https://wa.me/?text=${encodeURIComponent(`Rate ${BUSINESS_NAME}: ${window.location.origin}/review`)}` },
+              { label: 'Telegram', icon: '✈️', color: '#229ED9', url: `https://t.me/share/url?url=${encodeURIComponent(`${window.location.origin}/review`)}&text=${encodeURIComponent(`Rate ${BUSINESS_NAME}`)}` },
+              { label: 'Facebook', icon: '👍', color: '#1877F2', url: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/review`)}` },
+            ].map(s => (
+              <button key={s.label} title={s.label}
+                onClick={() => window.open(s.url, '_blank', 'noopener,noreferrer')}
+                style={{
+                  background: s.color, border: 'none', borderRadius: 10,
+                  width: 38, height: 38, cursor: 'pointer', fontSize: 18,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                }}>
+                {s.icon}
+              </button>
+            ))}
+            {typeof navigator !== 'undefined' && 'share' in navigator && (
+              <button title="More" onClick={() => navigator.share({ title: BUSINESS_NAME, url: `${window.location.origin}/review` }).catch(() => {})}
+                style={{ background: '#6366f1', border: 'none', borderRadius: 10, width: 38, height: 38, cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}>
+                📤
+              </button>
+            )}
+          </div>
+          <p style={{ fontSize: 11, color: '#d1d5db', marginTop: 14, textAlign: 'center' }}>{BUSINESS_NAME} · v2.1</p>
+        </div>
+      </div>
+    </>
+  );
+
   // ── Page shell ─────────────────────────────────────────────────────────
   return (
     <div style={{
@@ -547,6 +767,25 @@ export function ReviewPage() {
       fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif',
       padding: '20px 0 64px',
     }}>
+      {/* Hamburger menu button */}
+      <button
+        onClick={() => setSidebarOpen(true)}
+        aria-label="Open menu"
+        style={{
+          position: 'fixed', top: 16, left: 16, zIndex: 900,
+          background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 14,
+          width: 42, height: 42, cursor: 'pointer',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5,
+          boxShadow: '0 2px 10px rgba(0,0,0,0.10)',
+        }}
+      >
+        <span style={{ width: 18, height: 2, background: '#374151', borderRadius: 2, display: 'block' }} />
+        <span style={{ width: 18, height: 2, background: '#374151', borderRadius: 2, display: 'block' }} />
+        <span style={{ width: 18, height: 2, background: '#374151', borderRadius: 2, display: 'block' }} />
+      </button>
+
+      {renderSidebar()}
+
       <div style={{ width: '100%', maxWidth: 420, padding: '0 18px' }}>
         <div style={{
           background: '#ffffff', borderRadius: 28,
@@ -564,4 +803,4 @@ export function ReviewPage() {
     </div>
   );
 }
-
+
