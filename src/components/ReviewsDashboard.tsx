@@ -14,7 +14,7 @@ interface Feedback {
 
 interface Stats {
   total_feedback: number;
-  avg_rating: number;
+  avg_rating: number | null;
   total_page_views: number;
   total_google_redirects: number;
   rating_breakdown: { rating: number; count: number }[];
@@ -62,8 +62,31 @@ export function ReviewsDashboard() {
       ]);
       if (!fbRes.ok || !stRes.ok) throw new Error('API error');
       const [fb, st] = await Promise.all([fbRes.json(), stRes.json()]);
-      setFeedback(fb.data ?? fb ?? []);
-      setStats(st.data ?? st);
+
+      // Backend returns { feedback: [...], total: N }
+      const feedbackArr: Feedback[] = Array.isArray(fb.feedback) ? fb.feedback
+        : Array.isArray(fb) ? fb : [];
+      setFeedback(feedbackArr);
+
+      // Backend returns { internal_feedback: { total, by_rating }, google_redirects, page_views }
+      const byRating: Record<number, number> = st.internal_feedback?.by_rating ?? {};
+      const totalFeedback: number = st.internal_feedback?.total ?? 0;
+      // Compute weighted avg from by_rating
+      let ratingSum = 0, ratingCount = 0;
+      const breakdown: { rating: number; count: number }[] = [];
+      for (let r = 1; r <= 5; r++) {
+        const c = byRating[r] ?? 0;
+        ratingSum += r * c;
+        ratingCount += c;
+        breakdown.push({ rating: r, count: c });
+      }
+      setStats({
+        total_feedback: totalFeedback,
+        avg_rating: ratingCount > 0 ? ratingSum / ratingCount : null,
+        total_page_views: st.page_views ?? 0,
+        total_google_redirects: st.google_redirects ?? 0,
+        rating_breakdown: breakdown,
+      });
     } catch (e: any) {
       setError(e.message || 'Failed to load');
     } finally {
