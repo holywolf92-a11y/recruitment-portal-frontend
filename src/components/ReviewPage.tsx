@@ -737,7 +737,12 @@ export function ReviewPage() {
             </div>
           </div>
 
-          {/* CTA + Instructions — ref for scroll-into-view */}
+          {/* Animated how-to demo */}
+          <div style={{ marginBottom: 10 }}>
+            <GoogleHowToDemo />
+          </div>
+
+          {/* CTA — ref for scroll-into-view */}
           <div ref={ctaRef}>
           <button
             onClick={handleSubmitGoogle}
@@ -769,11 +774,6 @@ export function ReviewPage() {
               Copy failed — paste manually in Google.
             </p>
           )}
-
-          {/* Animated how-to demo — replaces old text steps */}
-          <div style={{ marginTop: 10 }}>
-            <GoogleHowToDemo />
-          </div>
           </div>
         </div>
       )}
