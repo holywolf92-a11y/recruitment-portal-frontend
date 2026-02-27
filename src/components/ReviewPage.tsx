@@ -1,26 +1,39 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
-// ─── Config (set these in .env) ──────────────────────────────────────────────
+// ─── Config ──────────────────────────────────────────────────────────────────
 const GOOGLE_REVIEW_URL =
-  (import.meta as any).env?.VITE_GOOGLE_REVIEW_URL || 'https://g.page/r/XXXXXX/review';
-const API_BASE =
-  (import.meta as any).env?.VITE_API_BASE_URL || '/api';
-const BUSINESS_NAME =
-  (import.meta as any).env?.VITE_BUSINESS_NAME || 'Falisha Manpower';
-const BUSINESS_LOGO_URL: string | undefined =
-  (import.meta as any).env?.VITE_BUSINESS_LOGO_URL;
+  (import.meta as any).env?.VITE_GOOGLE_REVIEW_URL || 'https://g.page/r/CVmpd5dYUfULEBM/review';
+const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || '/api';
+const BUSINESS_NAME = (import.meta as any).env?.VITE_BUSINESS_NAME || 'Falisha Manpower';
+const BUSINESS_LOGO_URL: string | undefined = (import.meta as any).env?.VITE_BUSINESS_LOGO_URL;
 
-// ─── Comment templates ───────────────────────────────────────────────────────
-const TEMPLATES = [
-  'Excellent service and very professional staff.',
-  'Very satisfied with the overall experience.',
-  'Quick response and smooth process.',
-  'Highly recommended to others.',
-  'Friendly team and great support.',
-  'Smooth and hassle-free experience.',
+// ─── Mood options (emoji + label + auto-comment) ─────────────────────────────
+const MOODS = [
+  { emoji: '🤩', label: 'Exceptional', comment: 'Absolutely exceptional service! Far exceeded all my expectations. Highly recommended to everyone looking for professional manpower services.' },
+  { emoji: '😍', label: 'Amazing',     comment: 'Amazing experience from start to finish. Professional team, smooth process, and outstanding results!' },
+  { emoji: '🙌', label: 'Excellent',   comment: 'Excellent service and very professional staff. Very satisfied with the overall experience.' },
+  { emoji: '⚡', label: 'Fast & Easy', comment: 'Quick response and smooth process. Everything was handled efficiently and professionally.' },
+  { emoji: '🤝', label: 'Professional',comment: 'Highly professional team with great communication throughout. Smooth and hassle-free experience.' },
+  { emoji: '💪', label: 'Recommended', comment: 'Highly recommended to others! Friendly team and great support. Will definitely use their services again.' },
 ] as const;
 
-// ─── Analytics helper (fire-and-forget) ──────────────────────────────────────
+// ─── Countries with flags ────────────────────────────────────────────────────
+const COUNTRIES = [
+  { flag: '🇦🇪', name: 'UAE' },
+  { flag: '🇸🇦', name: 'Saudi Arabia' },
+  { flag: '🇶🇦', name: 'Qatar' },
+  { flag: '🇰🇼', name: 'Kuwait' },
+  { flag: '🇧🇭', name: 'Bahrain' },
+  { flag: '🇴🇲', name: 'Oman' },
+  { flag: '🇵🇰', name: 'Pakistan' },
+  { flag: '🇧🇩', name: 'Bangladesh' },
+  { flag: '🇮🇳', name: 'India' },
+  { flag: '🇵🇭', name: 'Philippines' },
+  { flag: '🇲🇾', name: 'Malaysia' },
+  { flag: '🇬🇧', name: 'UK' },
+] as const;
+
+// ─── Analytics (fire-and-forget) ────────────────────────────────────────────
 function track(event: string, extra?: Record<string, unknown>) {
   fetch(`${API_BASE}/review/analytics`, {
     method: 'POST',
@@ -29,21 +42,59 @@ function track(event: string, extra?: Record<string, unknown>) {
   }).catch(() => {});
 }
 
-// ─── Star component ───────────────────────────────────────────────────────────
+// ─── CSS keyframe animations (injected once) ─────────────────────────────────
+const STYLE_ID = 'review-page-keyframes';
+function injectStyles() {
+  if (document.getElementById(STYLE_ID)) return;
+  const el = document.createElement('style');
+  el.id = STYLE_ID;
+  el.textContent = `
+    @keyframes floatBob {
+      0%, 100% { transform: translateY(0px) scale(1); }
+      50%       { transform: translateY(-7px) scale(1.06); }
+    }
+    @keyframes popIn {
+      0%   { transform: scale(0.55); opacity: 0; }
+      70%  { transform: scale(1.12); opacity: 1; }
+      100% { transform: scale(1);    opacity: 1; }
+    }
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulseRing {
+      0%   { transform: scale(1);   opacity: 0.45; }
+      100% { transform: scale(1.7); opacity: 0; }
+    }
+    @keyframes checkPop {
+      0%   { transform: scale(0); }
+      65%  { transform: scale(1.35); }
+      100% { transform: scale(1); }
+    }
+    @keyframes moodBounce {
+      0%, 100% { transform: scale(1); }
+      40%      { transform: scale(1.22) rotate(-6deg); }
+      70%      { transform: scale(1.12) rotate(4deg); }
+    }
+  `;
+  document.head.appendChild(el);
+}
+
+// ─── Animated star ────────────────────────────────────────────────────────────
 function Star({
+  value,
   filled,
   hovered,
   onClick,
   onMouseEnter,
   onMouseLeave,
-  label,
 }: {
+  value: number;
   filled: boolean;
   hovered: boolean;
   onClick: () => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
-  label: string;
 }) {
   const active = filled || hovered;
   return (
@@ -51,19 +102,20 @@ function Star({
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      aria-label={label}
-      className="focus:outline-none transition-transform active:scale-90"
-      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
+      aria-label={`${value} star${value > 1 ? 's' : ''}`}
+      style={{
+        background: 'none', border: 'none', cursor: 'pointer', padding: '2px',
+        transform: active ? 'scale(1.15)' : 'scale(1)',
+        transition: 'transform 0.15s ease',
+      }}
     >
       <svg
-        width="56"
-        height="56"
-        viewBox="0 0 24 24"
-        fill={active ? '#F59E0B' : '#E5E7EB'}
-        stroke={active ? '#D97706' : '#D1D5DB'}
-        strokeWidth="1"
+        width="54" height="54" viewBox="0 0 24 24"
+        fill={active ? '#FBBF24' : '#D1D5DB'}
+        stroke={active ? '#F59E0B' : '#9CA3AF'}
+        strokeWidth="1.2"
         style={{
-          filter: active ? 'drop-shadow(0 2px 4px rgba(245,158,11,0.4))' : 'none',
+          filter: active ? 'drop-shadow(0 2px 8px rgba(251,191,36,0.6))' : 'none',
           transition: 'all 0.15s ease',
         }}
       >
@@ -73,37 +125,31 @@ function Star({
   );
 }
 
-// ─── QR Code page ─────────────────────────────────────────────────────────────
+// ─── Small inline star (read-only) ───────────────────────────────────────────
+function StarSmall({ filled }: { filled: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24"
+      fill={filled ? '#FBBF24' : '#D1D5DB'} stroke={filled ? '#F59E0B' : '#9CA3AF'} strokeWidth="1.2">
+      <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
+    </svg>
+  );
+}
+
+// ─── QR Code Page ─────────────────────────────────────────────────────────────
 function QRCodePage() {
   const reviewUrl = `${window.location.origin}/review`;
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&ecc=H&data=${encodeURIComponent(reviewUrl)}`;
-
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 print:p-0">
-      <div className="max-w-sm w-full text-center print:shadow-none shadow-lg rounded-2xl p-8 border border-gray-100">
-        {BUSINESS_LOGO_URL ? (
-          <img src={BUSINESS_LOGO_URL} alt={BUSINESS_NAME} className="h-14 mx-auto mb-4 object-contain" />
-        ) : (
-          <div className="text-2xl font-bold text-blue-700 mb-4">{BUSINESS_NAME}</div>
-        )}
-        <p className="text-gray-500 text-sm mb-6">Scan to rate your experience</p>
-        <img
-          src={qrSrc}
-          alt="Review QR Code"
-          className="w-64 h-64 mx-auto rounded-xl border border-gray-200"
-        />
-        <p className="text-gray-400 text-xs mt-4 break-all">{reviewUrl}</p>
-        <button
-          onClick={() => window.print()}
-          className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors print:hidden"
-        >
+    <div style={{ minHeight: '100vh', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <div style={{ maxWidth: 360, width: '100%', textAlign: 'center', boxShadow: '0 4px 24px rgba(0,0,0,0.10)', borderRadius: 24, padding: 40, border: '1px solid #f0f0f0' }}>
+        <div style={{ fontSize: 22, fontWeight: 700, color: '#1e40af', marginBottom: 8 }}>{BUSINESS_NAME}</div>
+        <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 24 }}>Scan to rate your experience</p>
+        <img src={qrSrc} alt="Review QR Code" style={{ width: 240, height: 240, margin: '0 auto', borderRadius: 16, border: '1px solid #e5e7eb', display: 'block' }} />
+        <p style={{ color: '#9ca3af', fontSize: 11, marginTop: 16, wordBreak: 'break-all' }}>{reviewUrl}</p>
+        <button onClick={() => window.print()} style={{ marginTop: 24, padding: '10px 28px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 50, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
           Print QR Code
         </button>
-        <a
-          href={qrSrc}
-          download="review-qr.png"
-          className="mt-3 block text-sm text-blue-600 hover:underline print:hidden"
-        >
+        <a href={qrSrc} download="review-qr.png" style={{ display: 'block', marginTop: 12, color: '#2563eb', fontSize: 13, textDecoration: 'underline' }}>
           Download PNG
         </a>
       </div>
@@ -112,81 +158,81 @@ function QRCodePage() {
 }
 
 // ─── Main Review Page ─────────────────────────────────────────────────────────
-type Screen =
-  | 'star_select'
-  | 'template_select'
-  | 'redirected'
-  | 'low_rating_form'
-  | 'thank_you';
+type Screen = 'rating' | 'redirected' | 'low_form' | 'thank_you';
 
 export function ReviewPage() {
-  // If path is /review/qr → show printable QR
   if (typeof window !== 'undefined' && window.location.pathname === '/review/qr') {
     return <QRCodePage />;
   }
 
-  const [screen, setScreen] = useState<Screen>('star_select');
-  const [rating, setRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
-  const [selectedTemplate, setSelectedTemplate] = useState<number | null>(null);
-  const [feedbackText, setFeedbackText] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
+  useEffect(() => { injectStyles(); track('page_view'); }, []);
 
-  // Track page view on first render
-  useState(() => {
-    track('page_view');
-  });
+  // ── State ──────────────────────────────────────────────────────────────
+  const [rating, setRating]               = useState(5); // default 5 stars
+  const [hoverRating, setHoverRating]     = useState(0);
+  const [selectedMood, setSelectedMood]   = useState<number | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState<number | null>(null);
+  const [comment, setComment]             = useState('');
+  const [screen, setScreen]               = useState<Screen>('rating');
+  const [submitting, setSubmitting]       = useState(false);
+  const [copyStatus, setCopyStatus]       = useState<'idle' | 'copied' | 'failed'>('idle');
+  const [animatingMood, setAnimatingMood] = useState<number | null>(null);
+  const textRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleStarClick = useCallback(
-    (value: number) => {
-      setRating(value);
-      setHoverRating(0);
-      track('star_select', { rating: value });
+  const displayRating = hoverRating || rating;
+  const isGoodRating  = rating === 5;
 
-      if (value >= 4) {
-        setScreen('template_select');
-      } else {
-        setScreen('low_rating_form');
-      }
-    },
-    [],
-  );
+  const LABELS: Record<number, string> = {
+    1: 'Very Poor', 2: 'Poor', 3: 'Average', 4: 'Good', 5: 'Excellent ⭐',
+  };
 
-  const handleSubmitToGoogle = useCallback(() => {
-    if (selectedTemplate === null) return;
+  // ── Handlers ────────────────────────────────────────────────────────────
+  const handleStarClick = useCallback((v: number) => {
+    setRating(v);
+    setHoverRating(0);
+    track('star_select', { rating: v });
+    if (v < 5) { setSelectedMood(null); setComment(''); }
+  }, []);
 
-    const text = TEMPLATES[selectedTemplate];
-    track('redirect_google', { rating, template_idx: selectedTemplate });
+  const handleMoodClick = useCallback((idx: number) => {
+    setAnimatingMood(idx);
+    setTimeout(() => setAnimatingMood(null), 500);
+    const deselect = selectedMood === idx;
+    setSelectedMood(deselect ? null : idx);
+    setComment(deselect ? '' : MOODS[idx].comment);
+    track('template_select', { template_idx: idx, rating });
+    setTimeout(() => textRef.current?.focus(), 100);
+  }, [selectedMood, rating]);
 
-    // Open Google review FIRST (synchronous user gesture → no popup blocker)
-    window.open(GOOGLE_REVIEW_URL, '_blank', 'noopener,noreferrer');
-
-    // Then copy to clipboard (async is fine now)
+  const copyToClipboard = useCallback((text: string) => {
     if (navigator.clipboard?.writeText) {
-      navigator.clipboard
-        .writeText(text)
+      return navigator.clipboard.writeText(text)
         .then(() => setCopyStatus('copied'))
         .catch(() => setCopyStatus('failed'));
-    } else {
-      // Fallback: execCommand
-      try {
-        const el = document.createElement('textarea');
-        el.value = text;
-        el.style.position = 'fixed';
-        el.style.opacity = '0';
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand('copy');
-        document.body.removeChild(el);
-        setCopyStatus('copied');
-      } catch {
-        setCopyStatus('failed');
-      }
     }
+    try {
+      const el = document.createElement('textarea');
+      el.value = text;
+      el.style.cssText = 'position:fixed;opacity:0;top:0;left:0;';
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      setCopyStatus('copied');
+    } catch { setCopyStatus('failed'); }
+    return Promise.resolve();
+  }, []);
 
+  const handleSubmitGoogle = useCallback(() => {
+    track('redirect_google', {
+      rating,
+      template_idx: selectedMood,
+      country: selectedCountry !== null ? COUNTRIES[selectedCountry].name : null,
+    });
+    window.open(GOOGLE_REVIEW_URL, '_blank', 'noopener,noreferrer');
+    if (comment.trim()) copyToClipboard(comment.trim());
     setScreen('redirected');
-  }, [selectedTemplate, rating]);
+  }, [rating, selectedMood, selectedCountry, comment, copyToClipboard]);
 
   const handleFeedbackSubmit = useCallback(async () => {
     setSubmitting(true);
@@ -195,265 +241,327 @@ export function ReviewPage() {
       await fetch(`${API_BASE}/review/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rating, message: feedbackText }),
+        body: JSON.stringify({ rating, message: comment }),
       });
-    } catch {
-      // silent — we still show thank you
-    } finally {
-      setSubmitting(false);
-      setScreen('thank_you');
-    }
-  }, [rating, feedbackText]);
+    } catch { /* silent */ }
+    setSubmitting(false);
+    setScreen('thank_you');
+  }, [rating, comment]);
 
-  // ── Screens ──────────────────────────────────────────────────────────────────
+  // ── Shared header ──────────────────────────────────────────────────────
+  const renderHeader = () => (
+    <div style={{ textAlign: 'center', marginBottom: 24 }}>
+      {BUSINESS_LOGO_URL ? (
+        <img src={BUSINESS_LOGO_URL} alt={BUSINESS_NAME}
+          style={{ height: 58, margin: '0 auto 10px', objectFit: 'contain', display: 'block' }} />
+      ) : (
+        <div style={{
+          width: 58, height: 58, borderRadius: 15,
+          background: 'linear-gradient(135deg,#2563eb,#1d4ed8)',
+          margin: '0 auto 10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 4px 14px rgba(37,99,235,0.35)',
+        }}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round"
+              d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+        </div>
+      )}
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+        {BUSINESS_NAME}
+      </div>
+    </div>
+  );
 
-  const renderStarSelect = () => (
-    <div className="flex flex-col items-center text-center px-4">
-      <div className="mb-8">
-        <p className="text-gray-400 text-sm tracking-wider uppercase font-medium">How was your experience?</p>
-        <h1 className="text-3xl font-bold text-gray-800 mt-2 leading-tight">Rate Your Experience</h1>
+  // ── Rating screen ──────────────────────────────────────────────────────
+  const renderRating = () => (
+    <div style={{ animation: 'fadeSlideUp 0.4s ease both' }}>
+      {renderHeader()}
+
+      <div style={{ textAlign: 'center', marginBottom: 22 }}>
+        <h1 style={{ fontSize: 25, fontWeight: 800, color: '#111827', margin: 0, lineHeight: 1.2 }}>
+          Rate Your Experience
+        </h1>
+        <p style={{ fontSize: 14, color: '#6b7280', marginTop: 5 }}>Your opinion helps us improve.</p>
       </div>
 
-      <div className="flex gap-1 mb-6">
-        {[1, 2, 3, 4, 5].map((v) => (
+      {/* Stars */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 4, marginBottom: 10 }}>
+        {[1, 2, 3, 4, 5].map(v => (
           <Star
-            key={v}
-            filled={v <= rating}
-            hovered={v <= hoverRating}
+            key={v} value={v}
+            filled={v <= rating} hovered={v <= hoverRating}
             onClick={() => handleStarClick(v)}
             onMouseEnter={() => setHoverRating(v)}
             onMouseLeave={() => setHoverRating(0)}
-            label={`${v} star${v > 1 ? 's' : ''}`}
           />
         ))}
       </div>
 
-      <p className="text-gray-400 text-sm">
-        {hoverRating > 0 || rating > 0
-          ? ['', 'Very Poor', 'Poor', 'Average', 'Good', 'Excellent'][hoverRating || rating]
-          : 'Tap a star to rate'}
-      </p>
-    </div>
-  );
-
-  const renderTemplateSelect = () => (
-    <div className="flex flex-col items-center w-full px-4">
-      <div className="flex gap-1 mb-3">
-        {[1, 2, 3, 4, 5].map((v) => (
-          <svg
-            key={v}
-            width="28"
-            height="28"
-            viewBox="0 0 24 24"
-            fill={v <= rating ? '#F59E0B' : '#E5E7EB'}
-            stroke={v <= rating ? '#D97706' : '#D1D5DB'}
-            strokeWidth="1"
-          >
-            <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
-          </svg>
-        ))}
+      {/* Rating badge */}
+      <div style={{ textAlign: 'center', marginBottom: 26 }}>
+        <span key={displayRating} style={{
+          display: 'inline-block', fontSize: 13, fontWeight: 700,
+          color:      displayRating === 5 ? '#065f46' : displayRating >= 4 ? '#92400e' : '#991b1b',
+          background: displayRating === 5 ? '#d1fae5' : displayRating >= 4 ? '#fef3c7' : '#fee2e2',
+          padding: '4px 16px', borderRadius: 20, letterSpacing: '0.03em',
+          animation: 'popIn 0.2s ease both',
+        }}>
+          {LABELS[displayRating] || 'Tap a star to rate'}
+        </span>
       </div>
 
-      <h2 className="text-xl font-bold text-gray-800 mb-1">Wonderful!</h2>
-      <p className="text-gray-500 text-sm mb-5 text-center">
-        Select a comment to share on Google, or skip straight to reviewing.
-      </p>
+      {/* ── 5-star positive flow ────────────────────────────────────── */}
+      {isGoodRating && (
+        <div style={{ animation: 'fadeSlideUp 0.35s ease both' }}>
 
-      <div className="w-full space-y-2 mb-6">
-        {TEMPLATES.map((tpl, idx) => (
+          {/* Mood picker */}
+          <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 10, textAlign: 'center', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            What describes your experience?
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 9, marginBottom: 22 }}>
+            {MOODS.map((m, idx) => {
+              const active = selectedMood === idx;
+              const bouncing = animatingMood === idx;
+              return (
+                <button key={idx} onClick={() => handleMoodClick(idx)} style={{
+                  background: active ? '#eff6ff' : '#f9fafb',
+                  border: `2px solid ${active ? '#3b82f6' : '#e5e7eb'}`,
+                  borderRadius: 16, padding: '12px 6px', cursor: 'pointer',
+                  textAlign: 'center', transition: 'all 0.18s ease',
+                  transform: bouncing ? 'scale(1.2)' : active ? 'scale(1.04)' : 'scale(1)',
+                  boxShadow: active ? '0 2px 14px rgba(59,130,246,0.25)' : '0 1px 3px rgba(0,0,0,0.05)',
+                }}>
+                  <div style={{
+                    fontSize: 32, lineHeight: 1, display: 'block', marginBottom: 5,
+                    animation: bouncing ? 'moodBounce 0.5s ease' : active ? 'floatBob 2.4s ease-in-out infinite' : 'none',
+                  }}>
+                    {m.emoji}
+                  </div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: active ? '#1d4ed8' : '#6b7280', letterSpacing: '0.02em' }}>
+                    {m.label}
+                  </div>
+                  {active && (
+                    <div style={{
+                      width: 16, height: 16, borderRadius: '50%', background: '#3b82f6',
+                      margin: '5px auto 0', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      animation: 'checkPop 0.3s ease both',
+                    }}>
+                      <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" strokeWidth="2.5">
+                        <polyline points="2,6 5,9 10,3" />
+                      </svg>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Country picker */}
+          <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 10, textAlign: 'center', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            Your Country <span style={{ fontWeight: 400, color: '#9ca3af', textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, justifyContent: 'center', marginBottom: 22 }}>
+            {COUNTRIES.map((c, idx) => {
+              const active = selectedCountry === idx;
+              return (
+                <button key={idx} onClick={() => setSelectedCountry(active ? null : idx)} title={c.name} style={{
+                  background: active ? '#eff6ff' : '#f3f4f6',
+                  border: `2px solid ${active ? '#3b82f6' : 'transparent'}`,
+                  borderRadius: 12, padding: '5px 10px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  fontSize: 12, fontWeight: 600, color: active ? '#1d4ed8' : '#374151',
+                  transition: 'all 0.15s ease',
+                  transform: active ? 'scale(1.06)' : 'scale(1)',
+                  boxShadow: active ? '0 2px 8px rgba(59,130,246,0.2)' : 'none',
+                }}>
+                  <span style={{ fontSize: 20 }}>{c.flag}</span>
+                  <span style={{ fontSize: 11 }}>{c.name}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Comment box */}
+          <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 8, textAlign: 'center', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            Add a Comment <span style={{ fontWeight: 400, color: '#9ca3af', textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
+          </p>
+          <div style={{ position: 'relative', marginBottom: 18 }}>
+            <textarea
+              ref={textRef}
+              value={comment}
+              onChange={e => setComment(e.target.value)}
+              placeholder="Your comment… (tap an icon above to auto-fill)"
+              rows={3}
+              style={{
+                width: '100%', padding: '11px 36px 11px 13px',
+                border: '2px solid #e5e7eb', borderRadius: 14,
+                fontSize: 14, color: '#111827', background: '#fafafa',
+                resize: 'none', outline: 'none', boxSizing: 'border-box',
+                lineHeight: 1.5, fontFamily: 'inherit', transition: 'border-color 0.15s',
+              }}
+              onFocus={e => { e.target.style.borderColor = '#3b82f6'; e.target.style.background = '#fff'; }}
+              onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.background = '#fafafa'; }}
+            />
+            {comment && (
+              <button onClick={() => setComment('')} style={{
+                position: 'absolute', top: 9, right: 9, background: '#e5e7eb',
+                border: 'none', borderRadius: '50%', width: 22, height: 22,
+                cursor: 'pointer', fontSize: 14, color: '#6b7280',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
+              }}>×</button>
+            )}
+          </div>
+
+          {/* CTA */}
           <button
-            key={idx}
-            onClick={() => {
-              setSelectedTemplate(idx === selectedTemplate ? null : idx);
-              track('template_select', { template_idx: idx, rating });
+            onClick={handleSubmitGoogle}
+            style={{
+              width: '100%', padding: '16px',
+              background: 'linear-gradient(135deg,#16a34a,#15803d)',
+              color: '#fff', border: 'none', borderRadius: 18,
+              fontSize: 16, fontWeight: 800, cursor: 'pointer',
+              boxShadow: '0 4px 20px rgba(22,163,74,0.42)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              gap: 10, marginBottom: 6, letterSpacing: '0.01em',
+              transition: 'transform 0.15s, box-shadow 0.15s',
             }}
-            className={`w-full text-left px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all duration-150 ${
-              selectedTemplate === idx
-                ? 'border-blue-600 bg-blue-50 text-blue-800'
-                : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-gray-50'
-            }`}
+            onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.02)'; }}
+            onMouseOut={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'; }}
           >
-            <span className="mr-2">{selectedTemplate === idx ? '✅' : '💬'}</span>
-            {tpl}
+            <span style={{ fontSize: 20 }}>⭐</span>
+            Submit Review on Google
+            <span style={{ fontSize: 18 }}>→</span>
           </button>
-        ))}
-      </div>
-
-      <button
-        onClick={handleSubmitToGoogle}
-        disabled={selectedTemplate === null}
-        className={`w-full py-4 rounded-2xl text-white font-bold text-base transition-all duration-150 ${
-          selectedTemplate !== null
-            ? 'bg-blue-600 hover:bg-blue-700 active:scale-95 shadow-lg shadow-blue-200'
-            : 'bg-gray-300 cursor-not-allowed'
-        }`}
-      >
-        👉 Submit Review on Google
-      </button>
-
-      <button
-        onClick={() => {
-          setSelectedTemplate(null);
-          window.open(GOOGLE_REVIEW_URL, '_blank', 'noopener,noreferrer');
-          track('redirect_google', { rating, template_idx: null });
-          setScreen('redirected');
-        }}
-        className="mt-3 text-sm text-gray-400 hover:text-gray-600 underline underline-offset-2"
-      >
-        Skip comment and go directly
-      </button>
-    </div>
-  );
-
-  const renderRedirected = () => (
-    <div className="flex flex-col items-center text-center px-4">
-      <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-6">
-        <svg className="w-10 h-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-        </svg>
-      </div>
-      <h2 className="text-2xl font-bold text-gray-800 mb-2">Google Review Opened!</h2>
-
-      {selectedTemplate !== null && (
-        <>
-          {copyStatus === 'copied' && (
-            <p className="text-green-600 text-sm font-medium mb-3">
-              ✅ Your comment was copied to clipboard — just paste it in Google!
+          {comment.trim() && (
+            <p style={{ textAlign: 'center', fontSize: 12, color: '#6b7280', margin: '4px 0 0' }}>
+              Your comment will be auto-copied to clipboard
             </p>
           )}
-          {copyStatus === 'failed' && (
-            <div className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 mb-4 text-left">
-              <p className="text-gray-500 text-xs mb-1">Copy this comment manually:</p>
-              <p className="text-gray-800 text-sm font-medium">{TEMPLATES[selectedTemplate]}</p>
-            </div>
-          )}
-        </>
+        </div>
       )}
 
-      <p className="text-gray-500 text-sm mb-6 leading-relaxed">
-        A new tab opened with the Google review page.{' '}
-        {selectedTemplate !== null && copyStatus === 'copied'
-          ? 'Paste your comment and hit submit!'
-          : 'Write your review and hit submit!'}
-      </p>
+      {/* ── 1–4 stars negative flow ─────────────────────────────────── */}
+      {!isGoodRating && rating > 0 && (
+        <div style={{ animation: 'fadeSlideUp 0.35s ease both' }}>
+          <div style={{ textAlign: 'center', marginBottom: 16 }}>
+            <div style={{ fontSize: 52, marginBottom: 8, animation: 'popIn 0.4s ease both' }}>😔</div>
+            <h2 style={{ fontSize: 18, fontWeight: 800, color: '#111827', margin: '0 0 5px' }}>We're Sorry</h2>
+            <p style={{ fontSize: 14, color: '#6b7280', margin: 0 }}>Please tell us how we can improve.</p>
+          </div>
+          <textarea
+            value={comment}
+            onChange={e => setComment(e.target.value)}
+            placeholder="What went wrong? How can we improve? (optional)"
+            rows={4}
+            style={{
+              width: '100%', padding: '12px 14px',
+              border: '2px solid #e5e7eb', borderRadius: 14,
+              fontSize: 14, color: '#111827', background: '#fafafa',
+              resize: 'none', outline: 'none', boxSizing: 'border-box',
+              lineHeight: 1.5, fontFamily: 'inherit', marginBottom: 14,
+            }}
+            onFocus={e => { e.target.style.borderColor = '#f97316'; e.target.style.background = '#fff'; }}
+            onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.background = '#fafafa'; }}
+          />
+          <button
+            onClick={handleFeedbackSubmit}
+            disabled={submitting}
+            style={{
+              width: '100%', padding: '15px',
+              background: '#1f2937', color: '#fff',
+              border: 'none', borderRadius: 16, fontSize: 15, fontWeight: 700,
+              cursor: submitting ? 'not-allowed' : 'pointer',
+              opacity: submitting ? 0.6 : 1, marginBottom: 10, transition: 'all 0.15s',
+            }}
+          >
+            {submitting ? 'Sending…' : 'Submit Feedback'}
+          </button>
+          <button
+            onClick={() => { setRating(5); setComment(''); }}
+            style={{ width: '100%', background: 'none', border: 'none', color: '#6b7280', fontSize: 13, cursor: 'pointer', textDecoration: 'underline', padding: '5px 0' }}
+          >
+            Change my rating
+          </button>
+        </div>
+      )}
+    </div>
+  );
 
+  // ── Redirected screen ──────────────────────────────────────────────────
+  const renderRedirected = () => (
+    <div style={{ textAlign: 'center', animation: 'fadeSlideUp 0.4s ease both' }}>
+      {renderHeader()}
+      <div style={{ position: 'relative', width: 80, height: 80, margin: '0 auto 20px' }}>
+        <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid #10b981', animation: 'pulseRing 1.4s ease-out infinite' }} />
+        <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+      </div>
+      <h2 style={{ fontSize: 23, fontWeight: 800, color: '#111827', marginBottom: 10 }}>Google Review Opened!</h2>
+      {copyStatus === 'copied' && comment && (
+        <div style={{ background: '#d1fae5', border: '1.5px solid #6ee7b7', borderRadius: 12, padding: '10px 14px', marginBottom: 14, color: '#065f46', fontSize: 13, fontWeight: 600 }}>
+          ✅ Comment copied — just paste it in Google!
+        </div>
+      )}
+      {copyStatus === 'failed' && comment && (
+        <div style={{ background: '#fef3c7', border: '1.5px solid #fcd34d', borderRadius: 12, padding: '10px 14px', marginBottom: 14, textAlign: 'left' }}>
+          <p style={{ color: '#78350f', fontSize: 12, margin: '0 0 4px', fontWeight: 600 }}>Copy this manually:</p>
+          <p style={{ color: '#92400e', fontSize: 13, margin: 0, lineHeight: 1.5 }}>{comment}</p>
+        </div>
+      )}
+      <p style={{ color: '#6b7280', fontSize: 14, lineHeight: 1.65, marginBottom: 24 }}>
+        A new tab opened with the Google review page.{' '}
+        {copyStatus === 'copied' ? 'Paste your comment and hit Submit!' : 'Share your experience and hit Submit!'}
+      </p>
       <button
-        onClick={() => {
-          window.open(GOOGLE_REVIEW_URL, '_blank', 'noopener,noreferrer');
-        }}
-        className="px-8 py-3 bg-blue-600 text-white rounded-2xl font-semibold hover:bg-blue-700 active:scale-95 transition-all"
+        onClick={() => window.open(GOOGLE_REVIEW_URL, '_blank', 'noopener,noreferrer')}
+        style={{ padding: '13px 36px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 50, fontWeight: 700, fontSize: 15, cursor: 'pointer', boxShadow: '0 3px 14px rgba(37,99,235,0.35)' }}
       >
         Re-open Google Review
       </button>
-
-      <p className="text-gray-400 text-xs mt-6">Thank you for your time! 🙏</p>
+      <p style={{ color: '#9ca3af', fontSize: 12, marginTop: 22 }}>Thank you for your time! 🙏</p>
     </div>
   );
 
-  const renderLowRatingForm = () => (
-    <div className="flex flex-col items-center w-full px-4">
-      <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center mb-4">
-        <span className="text-3xl">😔</span>
-      </div>
-      <h2 className="text-xl font-bold text-gray-800 mb-1">We're Sorry</h2>
-      <p className="text-gray-500 text-sm mb-6 text-center leading-relaxed">
-        We're sorry your experience wasn't perfect.
-        <br />
-        Please tell us how we can improve.
-      </p>
-
-      <div className="flex gap-1 mb-6">
-        {[1, 2, 3, 4, 5].map((v) => (
-          <svg
-            key={v}
-            width="28"
-            height="28"
-            viewBox="0 0 24 24"
-            fill={v <= rating ? '#F59E0B' : '#E5E7EB'}
-            stroke={v <= rating ? '#D97706' : '#D1D5DB'}
-            strokeWidth="1"
-          >
-            <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
-          </svg>
-        ))}
-      </div>
-
-      <textarea
-        value={feedbackText}
-        onChange={(e) => setFeedbackText(e.target.value)}
-        placeholder="Tell us what went wrong or how we can do better... (optional)"
-        rows={4}
-        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm text-gray-700 resize-none focus:outline-none focus:border-blue-400 transition-colors"
-      />
-
-      <button
-        onClick={handleFeedbackSubmit}
-        disabled={submitting}
-        className="w-full mt-4 py-4 rounded-2xl bg-gray-800 text-white font-bold text-base transition-all duration-150 hover:bg-gray-900 active:scale-95 disabled:opacity-60"
-      >
-        {submitting ? 'Sending...' : 'Submit Feedback'}
-      </button>
-
-      <button
-        onClick={() => {
-          setRating(0);
-          setScreen('star_select');
-        }}
-        className="mt-3 text-sm text-gray-400 hover:text-gray-600 underline underline-offset-2"
-      >
-        Change my rating
-      </button>
-    </div>
-  );
-
+  // ── Thank you screen ───────────────────────────────────────────────────
   const renderThankYou = () => (
-    <div className="flex flex-col items-center text-center px-4">
-      <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center mb-6">
-        <span className="text-4xl">🙏</span>
-      </div>
-      <h2 className="text-2xl font-bold text-gray-800 mb-3">Thank You!</h2>
-      <p className="text-gray-500 text-sm leading-relaxed max-w-xs">
-        We've received your feedback and will work hard to improve your experience. We truly appreciate you taking the
-        time to let us know.
+    <div style={{ textAlign: 'center', animation: 'fadeSlideUp 0.4s ease both' }}>
+      {renderHeader()}
+      <div style={{ fontSize: 66, marginBottom: 16, animation: 'popIn 0.5s ease both' }}>🙏</div>
+      <h2 style={{ fontSize: 24, fontWeight: 800, color: '#111827', marginBottom: 10 }}>Thank You!</h2>
+      <p style={{ color: '#6b7280', fontSize: 14, lineHeight: 1.7, maxWidth: 280, margin: '0 auto' }}>
+        We've received your feedback and will work to improve. We truly appreciate your honesty.
       </p>
     </div>
   );
 
+  // ── Page shell ─────────────────────────────────────────────────────────
   return (
-    <div
-      className="min-h-screen bg-white flex flex-col items-center justify-center"
-      style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}
-    >
-      {/* Card */}
-      <div className="w-full max-w-sm mx-auto flex flex-col items-center py-10 px-2">
-        {/* Logo / Business Name */}
-        <div className="mb-8 text-center">
-          {BUSINESS_LOGO_URL ? (
-            <img src={BUSINESS_LOGO_URL} alt={BUSINESS_NAME} className="h-16 mx-auto object-contain" />
-          ) : (
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 mb-3 shadow-lg shadow-blue-200">
-              <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-            </div>
-          )}
-          <p className="text-gray-400 text-xs font-medium tracking-widest uppercase">{BUSINESS_NAME}</p>
-        </div>
-
-        {/* Screen Content */}
-        <div className="w-full">
-          {screen === 'star_select' && renderStarSelect()}
-          {screen === 'template_select' && renderTemplateSelect()}
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(155deg,#f0f9ff 0%,#ffffff 48%,#f5f3ff 100%)',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif',
+      padding: '20px 0 64px',
+    }}>
+      <div style={{ width: '100%', maxWidth: 420, padding: '0 18px' }}>
+        <div style={{
+          background: '#ffffff', borderRadius: 28,
+          boxShadow: '0 8px 40px rgba(0,0,0,0.10)',
+          padding: '30px 22px 26px',
+        }}>
+          {screen === 'rating'     && renderRating()}
           {screen === 'redirected' && renderRedirected()}
-          {screen === 'low_rating_form' && renderLowRatingForm()}
-          {screen === 'thank_you' && renderThankYou()}
+          {screen === 'thank_you'  && renderThankYou()}
         </div>
       </div>
-
-      {/* Footer */}
-      <p className="fixed bottom-4 left-0 right-0 text-center text-gray-300 text-xs">
-        {BUSINESS_NAME} · Powered by Falisha
+      <p style={{ position: 'fixed', bottom: 10, left: 0, right: 0, textAlign: 'center', fontSize: 11, color: '#d1d5db' }}>
+        {BUSINESS_NAME} · Review Portal
       </p>
     </div>
   );
 }
+
