@@ -264,7 +264,7 @@ function QRCodePage() {
 }
 
 // ─── Main Review Page ─────────────────────────────────────────────────────────
-type Screen = 'rating' | 'redirected' | 'low_form' | 'thank_you';
+type Screen = 'rating' | 'copy_prompt' | 'redirected' | 'low_form' | 'thank_you';
 
 export function ReviewPage() {
   if (typeof window !== 'undefined' && window.location.pathname === '/review/qr') {
@@ -331,7 +331,7 @@ export function ReviewPage() {
     return Promise.resolve();
   }, []);
 
-  const handleSubmitGoogle = useCallback(async () => {
+  const handleSubmitGoogle = useCallback(() => {
     track('redirect_google', {
       rating,
       template_idx: selectedMood,
@@ -339,16 +339,9 @@ export function ReviewPage() {
     });
     const finalComment = comment.trim();
     submittedCommentRef.current = finalComment;
-
-    // Copy FIRST (before window.open steals page focus on mobile)
-    if (finalComment) {
-      await copyToClipboard(finalComment);
-    }
-
-    // Open Google AFTER clipboard is set
-    window.open(GOOGLE_REVIEW_URL, '_blank', 'noopener,noreferrer');
-    setScreen('redirected');
-  }, [rating, selectedMood, selectedCountry, comment, copyToClipboard]);
+    // Go to copy_prompt first — user explicitly copies, then opens Google
+    setScreen('copy_prompt');
+  }, [rating, selectedMood, selectedCountry, comment]);
 
   const handleFeedbackSubmit = useCallback(async () => {
     setSubmitting(true);
@@ -546,12 +539,12 @@ export function ReviewPage() {
             onMouseOut={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'; }}
           >
             <span style={{ fontSize: 20 }}>⭐</span>
-            Submit Review on Google
+            Continue to Google Review
             <span style={{ fontSize: 18 }}>→</span>
           </button>
           {comment.trim() && (
             <p style={{ textAlign: 'center', fontSize: 12, color: '#6b7280', margin: '4px 0 0' }}>
-              📋 Your comment will be copied — just paste it in Google
+              Next: copy your comment, then post on Google
             </p>
           )}
           {!comment.trim() && (
@@ -608,6 +601,146 @@ export function ReviewPage() {
       )}
     </div>
   );
+
+  // ── Copy Prompt screen (shown BEFORE opening Google) ─────────────────────
+  const renderCopyPrompt = () => {
+    const savedComment = submittedCommentRef.current;
+    const hasCopied = copyStatus === 'copied';
+
+    const handleCopyAndGo = async () => {
+      if (savedComment) await copyToClipboard(savedComment);
+      // Wait a tick so state updates, then open Google
+      setTimeout(() => {
+        window.open(GOOGLE_REVIEW_URL, '_blank', 'noopener,noreferrer');
+        setScreen('redirected');
+      }, 400);
+    };
+
+    return (
+      <div style={{ animation: 'fadeSlideUp 0.35s ease both' }}>
+        {renderHeader()}
+
+        {/* Progress indicator */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 20 }}>
+          {['Rate', 'Copy', 'Post'].map((label, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{
+                width: 26, height: 26, borderRadius: '50%',
+                background: i === 0 ? '#16a34a' : i === 1 ? '#2563eb' : '#e5e7eb',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 11, fontWeight: 800,
+                color: i < 2 ? '#fff' : '#9ca3af',
+              }}>
+                {i === 0 ? '✓' : i + 1}
+              </div>
+              <span style={{ fontSize: 11, fontWeight: i === 1 ? 700 : 500, color: i === 1 ? '#2563eb' : i === 0 ? '#16a34a' : '#9ca3af' }}>{label}</span>
+              {i < 2 && <div style={{ width: 20, height: 2, background: i === 0 ? '#16a34a' : '#e5e7eb', borderRadius: 1 }} />}
+            </div>
+          ))}
+        </div>
+
+        <h2 style={{ fontSize: 20, fontWeight: 800, color: '#111827', marginBottom: 6, textAlign: 'center' }}>
+          Step 2: Copy your comment
+        </h2>
+        <p style={{ fontSize: 13, color: '#6b7280', textAlign: 'center', marginBottom: 18, lineHeight: 1.5 }}>
+          {savedComment
+            ? 'Tap “Copy” below, then paste it into the Google review box.'
+            : 'Tap “Open Google Review” and share your experience.'}
+        </p>
+
+        {/* Comment card */}
+        {savedComment ? (
+          <div style={{
+            background: '#f8faff',
+            border: '2px solid #bfdbfe',
+            borderRadius: 18, padding: '14px 16px', marginBottom: 16, position: 'relative',
+          }}>
+            <p style={{ fontSize: 14, color: '#1e3a5f', lineHeight: 1.65, margin: 0, fontStyle: 'italic' }}>
+              &ldquo;{savedComment}&rdquo;
+            </p>
+          </div>
+        ) : (
+          <div style={{
+            background: '#f9fafb', border: '2px dashed #e5e7eb',
+            borderRadius: 18, padding: '20px 16px', marginBottom: 16, textAlign: 'center',
+          }}>
+            <p style={{ color: '#9ca3af', fontSize: 14, margin: 0 }}>No comment — you can write your own in Google</p>
+          </div>
+        )}
+
+        {/* Copy button (big, primary action) */}
+        {savedComment && (
+          <button
+            onClick={handleCopyAndGo}
+            style={{
+              width: '100%', padding: '17px',
+              background: hasCopied
+                ? 'linear-gradient(135deg,#16a34a,#15803d)'
+                : 'linear-gradient(135deg,#2563eb,#1d4ed8)',
+              color: '#fff', border: 'none', borderRadius: 18,
+              fontSize: 17, fontWeight: 800, cursor: 'pointer',
+              boxShadow: hasCopied ? '0 4px 18px rgba(22,163,74,0.40)' : '0 4px 18px rgba(37,99,235,0.40)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              marginBottom: 10, transition: 'all 0.2s',
+              animation: 'popIn 0.3s ease both',
+            }}
+          >
+            {hasCopied ? (
+              <>
+                <span style={{ fontSize: 20 }}>✅</span>
+                Copied! Opening Google…
+              </>
+            ) : (
+              <>
+                <span style={{ fontSize: 20 }}>📋</span>
+                Copy Comment &amp; Open Google
+              </>
+            )}
+          </button>
+        )}
+
+        {/* If no comment, skip copy and go directly */}
+        {!savedComment && (
+          <button
+            onClick={() => {
+              window.open(GOOGLE_REVIEW_URL, '_blank', 'noopener,noreferrer');
+              setScreen('redirected');
+            }}
+            style={{
+              width: '100%', padding: '16px',
+              background: 'linear-gradient(135deg,#16a34a,#15803d)',
+              color: '#fff', border: 'none', borderRadius: 18,
+              fontSize: 16, fontWeight: 800, cursor: 'pointer',
+              boxShadow: '0 4px 18px rgba(22,163,74,0.38)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              marginBottom: 10,
+            }}
+          >
+            <span style={{ fontSize: 20 }}>⭐</span>
+            Open Google Review
+            <span style={{ fontSize: 16 }}>→</span>
+          </button>
+        )}
+
+        {/* Instruction under button */}
+        <div style={{
+          background: '#fffbeb', border: '1.5px solid #fde68a',
+          borderRadius: 14, padding: '10px 14px', marginBottom: 4,
+        }}>
+          <p style={{ fontSize: 12, color: '#92400e', margin: 0, lineHeight: 1.6, fontWeight: 600 }}>
+            💡 In Google: select ⭐⭐⭐⭐⭐, tap the text box, then <strong>long-press → Paste</strong>
+          </p>
+        </div>
+
+        <button
+          onClick={() => setScreen('rating')}
+          style={{ background: 'none', border: 'none', width: '100%', padding: '8px 0', fontSize: 12, color: '#9ca3af', cursor: 'pointer', textDecoration: 'underline' }}
+        >
+          ← Back
+        </button>
+      </div>
+    );
+  };
 
   // ── Redirected screen ──────────────────────────────────────────────────
   const renderRedirected = () => {
@@ -861,9 +994,10 @@ export function ReviewPage() {
           boxShadow: '0 8px 40px rgba(0,0,0,0.10)',
           padding: '30px 22px 26px',
         }}>
-          {screen === 'rating'     && renderRating()}
-          {screen === 'redirected' && renderRedirected()}
-          {screen === 'thank_you'  && renderThankYou()}
+          {screen === 'rating'       && renderRating()}
+          {screen === 'copy_prompt'  && renderCopyPrompt()}
+          {screen === 'redirected'   && renderRedirected()}
+          {screen === 'thank_you'    && renderThankYou()}
         </div>
       </div>
       <p style={{ position: 'fixed', bottom: 10, left: 0, right: 0, textAlign: 'center', fontSize: 11, color: '#d1d5db' }}>
