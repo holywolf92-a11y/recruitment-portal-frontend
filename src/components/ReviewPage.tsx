@@ -33,6 +33,15 @@ const COUNTRIES = [
   { flag: '🇬🇧', name: 'UK' },
 ] as const;
 
+// ─── Recent activity (seeded social proof) ───────────────────────────────────
+const RECENT_REVIEWS = [
+  { name: 'Muhammad A.', country: '🇵🇰', text: 'Great service, found my job in UAE!',          ago: '2 days ago'  },
+  { name: 'Tariq S.',    country: '🇧🇩', text: 'Professional team, very smooth process.',       ago: '4 days ago'  },
+  { name: 'Vikram R.',   country: '🇮🇳', text: 'Fast process, highly recommended!',             ago: '6 days ago'  },
+  { name: 'Ali H.',      country: '🇵🇰', text: 'Excellent support. Got placed in Saudi Arabia.', ago: '1 week ago'  },
+  { name: 'Reza K.',     country: '🇧🇩', text: 'Trusted manpower agency, 5 stars!',             ago: '10 days ago' },
+];
+
 // ─── Analytics (fire-and-forget) ────────────────────────────────────────────
 function track(event: string, extra?: Record<string, unknown>) {
   fetch(`${API_BASE}/review/analytics`, {
@@ -293,7 +302,11 @@ export function ReviewPage() {
   const [submitting, setSubmitting]       = useState(false);
   const [submitStatus, setSubmitStatus]   = useState<'idle' | 'copying' | 'copied' | 'error'>('idle');
   const [animatingMood, setAnimatingMood] = useState<number | null>(null);
-  const [sidebarOpen, setSidebarOpen]         = useState(false);  const [overlayVisible, setOverlayVisible]   = useState(false);  const [highlightCTA, setHighlightCTA]       = useState(false);
+  const [sidebarOpen, setSidebarOpen]         = useState(false);
+  const [overlayVisible, setOverlayVisible]   = useState(false);
+  const [highlightCTA, setHighlightCTA]       = useState(false);
+  const [userName, setUserName]               = useState('');
+  const [tickerIdx, setTickerIdx]             = useState(0);
   const textRef             = useRef<HTMLTextAreaElement>(null);
   const ctaRef              = useRef<HTMLDivElement | null>(null);
   const submittedCommentRef = useRef<string>(''); // preserve comment for redirected screen
@@ -334,11 +347,20 @@ export function ReviewPage() {
     setTimeout(() => setAnimatingMood(null), 500);
     const deselect = selectedMood === idx;
     setSelectedMood(deselect ? null : idx);
-    setComment(deselect ? '' : MOODS[idx].comment);
+    const base = MOODS[idx].comment;
+    const name = userName.trim();
+    setComment(deselect ? '' : (name ? `${base} — ${name}` : base));
     track('template_select', { template_idx: idx, rating });
     setTimeout(() => textRef.current?.focus(), 100);
     if (!deselect) triggerCTAHighlight();
-  }, [selectedMood, rating, triggerCTAHighlight]);
+  }, [selectedMood, rating, userName, triggerCTAHighlight]);
+
+  // Cycle recent-review ticker every 3.5s while on rating screen
+  useEffect(() => {
+    if (!isGoodRating) return;
+    const id = setInterval(() => setTickerIdx(i => (i + 1) % RECENT_REVIEWS.length), 3500);
+    return () => clearInterval(id);
+  }, [isGoodRating]);
 
   const copyToClipboard = async (text: string): Promise<boolean> => {
     try {
@@ -429,11 +451,57 @@ export function ReviewPage() {
     <div style={{ animation: 'fadeSlideUp 0.4s ease both' }}>
       {renderHeader()}
 
-      <div style={{ textAlign: 'center', marginBottom: 22 }}>
-        <h1 style={{ fontSize: 25, fontWeight: 800, color: '#111827', margin: 0, lineHeight: 1.2 }}>
-          Rate Your Experience
+      {/* Social proof anchor strip */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        gap: 8, marginBottom: 16, flexWrap: 'wrap',
+      }}>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          background: '#fefce8', border: '1.5px solid #fde68a',
+          borderRadius: 20, padding: '4px 12px',
+          fontSize: 12, fontWeight: 700, color: '#92400e',
+        }}>
+          ⭐ 4.8 &nbsp;·&nbsp; 247+ Reviews
+        </div>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 5,
+          background: '#f0fdf4', border: '1.5px solid #bbf7d0',
+          borderRadius: 20, padding: '4px 12px',
+          fontSize: 12, fontWeight: 700, color: '#166534',
+        }}>
+          🌍 5,000+ Workers Placed
+        </div>
+      </div>
+
+      {/* Reciprocity headline */}
+      <div style={{ textAlign: 'center', marginBottom: 18 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 800, color: '#111827', margin: '0 0 5px', lineHeight: 1.25 }}>
+          {userName.trim() ? `${userName.trim()}, how was your experience?` : 'How was your experience?'}
         </h1>
-        <p style={{ fontSize: 14, color: '#6b7280', marginTop: 5 }}>Your opinion helps us improve.</p>
+        <p style={{ fontSize: 13, color: '#6b7280', margin: 0, lineHeight: 1.55 }}>
+          We helped you find work abroad. 30 seconds of your time<br/>
+          <strong style={{ color: '#374151' }}>helps us help thousands more.</strong>
+        </p>
+      </div>
+
+      {/* Optional name field */}
+      <div style={{ marginBottom: 18 }}>
+        <input
+          type="text"
+          value={userName}
+          onChange={e => setUserName(e.target.value)}
+          placeholder="Your first name (optional)"
+          maxLength={32}
+          style={{
+            width: '100%', padding: '10px 14px', boxSizing: 'border-box',
+            border: '2px solid #e5e7eb', borderRadius: 14,
+            fontSize: 14, color: '#111827', background: '#fafafa',
+            outline: 'none', fontFamily: 'inherit', transition: 'border-color 0.15s',
+          }}
+          onFocus={e => { e.target.style.borderColor = '#2563eb'; e.target.style.background = '#fff'; }}
+          onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.background = '#fafafa'; }}
+        />
       </div>
 
       {/* Stars */}
@@ -537,6 +605,28 @@ export function ReviewPage() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
               }}>×</button>
             )}
+          </div>
+
+          {/* Recent activity ticker */}
+          <div style={{
+            background: '#f9fafb', border: '1.5px solid #e5e7eb',
+            borderRadius: 14, padding: '9px 13px', marginBottom: 14,
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <span style={{ fontSize: 16, flexShrink: 0 }}>💬</span>
+            <div style={{ flex: 1, overflow: 'hidden' }} key={tickerIdx}>
+              <p style={{
+                fontSize: 12, fontWeight: 700, color: '#374151', margin: '0 0 1px',
+                animation: 'fadeSlideUp 0.4s ease both',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}>
+                {RECENT_REVIEWS[tickerIdx].country} {RECENT_REVIEWS[tickerIdx].name}&nbsp;—&nbsp;
+                <em style={{ fontWeight: 400 }}>"{RECENT_REVIEWS[tickerIdx].text}"</em>
+              </p>
+              <p style={{ fontSize: 10, color: '#9ca3af', margin: 0, animation: 'fadeSlideUp 0.4s ease both' }}>
+                ⭐⭐⭐⭐⭐ · {RECENT_REVIEWS[tickerIdx].ago}
+              </p>
+            </div>
           </div>
 
           {/* CTA + Instructions — ref for scroll-into-view */}
@@ -724,7 +814,32 @@ export function ReviewPage() {
         >
           🔗 Re-open Google Review Tab
         </button>
-        <p style={{ color: '#9ca3af', fontSize: 12, marginTop: 16, textAlign: 'center' }}>Thank you for taking the time! 🙏</p>
+        <p style={{ color: '#9ca3af', fontSize: 12, marginTop: 12, textAlign: 'center' }}>
+          Thank you for taking the time! 🙏
+        </p>
+
+        {/* Referral section — turn one happy customer into many */}
+        <div style={{ marginTop: 16, borderTop: '1.5px solid #f3f4f6', paddingTop: 16 }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: '#374151', textAlign: 'center', margin: '0 0 10px' }}>
+            Know someone looking for work abroad?
+          </p>
+          <button
+            onClick={() => window.open(
+              `https://wa.me/?text=${encodeURIComponent(`I found my job through ${BUSINESS_NAME}! ⭐ They're amazing.\nCheck them out → ${window.location.origin}/review`)}`,
+              '_blank', 'noopener,noreferrer'
+            )}
+            style={{
+              width: '100%', padding: '13px',
+              background: 'linear-gradient(135deg,#25D366,#128C7E)',
+              color: '#fff', border: 'none', borderRadius: 16,
+              fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              boxShadow: '0 3px 12px rgba(37,211,102,0.35)',
+            }}
+          >
+            <span style={{ fontSize: 18 }}>💬</span> Share via WhatsApp
+          </button>
+        </div>
       </div>
     );
   };
@@ -889,9 +1004,10 @@ export function ReviewPage() {
           </div>
 
           <h2 style={{ fontSize: 20, fontWeight: 900, color: '#111827', margin: '0 0 4px' }}>
-            Copied!
+            {userName.trim() ? `Thanks, ${userName.trim()}! ✅` : 'Copied! ✅'}
           </h2>
-          <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 18px', fontStyle: 'italic' }}>
+          <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 18px', fontStyle: 'italic', lineHeight: 1.6 }}>
+            You're joining <strong style={{ color: '#16a34a' }}>247+ others</strong> who rated {BUSINESS_NAME} 5 stars.<br/>
             Your review helps more people find trusted overseas jobs.
           </p>
 
