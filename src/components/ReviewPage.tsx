@@ -770,18 +770,9 @@ export function ReviewPage() {
             </p>
           )}
 
-          {/* Paste instructions — always visible below CTA */}
-          <div style={{
-            background: '#f0f9ff', border: '1.5px solid #bfdbfe',
-            borderRadius: 14, padding: '10px 14px', marginTop: 8,
-            animation: highlightCTA ? 'instructGlow 1.2s ease-in-out 2' : undefined,
-          }}>
-            <p style={{ fontSize: 11, fontWeight: 800, color: '#1e40af', margin: '0 0 6px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-              In Google:
-            </p>
-            {['1️⃣  Select ⭐⭐⭐⭐⭐', '2️⃣  Tap the text box', '3️⃣  Long-press → Paste', '4️⃣  Tap "Post"'].map((s, i) => (
-              <p key={i} style={{ fontSize: 13, fontWeight: 600, color: '#1e3a5f', margin: i < 3 ? '0 0 3px' : 0 }}>{s}</p>
-            ))}
+          {/* Animated how-to demo — replaces old text steps */}
+          <div style={{ marginTop: 10 }}>
+            <GoogleHowToDemo />
           </div>
           </div>
         </div>
