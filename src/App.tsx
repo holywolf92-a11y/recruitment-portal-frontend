@@ -19,6 +19,7 @@ import { CandidateBrowserExcel } from './components/CandidateBrowserExcel';
 import { PublicCandidateProfile } from './components/PublicCandidateProfile';
 import { EmployeesModule } from './components/EmployeesModule';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
+import { ReviewPage } from './components/ReviewPage';
 import { useAuth, AuthProvider } from './lib/authContext';
 import { CandidateProvider } from './lib/candidateContext';
 import { hasPermission } from './lib/authData';
@@ -781,6 +782,12 @@ export default function App() {
     if (pathname === '/apply') {
       console.log('[App] Rendering PublicApplicationForm');
       return <PublicApplicationForm />;
+    }
+
+    // Review / rating funnel (and QR code page at /review/qr)
+    if (pathname === '/review' || pathname.startsWith('/review/')) {
+      console.log('[App] Rendering ReviewPage');
+      return <ReviewPage />;
     }
     
     // Public candidate profile - match /profile/:id/:slug or /profile/:id
