@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+﻿import { useState, useEffect, useCallback, useRef } from 'react';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 const GOOGLE_REVIEW_URL =
@@ -51,6 +51,102 @@ function track(event: string, extra?: Record<string, unknown>) {
   }).catch(() => {});
 }
 
+// ─── Google How-To animated demo (mobile-first, loops forever) ──────────────
+function GoogleHowToDemo() {
+  const [step, setStep] = useState(0); // 0=stars · 1=textarea · 2=post · 3=done
+
+  useEffect(() => {
+    const id = setInterval(() => setStep(s => (s + 1) % 4), 2400);
+    return () => clearInterval(id);
+  }, []);
+
+  // Finger position over each UI element (absolute within outer div)
+  const fingerTop  = ['76px',  '134px', '198px', '198px'][step];
+  const fingerLeft = ['50%',   '56%',   '74%',   '74%' ][step];
+
+  return (
+    <div style={{ position: 'relative', marginBottom: 20 }}>
+      <p style={{ fontSize: 11, fontWeight: 800, color: '#6b7280', textAlign: 'center', margin: '0 0 10px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+        How to post on Google 👇
+      </p>
+
+      {/* ── Mock Google review card ── */}
+      <div style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 16, padding: '14px 14px 12px', boxShadow: '0 2px 12px rgba(0,0,0,0.07)', position: 'relative' }}>
+
+        {/* Google header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+          <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg,#4285f4 25%,#34a853 50%,#fbbc04 75%,#ea4335)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900, color: '#fff', flexShrink: 0 }}>G</div>
+          <span style={{ fontSize: 12, color: '#374151', fontWeight: 600, flex: 1 }}>Write a review for {BUSINESS_NAME}</span>
+        </div>
+
+        {/* Stars row */}
+        <div style={{ textAlign: 'center', marginBottom: 10, padding: '5px 4px 6px', borderRadius: 10, transition: 'all 0.45s ease', background: step === 0 ? '#fffbeb' : 'transparent', border: step === 0 ? '2px solid #fbbf24' : '2px solid transparent' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
+            {[1,2,3,4,5].map(n => (
+              <span key={n} style={{ fontSize: 27, color: '#f59e0b', display: 'inline-block', transition: `transform ${n * 0.07}s ease`, transform: step === 0 ? `scale(${0.9 + n * 0.04})` : 'scale(1)' }}>★</span>
+            ))}
+          </div>
+          {step === 0 && (
+            <div style={{ fontSize: 10, color: '#b45309', fontWeight: 700, marginTop: 3, animation: 'stepFadeIn 0.3s ease' }}>Tap all 5 stars</div>
+          )}
+        </div>
+
+        {/* Textarea with paste tooltip */}
+        <div style={{ position: 'relative', marginBottom: 10 }}>
+          {step === 1 && (
+            <div style={{ position: 'absolute', top: -30, left: 8, background: '#1d4ed8', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 7, padding: '4px 10px', whiteSpace: 'nowrap', zIndex: 20, animation: 'stepFadeIn 0.3s ease', boxShadow: '0 2px 8px rgba(29,78,216,0.38)' }}>
+              📋 Long-press → Paste
+              <div style={{ position: 'absolute', bottom: -5, left: 14, width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: '5px solid #1d4ed8' }} />
+            </div>
+          )}
+          <div style={{ background: step === 1 ? '#eff6ff' : '#f9fafb', border: step === 1 ? '2px solid #3b82f6' : '1.5px solid #e5e7eb', borderRadius: 10, padding: '8px 10px', minHeight: 50, fontSize: 13, color: '#374151', transition: 'all 0.4s ease', lineHeight: 1.5 }}>
+            {step >= 1 ? (
+              <span style={{ color: '#111827', fontStyle: 'italic', animation: step === 1 ? 'stepFadeIn 0.35s ease' : undefined }}>
+                &ldquo;Great experience finding work abroad 🌍&rdquo;
+                {step === 1 && <span style={{ borderRight: '2px solid #3b82f6', marginLeft: 1, animation: 'cursorBlink 0.75s step-end infinite' }}>&nbsp;</span>}
+              </span>
+            ) : (
+              <span style={{ color: '#9ca3af' }}>Share your experience…</span>
+            )}
+          </div>
+        </div>
+
+        {/* Post button */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingRight: 2 }}>
+          <div style={{ padding: '8px 22px', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'default', transition: 'all 0.35s ease', transform: step === 2 ? 'scale(1.09)' : 'scale(1)', background: step === 2 ? '#1a73e8' : step === 3 ? '#0f9d58' : '#e8f0fe', color: step >= 2 ? '#fff' : '#1a73e8', boxShadow: step === 2 ? '0 3px 14px rgba(26,115,232,0.45)' : step === 3 ? '0 3px 10px rgba(15,157,88,0.38)' : 'none' }}>
+            {step === 3 ? '✅ Posted!' : 'Post'}
+          </div>
+        </div>
+
+        {/* Success overlay on done */}
+        {step === 3 && (
+          <div style={{ position: 'absolute', inset: 0, borderRadius: 14, background: 'rgba(16,185,129,0.10)', pointerEvents: 'none', animation: 'stepFadeIn 0.35s ease' }} />
+        )}
+      </div>
+
+      {/* ── Animated 👆 finger cursor ── */}
+      <div style={{ position: 'absolute', top: fingerTop, left: fingerLeft, fontSize: 22, pointerEvents: 'none', transition: 'top 0.55s cubic-bezier(0.34,1.56,0.64,1), left 0.55s cubic-bezier(0.34,1.56,0.64,1)', filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.15))', zIndex: 15, animation: 'fingerTap 0.55s ease-in-out infinite' }}>
+        👆
+      </div>
+
+      {/* ── Progress dots ── */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 12 }}>
+        {[0,1,2,3].map(i => (
+          <div key={i} style={{ height: 6, borderRadius: 3, background: i === step ? '#3b82f6' : '#e5e7eb', width: i === step ? 22 : 6, transition: 'all 0.35s ease' }} />
+        ))}
+      </div>
+
+      {/* ── Step label ── */}
+      <p key={step} style={{ fontSize: 12, color: '#374151', textAlign: 'center', margin: '7px 0 0', fontWeight: 700, animation: 'stepFadeIn 0.3s ease', minHeight: 18 }}>
+        {step === 0 && '1️⃣  Tap ⭐⭐⭐⭐⭐ five stars'}
+        {step === 1 && '2️⃣  Long-press in box → Paste'}
+        {step === 2 && '3️⃣  Tap "Post" to submit'}
+        {step === 3 && '🎉  Done! Your review is live'}
+      </p>
+    </div>
+  );
+}
+
 // ─── CSS keyframe animations (injected once) ─────────────────────────────────
 const STYLE_ID = 'review-page-keyframes';
 function injectStyles() {
@@ -101,6 +197,18 @@ function injectStyles() {
       0%   { box-shadow: 0 0 0px rgba(59,130,246,0.0); border-color: #bfdbfe; }
       50%  { box-shadow: 0 0 14px rgba(59,130,246,0.50); border-color: #3b82f6; }
       100% { box-shadow: 0 0 0px rgba(59,130,246,0.0); border-color: #bfdbfe; }
+    }
+    @keyframes cursorBlink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+    @keyframes fingerTap {
+      0%, 100% { transform: scale(1)    rotate(-10deg); }
+      40%      { transform: scale(0.85) rotate(-10deg); }
+    }
+    @keyframes stepFadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
   `;
   document.head.appendChild(el);
@@ -749,30 +857,12 @@ export function ReviewPage() {
         </div>
 
         <h2 style={{ fontSize: 21, fontWeight: 800, color: '#111827', marginBottom: 4, textAlign: 'center' }}>Google Review Page Opened!</h2>
-        <p style={{ color: '#6b7280', fontSize: 13, textAlign: 'center', marginBottom: 20 }}>
-          Complete these 3 quick steps in the Google tab:
+        <p style={{ color: '#6b7280', fontSize: 13, textAlign: 'center', marginBottom: 16 }}>
+          Follow the steps below in your Google tab:
         </p>
 
-        {/* Step-by-step instructions */}
-        <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {steps.map((s, i) => (
-            <div key={i} style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              background: i === 1 && savedComment ? '#eff6ff' : '#f9fafb',
-              border: `1.5px solid ${i === 1 && savedComment ? '#bfdbfe' : '#f3f4f6'}`,
-              borderRadius: 14, padding: '11px 14px',
-            }}>
-              <div style={{
-                width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                background: i === 1 && savedComment ? '#2563eb' : '#e5e7eb',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 13, fontWeight: 800,
-                color: i === 1 && savedComment ? '#fff' : '#6b7280',
-              }}>{s.num}</div>
-              <span style={{ fontSize: 14, fontWeight: i === 1 && savedComment ? 700 : 500, color: '#374151', lineHeight: 1.35 }}>{s.text}</span>
-            </div>
-          ))}
-        </div>
+        {/* Animated how-to demo */}
+        <GoogleHowToDemo />
 
         {/* Copied comment box */}
         {savedComment && (
