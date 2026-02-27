@@ -619,8 +619,6 @@ export function ReviewPage() {
   const [highlightCTA, setHighlightCTA]       = useState(false);
   const [userName, setUserName]               = useState('');
   const [tickerIdx, setTickerIdx]             = useState(0);
-  const [templateSearch, setTemplateSearch]   = useState('');
-  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const textRef             = useRef<HTMLTextAreaElement>(null);
   const ctaRef              = useRef<HTMLDivElement | null>(null);
   const submittedCommentRef = useRef<string>(''); // preserve comment for redirected screen
@@ -852,7 +850,7 @@ export function ReviewPage() {
           <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 10, textAlign: 'center', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             What describes your experience?
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 9, marginBottom: 22 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 9, marginBottom: selectedMood !== null ? 10 : 22 }}>
             {MOODS.map((m, idx) => {
               const active = selectedMood === idx;
               const bouncing = animatingMood === idx;
@@ -890,6 +888,33 @@ export function ReviewPage() {
             })}
           </div>
 
+          {/* Template chips — appear when mood is tapped */}
+          {selectedMood !== null && (
+            <div style={{ marginBottom: 16, animation: 'fadeSlideUp 0.25s ease both' }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', margin: '0 0 8px', textAlign: 'center', letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+                Pick a review — or write your own below
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {REVIEW_TEMPLATES.map((t, i) => (
+                  <button
+                    key={i}
+                    onClick={() => { setComment(t); track('template_select', { template_idx: i }); }}
+                    style={{
+                      padding: '6px 12px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
+                      border: `1.5px solid ${comment === t ? '#3b82f6' : '#e5e7eb'}`,
+                      background: comment === t ? '#eff6ff' : '#f9fafb',
+                      color: comment === t ? '#1d4ed8' : '#374151',
+                      fontWeight: comment === t ? 700 : 400,
+                      transition: 'all 0.13s', whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Comment box */}
           <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 8, textAlign: 'center', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             Add a Comment <span style={{ fontWeight: 400, color: '#9ca3af', textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
@@ -921,70 +946,7 @@ export function ReviewPage() {
             )}
           </div>
 
-          {/* Template picker */}
-          <div style={{ marginBottom: 16 }}>
-            <button
-              onClick={() => { setShowTemplatePicker(p => !p); setTemplateSearch(''); }}
-              style={{
-                width: '100%', padding: '9px 14px', background: showTemplatePicker ? '#eff6ff' : '#f9fafb',
-                border: `1.5px solid ${showTemplatePicker ? '#93c5fd' : '#e5e7eb'}`, borderRadius: 12,
-                fontSize: 13, fontWeight: 700, color: showTemplatePicker ? '#1d4ed8' : '#374151',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                transition: 'all 0.15s',
-              }}
-            >
-              <span>📋 Choose a review template</span>
-              <span style={{ fontSize: 11, opacity: 0.7 }}>{showTemplatePicker ? '▲ Hide' : `▼ ${REVIEW_TEMPLATES.length} options`}</span>
-            </button>
 
-            {showTemplatePicker && (
-              <div style={{ border: '1.5px solid #e5e7eb', borderTop: 'none', borderRadius: '0 0 12px 12px', background: '#fff', animation: 'fadeSlideUp 0.2s ease' }}>
-                {/* Search */}
-                <div style={{ padding: '8px 10px', borderBottom: '1px solid #f3f4f6' }}>
-                  <input
-                    autoFocus
-                    value={templateSearch}
-                    onChange={e => setTemplateSearch(e.target.value)}
-                    placeholder="🔍 Search templates…"
-                    style={{
-                      width: '100%', padding: '7px 11px', border: '1.5px solid #e5e7eb', borderRadius: 8,
-                      fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
-                      color: '#111827', background: '#f9fafb',
-                    }}
-                    onFocus={e => { e.target.style.borderColor = '#3b82f6'; }}
-                    onBlur={e => { e.target.style.borderColor = '#e5e7eb'; }}
-                  />
-                </div>
-                {/* List */}
-                <div style={{ maxHeight: 220, overflowY: 'auto', padding: '4px 0' }}>
-                  {REVIEW_TEMPLATES
-                    .filter(t => !templateSearch.trim() || t.toLowerCase().includes(templateSearch.toLowerCase()))
-                    .map((t, i) => (
-                      <button
-                        key={i}
-                        onClick={() => { setComment(t); setShowTemplatePicker(false); setTemplateSearch(''); track('template_select', { template_idx: i }); }}
-                        style={{
-                          width: '100%', textAlign: 'left', padding: '9px 14px',
-                          background: comment === t ? '#eff6ff' : 'transparent',
-                          border: 'none', borderBottom: '1px solid #f9fafb',
-                          fontSize: 13, color: comment === t ? '#1d4ed8' : '#374151',
-                          fontWeight: comment === t ? 700 : 400, cursor: 'pointer',
-                          transition: 'background 0.1s', lineHeight: 1.4,
-                        }}
-                        onMouseEnter={e => { if (comment !== t) (e.target as HTMLElement).style.background = '#f9fafb'; }}
-                        onMouseLeave={e => { if (comment !== t) (e.target as HTMLElement).style.background = 'transparent'; }}
-                      >
-                        {t}
-                      </button>
-                    ))
-                  }
-                  {REVIEW_TEMPLATES.filter(t => !templateSearch.trim() || t.toLowerCase().includes(templateSearch.toLowerCase())).length === 0 && (
-                    <p style={{ textAlign: 'center', color: '#9ca3af', fontSize: 13, padding: '16px 0', margin: 0 }}>No templates match "{templateSearch}"</p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
           <div style={{
             background: '#f9fafb', border: '1.5px solid #e5e7eb',
             borderRadius: 14, padding: '9px 13px', marginBottom: 14,
