@@ -283,8 +283,7 @@ export function ReviewPage() {
   const [submitting, setSubmitting]       = useState(false);
   const [submitStatus, setSubmitStatus]   = useState<'idle' | 'copying' | 'copied' | 'error'>('idle');
   const [animatingMood, setAnimatingMood] = useState<number | null>(null);
-  const [sidebarOpen, setSidebarOpen]       = useState(false);
-  const textRef            = useRef<HTMLTextAreaElement>(null);
+  const [sidebarOpen, setSidebarOpen]       = useState(false);  const [overlayVisible, setOverlayVisible]   = useState(false);  const textRef            = useRef<HTMLTextAreaElement>(null);
   const submittedCommentRef = useRef<string>(''); // preserve comment for redirected screen
 
   const displayRating = hoverRating || rating;
@@ -338,18 +337,21 @@ export function ReviewPage() {
     const finalComment = comment.trim();
     submittedCommentRef.current = finalComment;
 
+    // Copy first (before any focus change), then show overlay, then redirect
     if (finalComment) {
       setSubmitStatus('copying');
       const ok = await copyToClipboard(finalComment);
       setSubmitStatus(ok ? 'copied' : 'error');
     }
 
-    // Brief delay so user sees the ✅ feedback, then navigate
+    // Show instructional overlay for 1200ms, then open Google
+    setOverlayVisible(true);
     setTimeout(() => {
       window.open(GOOGLE_REVIEW_URL, '_blank', 'noopener,noreferrer');
+      setOverlayVisible(false);
       setScreen('redirected');
       setSubmitStatus('idle');
-    }, 400);
+    }, 1200);
   };
 
   const handleFeedbackSubmit = useCallback(async () => {
@@ -839,6 +841,86 @@ export function ReviewPage() {
     </>
   );
 
+  // ── Copy instruction overlay ────────────────────────────────────────────
+  const renderOverlay = () => {
+    if (!overlayVisible) return null;
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: 'rgba(0,0,0,0.65)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '0 24px',
+        animation: 'fadeIn 0.2s ease both',
+      }}>
+        <div style={{
+          background: '#ffffff',
+          border: '2.5px solid #2563eb',
+          borderRadius: 24,
+          padding: '28px 26px 24px',
+          maxWidth: 360,
+          width: '100%',
+          textAlign: 'center',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
+          animation: 'fadeSlideUp 0.25s ease both',
+        }}>
+          {/* Big green check */}
+          <div style={{
+            width: 68, height: 68,
+            background: 'linear-gradient(135deg,#16a34a,#15803d)',
+            borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 34, margin: '0 auto 14px',
+            boxShadow: '0 6px 20px rgba(22,163,74,0.40)',
+          }}>
+            ✅
+          </div>
+
+          <h2 style={{ fontSize: 20, fontWeight: 900, color: '#111827', margin: '0 0 4px' }}>
+            Copied!
+          </h2>
+          <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 18px', fontStyle: 'italic' }}>
+            Your review helps more people find trusted overseas jobs.
+          </p>
+
+          {/* Steps */}
+          <div style={{
+            background: '#f0f9ff',
+            border: '1.5px solid #bfdbfe',
+            borderRadius: 16,
+            padding: '14px 16px',
+            textAlign: 'left',
+            marginBottom: 16,
+          }}>
+            <p style={{ fontSize: 11, fontWeight: 800, color: '#1e40af', margin: '0 0 10px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+              When Google opens:
+            </p>
+            {[
+              { n: '1️⃣', text: 'Select ⭐⭐⭐⭐⭐' },
+              { n: '2️⃣', text: 'Tap the text box' },
+              { n: '3️⃣', text: 'Long-press → Paste' },
+              { n: '4️⃣', text: 'Tap "Post"' },
+            ].map(({ n, text }) => (
+              <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 7 }}>
+                <span style={{ fontSize: 16 }}>{n}</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: '#1e3a5f' }}>{text}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Auto-redirect indicator */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <span style={{
+              display: 'inline-block', width: 10, height: 10,
+              background: '#16a34a', borderRadius: '50%',
+              animation: 'pulseRing 1s ease infinite',
+            }} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#16a34a' }}>Opening Google…</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // ── Page shell ─────────────────────────────────────────────────────────
   return (
     <div style={{
@@ -866,6 +948,7 @@ export function ReviewPage() {
       </button>
 
       {renderSidebar()}
+      {renderOverlay()}
 
       <div style={{ width: '100%', maxWidth: 420, padding: '0 18px' }}>
         <div style={{
