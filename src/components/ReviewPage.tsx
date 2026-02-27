@@ -83,6 +83,16 @@ function injectStyles() {
     @keyframes fadeIn {
       from { opacity: 0; } to { opacity: 1; }
     }
+    @keyframes pulseGlow {
+      0%   { box-shadow: 0 0 0px rgba(22,163,74,0.0); }
+      50%  { box-shadow: 0 0 18px rgba(22,163,74,0.65); }
+      100% { box-shadow: 0 0 0px rgba(22,163,74,0.0); }
+    }
+    @keyframes instructGlow {
+      0%   { box-shadow: 0 0 0px rgba(59,130,246,0.0); border-color: #bfdbfe; }
+      50%  { box-shadow: 0 0 14px rgba(59,130,246,0.50); border-color: #3b82f6; }
+      100% { box-shadow: 0 0 0px rgba(59,130,246,0.0); border-color: #bfdbfe; }
+    }
   `;
   document.head.appendChild(el);
 }
@@ -283,7 +293,9 @@ export function ReviewPage() {
   const [submitting, setSubmitting]       = useState(false);
   const [submitStatus, setSubmitStatus]   = useState<'idle' | 'copying' | 'copied' | 'error'>('idle');
   const [animatingMood, setAnimatingMood] = useState<number | null>(null);
-  const [sidebarOpen, setSidebarOpen]       = useState(false);  const [overlayVisible, setOverlayVisible]   = useState(false);  const textRef            = useRef<HTMLTextAreaElement>(null);
+  const [sidebarOpen, setSidebarOpen]         = useState(false);  const [overlayVisible, setOverlayVisible]   = useState(false);  const [highlightCTA, setHighlightCTA]       = useState(false);
+  const textRef             = useRef<HTMLTextAreaElement>(null);
+  const ctaRef              = useRef<HTMLDivElement | null>(null);
   const submittedCommentRef = useRef<string>(''); // preserve comment for redirected screen
 
   const displayRating = hoverRating || rating;
@@ -294,12 +306,28 @@ export function ReviewPage() {
   };
 
   // ── Handlers ────────────────────────────────────────────────────────────
+  const triggerCTAHighlight = useCallback(() => {
+    setHighlightCTA(false);
+    // Force reflow so animation restarts even if already highlighted
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setHighlightCTA(true);
+        setTimeout(() => setHighlightCTA(false), 2600); // 1.2s × 2 repeats + buffer
+      });
+    });
+    setTimeout(() => {
+      ctaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 180);
+    if (navigator.vibrate) navigator.vibrate(40);
+  }, []);
+
   const handleStarClick = useCallback((v: number) => {
     setRating(v);
     setHoverRating(0);
     track('star_select', { rating: v });
     if (v < 5) { setSelectedMood(null); setComment(''); }
-  }, []);
+    else triggerCTAHighlight();
+  }, [triggerCTAHighlight]);
 
   const handleMoodClick = useCallback((idx: number) => {
     setAnimatingMood(idx);
@@ -309,7 +337,8 @@ export function ReviewPage() {
     setComment(deselect ? '' : MOODS[idx].comment);
     track('template_select', { template_idx: idx, rating });
     setTimeout(() => textRef.current?.focus(), 100);
-  }, [selectedMood, rating]);
+    if (!deselect) triggerCTAHighlight();
+  }, [selectedMood, rating, triggerCTAHighlight]);
 
   const copyToClipboard = async (text: string): Promise<boolean> => {
     try {
@@ -510,7 +539,8 @@ export function ReviewPage() {
             )}
           </div>
 
-          {/* CTA */}
+          {/* CTA + Instructions — ref for scroll-into-view */}
+          <div ref={ctaRef}>
           <button
             onClick={handleSubmitGoogle}
             disabled={submitStatus === 'copying'}
@@ -528,6 +558,7 @@ export function ReviewPage() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               gap: 10, marginBottom: 6, letterSpacing: '0.01em',
               transition: 'all 0.2s',
+              animation: highlightCTA ? 'pulseGlow 1.2s ease-in-out 2' : undefined,
             }}
           >
             {submitStatus === 'copying' && <><span style={{ fontSize: 18 }}>⏳</span> Copying…</>}
@@ -545,6 +576,7 @@ export function ReviewPage() {
           <div style={{
             background: '#f0f9ff', border: '1.5px solid #bfdbfe',
             borderRadius: 14, padding: '10px 14px', marginTop: 8,
+            animation: highlightCTA ? 'instructGlow 1.2s ease-in-out 2' : undefined,
           }}>
             <p style={{ fontSize: 11, fontWeight: 800, color: '#1e40af', margin: '0 0 6px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
               In Google:
@@ -552,6 +584,7 @@ export function ReviewPage() {
             {['1️⃣  Select ⭐⭐⭐⭐⭐', '2️⃣  Tap the text box', '3️⃣  Long-press → Paste', '4️⃣  Tap "Post"'].map((s, i) => (
               <p key={i} style={{ fontSize: 13, fontWeight: 600, color: '#1e3a5f', margin: i < 3 ? '0 0 3px' : 0 }}>{s}</p>
             ))}
+          </div>
           </div>
         </div>
       )}
