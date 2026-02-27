@@ -42,6 +42,210 @@ const RECENT_REVIEWS = [
   { name: 'Reza K.',     country: '🇧🇩', text: 'Trusted manpower agency, 5 stars!',             ago: '10 days ago' },
 ];
 
+// ─── 200 pre-written review templates ────────────────────────────────────────
+const REVIEW_TEMPLATES = [
+  'Best manpower agency in Islamabad.',
+  'Excellent overseas employment service.',
+  'Very professional recruitment agency.',
+  'I got job through FALISHA manpower.',
+  'Highly recommended consultancy.',
+  'Good overseas job guidance.',
+  'Trusted manpower agency in Pakistan.',
+  'Helpful staff and good service.',
+  'I am satisfied with their process.',
+  'Best recruitment agency for Gulf jobs.',
+  'I got Saudi Arabia job through them.',
+  'Good manpower recruitment service.',
+  'Excellent visa processing help.',
+  'Professional overseas employment agency.',
+  'Fast response and good support.',
+  'Trusted overseas job consultant.',
+  'Good data bank of candidates.',
+  'Recommended manpower agency.',
+  'Honest and reliable service.',
+  'Good consultancy in Islamabad.',
+  'I am working in UAE through them.',
+  'Best agency for Qatar jobs.',
+  'Good Bahrain employment service.',
+  'Excellent Saudi recruitment support.',
+  'I got job visa through FALISHA manpower.',
+  'Good Gulf job consultancy.',
+  'Professional recruitment team.',
+  'Highly satisfied with service.',
+  'Best manpower exporter from Pakistan.',
+  'Good technical worker placement.',
+  'I got electrician job abroad.',
+  'Good welding job recruitment.',
+  'Best HVAC technician placement.',
+  'Excellent mechanical worker job.',
+  'I am working in Saudi project.',
+  'Good construction job consultancy.',
+  'Trusted manpower recruitment.',
+  'Fast processing agency.',
+  'Professional overseas recruitment.',
+  'Good overseas career help.',
+  'I got labor job in Bahrain.',
+  'Best manpower agency in Islamabad.',
+  'Excellent job placement service.',
+  'Good overseas employment support.',
+  'Trusted recruitment firm.',
+  'Helpful recruitment staff.',
+  'Good communication service.',
+  'I am satisfied with FALISHA manpower.',
+  'Recommended agency for foreign jobs.',
+  'Professional manpower consultancy.',
+  'Good Gulf employment agency.',
+  'Best recruitment service in Pakistan.',
+  'Excellent manpower supply.',
+  'Trusted overseas job agency.',
+  'I got foreign employment opportunity.',
+  'Good visa assistance service.',
+  'Professional recruitment process.',
+  'Highly recommended manpower agency.',
+  'Best manpower consultant in Islamabad.',
+  'Good overseas placement agency.',
+  'I got job in Saudi Arabia.',
+  'Excellent recruitment service.',
+  'Good manpower support.',
+  'Trusted overseas consultancy.',
+  'Professional staff behavior.',
+  'Fast visa guidance.',
+  'Good job opportunity abroad.',
+  'I am satisfied with their service.',
+  'Best manpower recruitment.',
+  'Excellent HR service.',
+  'Good recruitment partner.',
+  'Trusted manpower exporter.',
+  'Best overseas employment service.',
+  'Professional manpower team.',
+  'Good technical job placement.',
+  'Excellent visa processing.',
+  'Highly satisfied client.',
+  'Recommended consultancy.',
+  'Good manpower service.',
+  'Best recruitment agency.',
+  'I got job visa for Turkey.',
+  'Good Russia job consultancy.',
+  'Best Belarus employment agency.',
+  'Excellent Malaysia job service.',
+  'Trusted overseas recruitment.',
+  'Good foreign employment help.',
+  'Professional recruitment support.',
+  'Best manpower data bank.',
+  'Highly recommended agency.',
+  'Excellent job placement.',
+  'Good Gulf manpower recruitment.',
+  'Best agency for Saudi workers.',
+  'Excellent overseas career service.',
+  'Trusted manpower consultancy.',
+  'Good HR recruitment service.',
+  'Professional overseas agency.',
+  'Best manpower provider.',
+  'Excellent recruitment company.',
+  'Highly satisfied service.',
+  'Good job processing support.',
+  'Best manpower recruitment in Islamabad.',
+  'Excellent overseas employment help.',
+  'Professional manpower exporter.',
+  'Good placement service.',
+  'Trusted agency for Gulf jobs.',
+  'Best overseas job consultancy.',
+  'Excellent recruitment management.',
+  'Good worker placement service.',
+  'Highly recommended consultancy.',
+  'Professional recruitment firm.',
+  'Good manpower supply agency.',
+  'Best for skilled workers.',
+  'Excellent technical recruitment.',
+  'Trusted overseas job service.',
+  'Good visa processing help.',
+  'Professional staff.',
+  'Best recruitment partner.',
+  'Excellent manpower export.',
+  'Highly satisfied client.',
+  'Good overseas employment.',
+  'I am working abroad through them.',
+  'Best Gulf job agency.',
+  'Good recruitment experience.',
+  'Trusted consultancy.',
+  'Excellent manpower service.',
+  'Professional recruitment help.',
+  'Best manpower agency Pakistan.',
+  'Good overseas job support.',
+  'Highly recommended.',
+  'Excellent recruitment service.',
+  'Good job opportunity abroad.',
+  'Best manpower consultant.',
+  'Trusted recruitment agency.',
+  'Professional overseas service.',
+  'Good visa guidance.',
+  'Excellent placement agency.',
+  'Highly satisfied experience.',
+  'Best manpower exporter.',
+  'Good recruitment team.',
+  'Trusted manpower partner.',
+  'Excellent HR recruitment.',
+  'Good Gulf employment service.',
+  'Best manpower agency Islamabad.',
+  'Professional consultancy service.',
+  'Good overseas placement.',
+  'Trusted recruitment firm.',
+  'Excellent manpower support.',
+  'Highly recommended agency.',
+  'Good recruitment help.',
+  'Best manpower consultant Pakistan.',
+  'Excellent overseas job agency.',
+  'Good manpower recruitment.',
+  'Professional staff support.',
+  'Trusted overseas employment.',
+  'Best recruitment service.',
+  'Good visa processing.',
+  'Excellent manpower exporter.',
+  'Highly satisfied service.',
+  'Recommended manpower agency.',
+  'Good overseas consultancy.',
+  'Best manpower recruitment service.',
+  'Excellent job placement agency.',
+  'Professional HR service.',
+  'Trusted manpower consultancy.',
+  'Good recruitment partner.',
+  'Best overseas employment agency.',
+  'Excellent manpower supply.',
+  'Highly recommended service.',
+  'Good Gulf recruitment.',
+  'Trusted recruitment support.',
+  'Best manpower exporter Pakistan.',
+  'Excellent recruitment firm.',
+  'Good overseas job consultant.',
+  'Professional manpower service.',
+  'Trusted agency.',
+  'Best manpower consultancy.',
+  'Excellent job help.',
+  'Good recruitment experience.',
+  'Highly satisfied client.',
+  'Recommended agency.',
+  'Excellent manpower agency.',
+  'Good overseas employment.',
+  'Professional recruitment team.',
+  'Trusted manpower partner.',
+  'Best job placement agency.',
+  'Excellent visa help.',
+  'Good recruitment support.',
+  'Highly professional service.',
+  'Best manpower consultant.',
+  'Trusted overseas agency.',
+  'Excellent manpower recruitment.',
+  'Good job consultancy.',
+  'Professional HR recruitment.',
+  'Best overseas employment service.',
+  'Highly satisfied.',
+  'Good manpower supply.',
+  'Excellent recruitment help.',
+  'Trusted recruitment agency.',
+  'Best manpower agency Pakistan.',
+  'Highly recommended recruitment service.',
+];
+
 // ─── Analytics (fire-and-forget) ────────────────────────────────────────────
 function track(event: string, extra?: Record<string, unknown>) {
   fetch(`${API_BASE}/review/analytics`, {
@@ -415,6 +619,8 @@ export function ReviewPage() {
   const [highlightCTA, setHighlightCTA]       = useState(false);
   const [userName, setUserName]               = useState('');
   const [tickerIdx, setTickerIdx]             = useState(0);
+  const [templateSearch, setTemplateSearch]   = useState('');
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const textRef             = useRef<HTMLTextAreaElement>(null);
   const ctaRef              = useRef<HTMLDivElement | null>(null);
   const submittedCommentRef = useRef<string>(''); // preserve comment for redirected screen
@@ -715,7 +921,70 @@ export function ReviewPage() {
             )}
           </div>
 
-          {/* Recent activity ticker */}
+          {/* Template picker */}
+          <div style={{ marginBottom: 16 }}>
+            <button
+              onClick={() => { setShowTemplatePicker(p => !p); setTemplateSearch(''); }}
+              style={{
+                width: '100%', padding: '9px 14px', background: showTemplatePicker ? '#eff6ff' : '#f9fafb',
+                border: `1.5px solid ${showTemplatePicker ? '#93c5fd' : '#e5e7eb'}`, borderRadius: 12,
+                fontSize: 13, fontWeight: 700, color: showTemplatePicker ? '#1d4ed8' : '#374151',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                transition: 'all 0.15s',
+              }}
+            >
+              <span>📋 Choose a review template</span>
+              <span style={{ fontSize: 11, opacity: 0.7 }}>{showTemplatePicker ? '▲ Hide' : `▼ ${REVIEW_TEMPLATES.length} options`}</span>
+            </button>
+
+            {showTemplatePicker && (
+              <div style={{ border: '1.5px solid #e5e7eb', borderTop: 'none', borderRadius: '0 0 12px 12px', background: '#fff', animation: 'fadeSlideUp 0.2s ease' }}>
+                {/* Search */}
+                <div style={{ padding: '8px 10px', borderBottom: '1px solid #f3f4f6' }}>
+                  <input
+                    autoFocus
+                    value={templateSearch}
+                    onChange={e => setTemplateSearch(e.target.value)}
+                    placeholder="🔍 Search templates…"
+                    style={{
+                      width: '100%', padding: '7px 11px', border: '1.5px solid #e5e7eb', borderRadius: 8,
+                      fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
+                      color: '#111827', background: '#f9fafb',
+                    }}
+                    onFocus={e => { e.target.style.borderColor = '#3b82f6'; }}
+                    onBlur={e => { e.target.style.borderColor = '#e5e7eb'; }}
+                  />
+                </div>
+                {/* List */}
+                <div style={{ maxHeight: 220, overflowY: 'auto', padding: '4px 0' }}>
+                  {REVIEW_TEMPLATES
+                    .filter(t => !templateSearch.trim() || t.toLowerCase().includes(templateSearch.toLowerCase()))
+                    .map((t, i) => (
+                      <button
+                        key={i}
+                        onClick={() => { setComment(t); setShowTemplatePicker(false); setTemplateSearch(''); track('template_select', { template_idx: i }); }}
+                        style={{
+                          width: '100%', textAlign: 'left', padding: '9px 14px',
+                          background: comment === t ? '#eff6ff' : 'transparent',
+                          border: 'none', borderBottom: '1px solid #f9fafb',
+                          fontSize: 13, color: comment === t ? '#1d4ed8' : '#374151',
+                          fontWeight: comment === t ? 700 : 400, cursor: 'pointer',
+                          transition: 'background 0.1s', lineHeight: 1.4,
+                        }}
+                        onMouseEnter={e => { if (comment !== t) (e.target as HTMLElement).style.background = '#f9fafb'; }}
+                        onMouseLeave={e => { if (comment !== t) (e.target as HTMLElement).style.background = 'transparent'; }}
+                      >
+                        {t}
+                      </button>
+                    ))
+                  }
+                  {REVIEW_TEMPLATES.filter(t => !templateSearch.trim() || t.toLowerCase().includes(templateSearch.toLowerCase())).length === 0 && (
+                    <p style={{ textAlign: 'center', color: '#9ca3af', fontSize: 13, padding: '16px 0', margin: 0 }}>No templates match "{templateSearch}"</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
           <div style={{
             background: '#f9fafb', border: '1.5px solid #e5e7eb',
             borderRadius: 14, padding: '9px 13px', marginBottom: 14,
