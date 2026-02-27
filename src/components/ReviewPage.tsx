@@ -284,7 +284,8 @@ export function ReviewPage() {
   const [copyStatus, setCopyStatus]       = useState<'idle' | 'copied' | 'failed'>('idle');
   const [animatingMood, setAnimatingMood] = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen]       = useState(false);
-  const textRef = useRef<HTMLTextAreaElement>(null);
+  const textRef            = useRef<HTMLTextAreaElement>(null);
+  const submittedCommentRef = useRef<string>(''); // preserve comment for redirected screen
 
   const displayRating = hoverRating || rating;
   const isGoodRating  = rating === 5;
@@ -330,14 +331,22 @@ export function ReviewPage() {
     return Promise.resolve();
   }, []);
 
-  const handleSubmitGoogle = useCallback(() => {
+  const handleSubmitGoogle = useCallback(async () => {
     track('redirect_google', {
       rating,
       template_idx: selectedMood,
       country: selectedCountry !== null ? COUNTRIES[selectedCountry].name : null,
     });
+    const finalComment = comment.trim();
+    submittedCommentRef.current = finalComment;
+
+    // Copy FIRST (before window.open steals page focus on mobile)
+    if (finalComment) {
+      await copyToClipboard(finalComment);
+    }
+
+    // Open Google AFTER clipboard is set
     window.open(GOOGLE_REVIEW_URL, '_blank', 'noopener,noreferrer');
-    if (comment.trim()) copyToClipboard(comment.trim());
     setScreen('redirected');
   }, [rating, selectedMood, selectedCountry, comment, copyToClipboard]);
 
@@ -542,7 +551,12 @@ export function ReviewPage() {
           </button>
           {comment.trim() && (
             <p style={{ textAlign: 'center', fontSize: 12, color: '#6b7280', margin: '4px 0 0' }}>
-              Your comment will be auto-copied to clipboard
+              📋 Your comment will be copied — just paste it in Google
+            </p>
+          )}
+          {!comment.trim() && (
+            <p style={{ textAlign: 'center', fontSize: 12, color: '#9ca3af', margin: '4px 0 0' }}>
+              Tip: pick a mood above to auto-fill a comment
             </p>
           )}
         </div>
@@ -596,42 +610,97 @@ export function ReviewPage() {
   );
 
   // ── Redirected screen ──────────────────────────────────────────────────
-  const renderRedirected = () => (
-    <div style={{ textAlign: 'center', animation: 'fadeSlideUp 0.4s ease both' }}>
-      {renderHeader()}
-      <div style={{ position: 'relative', width: 80, height: 80, margin: '0 auto 20px' }}>
-        <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid #10b981', animation: 'pulseRing 1.4s ease-out infinite' }} />
-        <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
+  const renderRedirected = () => {
+    const savedComment = submittedCommentRef.current;
+    const steps = [
+      { num: '1', text: 'In Google: tap ⭐⭐⭐⭐⭐ (5 stars)' },
+      { num: '2', text: savedComment ? 'Paste your comment (already copied ↓)' : 'Write what you liked about us' },
+      { num: '3', text: 'Tap “Post” — done! 🎉' },
+    ];
+    return (
+      <div style={{ animation: 'fadeSlideUp 0.4s ease both' }}>
+        {renderHeader()}
+
+        {/* Success icon */}
+        <div style={{ position: 'relative', width: 72, height: 72, margin: '0 auto 18px' }}>
+          <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid #10b981', animation: 'pulseRing 1.4s ease-out infinite' }} />
+          <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
         </div>
+
+        <h2 style={{ fontSize: 21, fontWeight: 800, color: '#111827', marginBottom: 4, textAlign: 'center' }}>Google Review Page Opened!</h2>
+        <p style={{ color: '#6b7280', fontSize: 13, textAlign: 'center', marginBottom: 20 }}>
+          Complete these 3 quick steps in the Google tab:
+        </p>
+
+        {/* Step-by-step instructions */}
+        <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {steps.map((s, i) => (
+            <div key={i} style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              background: i === 1 && savedComment ? '#eff6ff' : '#f9fafb',
+              border: `1.5px solid ${i === 1 && savedComment ? '#bfdbfe' : '#f3f4f6'}`,
+              borderRadius: 14, padding: '11px 14px',
+            }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                background: i === 1 && savedComment ? '#2563eb' : '#e5e7eb',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 13, fontWeight: 800,
+                color: i === 1 && savedComment ? '#fff' : '#6b7280',
+              }}>{s.num}</div>
+              <span style={{ fontSize: 14, fontWeight: i === 1 && savedComment ? 700 : 500, color: '#374151', lineHeight: 1.35 }}>{s.text}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Copied comment box */}
+        {savedComment && (
+          <div style={{
+            background: copyStatus === 'copied' ? '#d1fae5' : '#fef9c3',
+            border: `1.5px solid ${copyStatus === 'copied' ? '#6ee7b7' : '#fde047'}`,
+            borderRadius: 16, padding: '12px 14px', marginBottom: 16,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: copyStatus === 'copied' ? '#065f46' : '#713f12', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                {copyStatus === 'copied' ? '✅ Copied to clipboard — just paste!' : '⚠️ Copy failed — copy manually:'}
+              </span>
+              <button
+                onClick={() => copyToClipboard(savedComment)}
+                style={{
+                  background: '#fff', border: '1px solid #d1d5db', borderRadius: 8,
+                  padding: '3px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', color: '#374151',
+                }}
+              >Copy again</button>
+            </div>
+            <p style={{
+              fontSize: 13, color: '#1f2937', lineHeight: 1.6, margin: 0,
+              fontStyle: 'italic', borderLeft: '3px solid #10b981', paddingLeft: 10,
+            }}>
+              &ldquo;{savedComment}&rdquo;
+            </p>
+          </div>
+        )}
+
+        {/* Re-open button */}
+        <button
+          onClick={() => window.open(GOOGLE_REVIEW_URL, '_blank', 'noopener,noreferrer')}
+          style={{
+            width: '100%', padding: '14px', background: '#2563eb', color: '#fff',
+            border: 'none', borderRadius: 18, fontWeight: 700, fontSize: 15,
+            cursor: 'pointer', boxShadow: '0 3px 14px rgba(37,99,235,0.35)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          }}
+        >
+          🔗 Re-open Google Review Tab
+        </button>
+        <p style={{ color: '#9ca3af', fontSize: 12, marginTop: 16, textAlign: 'center' }}>Thank you for taking the time! 🙏</p>
       </div>
-      <h2 style={{ fontSize: 23, fontWeight: 800, color: '#111827', marginBottom: 10 }}>Google Review Opened!</h2>
-      {copyStatus === 'copied' && comment && (
-        <div style={{ background: '#d1fae5', border: '1.5px solid #6ee7b7', borderRadius: 12, padding: '10px 14px', marginBottom: 14, color: '#065f46', fontSize: 13, fontWeight: 600 }}>
-          ✅ Comment copied — just paste it in Google!
-        </div>
-      )}
-      {copyStatus === 'failed' && comment && (
-        <div style={{ background: '#fef3c7', border: '1.5px solid #fcd34d', borderRadius: 12, padding: '10px 14px', marginBottom: 14, textAlign: 'left' }}>
-          <p style={{ color: '#78350f', fontSize: 12, margin: '0 0 4px', fontWeight: 600 }}>Copy this manually:</p>
-          <p style={{ color: '#92400e', fontSize: 13, margin: 0, lineHeight: 1.5 }}>{comment}</p>
-        </div>
-      )}
-      <p style={{ color: '#6b7280', fontSize: 14, lineHeight: 1.65, marginBottom: 24 }}>
-        A new tab opened with the Google review page.{' '}
-        {copyStatus === 'copied' ? 'Paste your comment and hit Submit!' : 'Share your experience and hit Submit!'}
-      </p>
-      <button
-        onClick={() => window.open(GOOGLE_REVIEW_URL, '_blank', 'noopener,noreferrer')}
-        style={{ padding: '13px 36px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 50, fontWeight: 700, fontSize: 15, cursor: 'pointer', boxShadow: '0 3px 14px rgba(37,99,235,0.35)' }}
-      >
-        Re-open Google Review
-      </button>
-      <p style={{ color: '#9ca3af', fontSize: 12, marginTop: 22 }}>Thank you for your time! 🙏</p>
-    </div>
-  );
+    );
+  };
 
   // ── Thank you screen ───────────────────────────────────────────────────
   const renderThankYou = () => (
