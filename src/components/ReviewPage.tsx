@@ -5,7 +5,7 @@ const GOOGLE_REVIEW_URL =
   (import.meta as any).env?.VITE_GOOGLE_REVIEW_URL || 'https://g.page/r/CVmpd5dYUfULEBM/review';
 const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || '/api';
 const BUSINESS_NAME = (import.meta as any).env?.VITE_BUSINESS_NAME || 'Falisha Manpower';
-const BUSINESS_LOGO_URL: string | undefined = (import.meta as any).env?.VITE_BUSINESS_LOGO_URL;
+const BUSINESS_LOGO_URL: string = (import.meta as any).env?.VITE_BUSINESS_LOGO_URL || '/logo.png';
 
 // ─── Mood options (emoji + label + auto-comment) ─────────────────────────────
 const MOODS = [
@@ -426,7 +426,7 @@ export function ReviewPage() {
     <div style={{ textAlign: 'center', marginBottom: 24 }}>
       {BUSINESS_LOGO_URL ? (
         <img src={BUSINESS_LOGO_URL} alt={BUSINESS_NAME}
-          style={{ height: 58, margin: '0 auto 10px', objectFit: 'contain', display: 'block' }} />
+          style={{ height: 80, maxWidth: 220, margin: '0 auto 10px', objectFit: 'contain', display: 'block' }} />
       ) : (
         <div style={{
           width: 58, height: 58, borderRadius: 15,
