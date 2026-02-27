@@ -337,17 +337,19 @@ export function ReviewPage() {
     const finalComment = comment.trim();
     submittedCommentRef.current = finalComment;
 
-    // Copy first (before any focus change), then show overlay, then redirect
+    // MUST open window synchronously in the click handler — browsers block popups from async/setTimeout
+    window.open(GOOGLE_REVIEW_URL, '_blank', 'noopener,noreferrer');
+
+    // Now copy (async is fine, Google tab is already opening in background)
     if (finalComment) {
       setSubmitStatus('copying');
       const ok = await copyToClipboard(finalComment);
       setSubmitStatus(ok ? 'copied' : 'error');
     }
 
-    // Show instructional overlay for 1200ms, then open Google
+    // Show instructional overlay for 1200ms, then dismiss
     setOverlayVisible(true);
     setTimeout(() => {
-      window.open(GOOGLE_REVIEW_URL, '_blank', 'noopener,noreferrer');
       setOverlayVisible(false);
       setScreen('redirected');
       setSubmitStatus('idle');
@@ -477,31 +479,6 @@ export function ReviewPage() {
             })}
           </div>
 
-          {/* Country picker */}
-          <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 10, textAlign: 'center', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            Your Country <span style={{ fontWeight: 400, color: '#9ca3af', textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
-          </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, justifyContent: 'center', marginBottom: 22 }}>
-            {COUNTRIES.map((c, idx) => {
-              const active = selectedCountry === idx;
-              return (
-                <button key={idx} onClick={() => setSelectedCountry(active ? null : idx)} title={c.name} style={{
-                  background: active ? '#eff6ff' : '#f3f4f6',
-                  border: `2px solid ${active ? '#3b82f6' : 'transparent'}`,
-                  borderRadius: 12, padding: '5px 10px', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: 5,
-                  fontSize: 12, fontWeight: 600, color: active ? '#1d4ed8' : '#374151',
-                  transition: 'all 0.15s ease',
-                  transform: active ? 'scale(1.06)' : 'scale(1)',
-                  boxShadow: active ? '0 2px 8px rgba(59,130,246,0.2)' : 'none',
-                }}>
-                  <span style={{ fontSize: 20 }}>{c.flag}</span>
-                  <span style={{ fontSize: 11 }}>{c.name}</span>
-                </button>
-              );
-            })}
-          </div>
-
           {/* Comment box */}
           <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 8, textAlign: 'center', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             Add a Comment <span style={{ fontWeight: 400, color: '#9ca3af', textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
@@ -559,20 +536,23 @@ export function ReviewPage() {
             {submitStatus === 'idle'    && <><span style={{ fontSize: 20 }}>📋</span> Copy &amp; Post on Google</>}
           </button>
           {submitStatus === 'error' && (
-            <p style={{ textAlign: 'center', fontSize: 12, color: '#b45309', margin: '4px 0 0', fontWeight: 600 }}>
+            <p style={{ textAlign: 'center', fontSize: 12, color: '#b45309', margin: '4px 0 8px', fontWeight: 600 }}>
               Copy failed — paste manually in Google.
             </p>
           )}
-          {submitStatus === 'idle' && comment.trim() && (
-            <p style={{ textAlign: 'center', fontSize: 12, color: '#6b7280', margin: '4px 0 0' }}>
-              Your comment will be copied — just paste it in Google
+
+          {/* Paste instructions — always visible below CTA */}
+          <div style={{
+            background: '#f0f9ff', border: '1.5px solid #bfdbfe',
+            borderRadius: 14, padding: '10px 14px', marginTop: 8,
+          }}>
+            <p style={{ fontSize: 11, fontWeight: 800, color: '#1e40af', margin: '0 0 6px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+              In Google:
             </p>
-          )}
-          {submitStatus === 'idle' && !comment.trim() && (
-            <p style={{ textAlign: 'center', fontSize: 12, color: '#9ca3af', margin: '4px 0 0' }}>
-              Tip: pick a mood above to auto-fill a comment
-            </p>
-          )}
+            {['1️⃣  Select ⭐⭐⭐⭐⭐', '2️⃣  Tap the text box', '3️⃣  Long-press → Paste', '4️⃣  Tap "Post"'].map((s, i) => (
+              <p key={i} style={{ fontSize: 13, fontWeight: 600, color: '#1e3a5f', margin: i < 3 ? '0 0 3px' : 0 }}>{s}</p>
+            ))}
+          </div>
         </div>
       )}
 
