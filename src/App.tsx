@@ -20,6 +20,7 @@ import { PublicCandidateProfile } from './components/PublicCandidateProfile';
 import { EmployeesModule } from './components/EmployeesModule';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { ReviewPage } from './components/ReviewPage';
+import { ReviewsDashboard } from './components/ReviewsDashboard';
 import { useAuth, AuthProvider } from './lib/authContext';
 import { CandidateProvider } from './lib/candidateContext';
 import { hasPermission } from './lib/authData';
@@ -53,6 +54,7 @@ const AppContent = () => {
     settings: '/admin/settings',
     'admin-panel': '/admin/admin',
     users: '/admin/users',
+    reviews: '/admin/reviews',
   };
 
   function buildAdminUrl(tab: string, opts?: { profession?: string }) {
@@ -227,6 +229,8 @@ const AppContent = () => {
         return <AdminPanel />;
       case 'users':
         return <UserManagement />;
+      case 'reviews':
+        return <ReviewsDashboard />;
       default:
         return <Dashboard />;
     }
@@ -660,6 +664,29 @@ const AppContent = () => {
                   </span>
                   <span className={`font-medium tracking-wide ${activeTab === 'application-link' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>Application Link</span>
                   {activeTab === 'application-link' && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-violet-400" />}
+                </a>
+              </div>
+
+              {/* ── Feedback ─────────────────────────────────────────────── */}
+              <div className="pt-4 pb-1">
+                <p className="glass-section-label px-3 mb-2">FEEDBACK</p>
+
+                <a
+                  href={buildAdminUrl('reviews')}
+                  onClick={(e) => onNavClick(e, 'reviews')}
+                  className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-sm group glass-nav-idle ${
+                    activeTab === 'reviews' ? 'glass-nav-active' : ''
+                  }`}
+                >
+                  <span className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
+                    activeTab === 'reviews' ? 'bg-yellow-400/30 shadow shadow-yellow-400/20' : 'bg-slate-900/[0.03] group-hover:bg-slate-900/[0.06]'
+                  }`}>
+                    <svg viewBox="0 0 20 20" className={`w-4 h-4 ${activeTab === 'reviews' ? 'text-yellow-600' : 'text-slate-600'}`} fill={activeTab === 'reviews' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.4">
+                      <polygon points="10,2 12.4,7.2 18,7.9 14,11.7 15.1,17.2 10,14.5 4.9,17.2 6,11.7 2,7.9 7.6,7.2" />
+                    </svg>
+                  </span>
+                  <span className={`font-medium tracking-wide ${activeTab === 'reviews' ? 'text-slate-900' : 'text-slate-700 group-hover:text-slate-900'}`}>Reviews</span>
+                  {activeTab === 'reviews' && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-yellow-400" />}
                 </a>
               </div>
 
