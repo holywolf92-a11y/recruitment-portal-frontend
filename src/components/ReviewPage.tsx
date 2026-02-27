@@ -659,13 +659,16 @@ export function ReviewPage() {
     setTimeout(() => setAnimatingMood(null), 500);
     const deselect = selectedMood === idx;
     setSelectedMood(deselect ? null : idx);
-    const base = MOODS[idx].comment;
-    const name = userName.trim();
-    setComment(deselect ? '' : (name ? `${base} — ${name}` : base));
-    track('template_select', { template_idx: idx, rating });
+    if (deselect) {
+      setComment('');
+    } else {
+      const t = REVIEW_TEMPLATES[Math.floor(Math.random() * REVIEW_TEMPLATES.length)];
+      setComment(t);
+      track('template_select', { template_idx: idx, rating });
+    }
     setTimeout(() => textRef.current?.focus(), 100);
     if (!deselect) triggerCTAHighlight();
-  }, [selectedMood, rating, userName, triggerCTAHighlight]);
+  }, [selectedMood, rating, triggerCTAHighlight]);
 
   // Cycle recent-review ticker every 3.5s while on rating screen
   useEffect(() => {
@@ -850,7 +853,7 @@ export function ReviewPage() {
           <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 10, textAlign: 'center', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             What describes your experience?
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 9, marginBottom: selectedMood !== null ? 10 : 22 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 9, marginBottom: 22 }}>
             {MOODS.map((m, idx) => {
               const active = selectedMood === idx;
               const bouncing = animatingMood === idx;
@@ -888,33 +891,6 @@ export function ReviewPage() {
             })}
           </div>
 
-          {/* Template chips — appear when mood is tapped */}
-          {selectedMood !== null && (
-            <div style={{ marginBottom: 16, animation: 'fadeSlideUp 0.25s ease both' }}>
-              <p style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', margin: '0 0 8px', textAlign: 'center', letterSpacing: '0.07em', textTransform: 'uppercase' }}>
-                Pick a review — or write your own below
-              </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {REVIEW_TEMPLATES.map((t, i) => (
-                  <button
-                    key={i}
-                    onClick={() => { setComment(t); track('template_select', { template_idx: i }); }}
-                    style={{
-                      padding: '6px 12px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
-                      border: `1.5px solid ${comment === t ? '#3b82f6' : '#e5e7eb'}`,
-                      background: comment === t ? '#eff6ff' : '#f9fafb',
-                      color: comment === t ? '#1d4ed8' : '#374151',
-                      fontWeight: comment === t ? 700 : 400,
-                      transition: 'all 0.13s', whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Comment box */}
           <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 8, textAlign: 'center', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             Add a Comment <span style={{ fontWeight: 400, color: '#9ca3af', textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
@@ -924,7 +900,7 @@ export function ReviewPage() {
               ref={textRef}
               value={comment}
               onChange={e => setComment(e.target.value)}
-              placeholder="Your comment… (tap an icon above to auto-fill)"
+              placeholder="Your comment… (auto-filled when you tap a mood above)"
               rows={3}
               style={{
                 width: '100%', padding: '11px 36px 11px 13px',
