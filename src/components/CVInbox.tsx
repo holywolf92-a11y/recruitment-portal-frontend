@@ -50,7 +50,7 @@ export function CVInbox() {
     setLoading(true);
     setError(null);
     try {
-      const { messages } = await api.listInboxMessages({ limit: 25, offset: 0 });
+      const { messages } = await api.listInboxMessages({ limit: 200, offset: 0 });
       const byId: Record<string, InboxMessage> = Object.fromEntries(messages.map(m => [m.id, m]));
       const allAttachmentsArrays = await Promise.all(
         messages.map((m) => api.listAttachments(m.id).catch(() => [] as Attachment[]))
