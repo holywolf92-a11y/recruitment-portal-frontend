@@ -3,7 +3,7 @@
 // In development, it defaults to '/api' which will use the Vite proxy
 
 // Production backend URL (fallback if VITE_API_BASE_URL is not set at build time)
-const PRODUCTION_BACKEND_URL = 'https://recruitment-portal-backend-production-d1f7.up.railway.app/api';
+const PRODUCTION_BACKEND_URL = 'https://glorious-flexibility-production.up.railway.app/api';
 
 // Determine API base URL
 // Priority: 1. VITE_API_BASE_URL env var (set at build time), 2. Production fallback, 3. Default /api
