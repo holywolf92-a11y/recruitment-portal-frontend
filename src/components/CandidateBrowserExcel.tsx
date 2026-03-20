@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useDebounce } from '../hooks/useDebounce';
 import { 
+  ChevronLeft,
   ChevronRight, 
   ChevronDown, 
   Folder, 
@@ -327,6 +328,7 @@ export function CandidateBrowserExcel() {
   const [professionMode, setProfessionMode] = useState<string | null>(null);
   const [activeMenu, setActiveMenu] = useState<'dashboard' | 'browser'>('dashboard');
   const [showSendModal, setShowSendModal] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // ── Enterprise debounce: replaces the old manual setTimeout pattern ──────────
   // One derived value; no extra state, no timer bookkeeping in component body.
@@ -730,8 +732,8 @@ export function CandidateBrowserExcel() {
   }
 
   return (
-    <div className="flex gap-4">
-      <aside className="w-80 bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col shadow-sm sticky top-24 self-start max-h-[calc(100vh-120px)]">
+    <div className="flex h-[calc(100vh-130px)] overflow-hidden">
+      <aside className={`${sidebarOpen ? 'w-72' : 'w-0'} flex-shrink-0 bg-white border-r border-gray-200 overflow-hidden flex flex-col shadow-sm transition-all duration-300`}>
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 flex-shrink-0">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Folder className="w-5 h-5" />
@@ -799,7 +801,23 @@ export function CandidateBrowserExcel() {
         </div>
       </aside>
 
-      <div className="flex-1 space-y-4">
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        {/* Sidebar toggle + top bar */}
+        <div className="flex-shrink-0 flex items-center gap-3 px-4 py-2 bg-white border-b border-gray-200">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-1.5 rounded-lg hover:bg-gray-100 border border-gray-200 text-gray-600 transition-colors flex-shrink-0"
+            title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+          >
+            {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </button>
+          <span className="text-sm font-medium text-gray-700 truncate">
+            {activeMenu === 'browser' ? (professionMode || 'Candidate Browser') : 'Excel Browser – Dashboard'}
+          </span>
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="space-y-4 p-4">
       {activeMenu === 'browser' ? (
         <section className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm flex items-center justify-between">
           <div>
@@ -1018,9 +1036,7 @@ export function CandidateBrowserExcel() {
       )}
 
       {/* Browser Section */}
-      <section className={`${activeMenu === 'browser' ? 'h-[calc(100vh-200px)]' : 'h-[calc(100vh-320px)]'}`}>
-      {/* Right Side - Excel Table */}
-      <div className="flex-1 bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col shadow-sm">
+      <div className={`${activeMenu === 'browser' ? 'h-[calc(100vh-215px)]' : 'h-[calc(100vh-385px)]'} bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col shadow-sm`}>
         {/* Table Header Actions */}
         <div className="border-b border-gray-200 p-4 bg-gray-50 flex-shrink-0">
           <div className="flex items-center justify-between">
@@ -1086,7 +1102,7 @@ export function CandidateBrowserExcel() {
         </div>
 
         {/* Excel-like Table */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 min-h-0 overflow-auto">
           {filteredCandidates.length > 0 ? (
             <table className="w-full border-collapse">
               <thead className="bg-gray-100 sticky top-0 z-10">
@@ -1446,8 +1462,9 @@ export function CandidateBrowserExcel() {
           )}
         </div>
       </div>
-      </section>
-      </div>
+        </div>
+        </div>
+        </div>
       <Toaster position="top-right" richColors closeButton />
 
           {/* Send to Employer Modal */}
