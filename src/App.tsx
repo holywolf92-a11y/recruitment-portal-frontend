@@ -27,7 +27,7 @@ import { hasPermission } from './lib/authData';
 import { apiClient } from './lib/apiClient';
 import { APP_CONFIG } from './lib/constants';
 import { Toaster } from './components/ui/sonner';
-import { Users, Briefcase, Building2, FileText, Settings as SettingsIcon, LayoutDashboard, Link2, Inbox, MessageSquare, FolderTree, ArrowLeft, LogOut, Shield, ChevronDown, Mail, Phone, ClipboardList } from 'lucide-react';
+import { Users, Briefcase, Building2, FileText, Settings as SettingsIcon, LayoutDashboard, Link2, Inbox, MessageSquare, FolderTree, ArrowLeft, LogOut, Shield, ChevronDown, Mail, Phone, ClipboardList, Menu, X } from 'lucide-react';
 
 const AppContent = () => {
   const { session, signOut, loading } = useAuth();
@@ -36,6 +36,7 @@ const AppContent = () => {
   const [selectedProfession, setSelectedProfession] = useState<string>('all');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [candidateToOpen, setCandidateToOpen] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const TAB_PATHS: Record<string, string> = {
     dashboard: '/admin/dashboard',
@@ -114,6 +115,7 @@ const AppContent = () => {
 
     e.preventDefault();
     navigateTab(tab, opts);
+    setSidebarOpen(false); // close drawer on mobile after navigation
   };
 
   // Keep tab-based navigation in sync with /admin/* (supports refresh + back/forward)
@@ -256,19 +258,29 @@ const AppContent = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 shrink-0">
-        <div className="px-4 md:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+      <header className="bg-white border-b border-gray-200 shrink-0 sticky top-0 z-40">
+        <div className="px-3 md:px-6 py-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 md:gap-4 min-w-0">
+              {/* Hamburger — mobile only */}
+              {!isBrowserView && (
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="md:hidden flex-shrink-0 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  aria-label="Open menu"
+                >
+                  <Menu className="w-5 h-5 text-gray-600" />
+                </button>
+              )}
               {/* Logo */}
               <img
                 src={APP_CONFIG.company.logo}
                 alt={APP_CONFIG.company.name}
-                className="h-12 w-12 object-contain"
+                className="h-9 w-9 md:h-12 md:w-12 object-contain flex-shrink-0"
               />
-              <div>
-                <h1 className="text-blue-600 font-bold text-lg">{APP_CONFIG.company.name}</h1>
-                <p className="text-gray-600 text-xs flex gap-2">
+              <div className="min-w-0">
+                <h1 className="text-blue-600 font-bold text-base md:text-lg truncate">{APP_CONFIG.company.name}</h1>
+                <p className="text-gray-600 text-xs hidden sm:flex gap-2">
                   <span className="flex items-center gap-1">
                     <Phone className="w-3 h-3" />
                     {APP_CONFIG.contact.phone}
@@ -281,12 +293,12 @@ const AppContent = () => {
                 </p>
               </div>
             </div>
-            <div className="relative">
+            <div className="relative flex-shrink-0">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-2 md:gap-3 px-2 md:px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <div className="text-right">
+                <div className="hidden sm:block text-right">
                   <p className="text-sm font-medium text-gray-900">{user.name}</p>
                   <p className="text-xs text-gray-500 flex items-center gap-1">
                     <span className={`w-2 h-2 rounded-full ${
@@ -298,7 +310,7 @@ const AppContent = () => {
                     {user.role}
                   </p>
                 </div>
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${
+                <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm ${
                   user.role === 'Admin' ? 'bg-gradient-to-br from-purple-500 to-purple-600' :
                   user.role === 'Manager' ? 'bg-gradient-to-br from-blue-500 to-blue-600' :
                   user.role === 'Recruiter' ? 'bg-gradient-to-br from-green-500 to-green-600' :
@@ -347,9 +359,17 @@ const AppContent = () => {
       <div className="admin-shell flex flex-col min-w-0 flex-1 min-h-0">
         {/* Sidebar - Hidden when in browser view */}
         {!isBrowserView && (
-          <aside className="admin-sidebar glass-sidebar w-full border-b border-gray-200 overflow-y-auto min-h-0">
+          <>
+            {/* Mobile backdrop */}
+            {sidebarOpen && (
+              <div
+                className="admin-sidebar-backdrop md:hidden"
+                onClick={() => setSidebarOpen(false)}
+              />
+            )}
+            <aside className={`admin-sidebar glass-sidebar border-gray-200 overflow-y-auto min-h-0${sidebarOpen ? ' sidebar-open' : ''}`}>
             {/* Brand stripe at top of sidebar */}
-            <div className="relative px-5 py-5 border-b border-gray-200/80">
+            <div className="relative px-5 py-5 border-b border-gray-200/80 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center shadow-lg shadow-violet-500/30">
                   <svg viewBox="0 0 20 20" className="w-4 h-4 text-white fill-current">
@@ -361,6 +381,14 @@ const AppContent = () => {
                   <p className="text-slate-600 text-[10px] mt-0.5 leading-none">Recruitment Portal</p>
                 </div>
               </div>
+              {/* Close button — mobile only */}
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="md:hidden p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                aria-label="Close menu"
+              >
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
             </div>
 
             <nav className="p-3 space-y-0.5">
@@ -766,6 +794,7 @@ const AppContent = () => {
 
             </nav>
           </aside>
+          </>
         )}
 
         {/* Main Content */}

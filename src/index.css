@@ -2378,22 +2378,54 @@
     }
   }
 
-  /* Admin shell: ensure sidebar-left layout on desktop.
-     This project ships a prebuilt Tailwind CSS file that currently lacks `sm:` responsive variants,
-     so we apply a small, explicit breakpoint rule here.
-  */
+  /* ── Mobile sidebar: fixed overlay drawer ──────────────────────── */
+  .admin-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(280px, 85vw);
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease-in-out;
+    overflow-y: auto;
+    /* keep border-b from Tailwind but we want right border */
+    border-bottom-width: 0 !important;
+    border-right: 1px solid rgba(229, 231, 235, 1);
+  }
+  .admin-sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+  .admin-sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 49;
+    animation: fadeIn 0.2s ease both;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* Desktop: sidebar-left layout */
   @media (width >= 48rem) {
     .admin-shell {
       flex-direction: row;
     }
 
     .admin-sidebar {
+      position: sticky;
+      top: 0;
+      height: calc(100vh - 88px); /* subtract header height */
+      transform: none !important;
       width: calc(var(--spacing) * 64);
       flex-shrink: 0;
-      border-bottom-width: 0;
-      border-right: none;
+      border-bottom-width: 0 !important;
+      border-right: 1px solid rgba(229, 231, 235, 1);
       overflow-y: auto;
       min-height: 0;
+      z-index: auto;
     }
   }
 
