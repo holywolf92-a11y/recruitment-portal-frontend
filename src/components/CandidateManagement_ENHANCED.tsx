@@ -787,32 +787,32 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
     <div className="space-y-6">
       {/* Header with Stats */}
       <div>
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Candidates</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Candidates</h1>
             <p className="text-gray-600 mt-1">Manage your candidate pipeline</p>
           </div>
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white shadow-lg">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-5 sm:p-6 text-white shadow-lg">
             <div className="text-sm opacity-90">Total Candidates</div>
             <div className="text-3xl font-bold mt-2">{stats.totalCandidates}</div>
           </div>
-          <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-6 text-white shadow-lg">
+          <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-5 sm:p-6 text-white shadow-lg">
             <div className="text-sm opacity-90">Total Professions</div>
             <div className="text-3xl font-bold mt-2">{stats.totalProfessions}</div>
           </div>
-          <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg p-6 text-white shadow-lg">
+          <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg p-5 sm:p-6 text-white shadow-lg">
             <div className="text-sm opacity-90">Pending Review</div>
             <div className="text-3xl font-bold mt-2">{stats.pendingReview}</div>
           </div>
-          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white shadow-lg">
+          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-5 sm:p-6 text-white shadow-lg">
             <div className="text-sm opacity-90">Deployed</div>
             <div className="text-3xl font-bold mt-2">{stats.deployed}</div>
           </div>
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-6 text-white shadow-lg">
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-5 sm:p-6 text-white shadow-lg sm:col-span-2 xl:col-span-1">
             <div className="text-sm opacity-90">New This Week</div>
             <div className="text-3xl font-bold mt-2">{stats.newThisWeek}</div>
           </div>
@@ -820,8 +820,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200 shadow-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
           {/* Country Filter */}
           <select
             value={filters.country}
@@ -847,7 +847,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
           </select>
 
           {/* Search Bar */}
-          <div className="md:col-span-2 relative">
+          <div className="sm:col-span-2 xl:col-span-2 relative">
             <Search className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
             <input
               type="search"
@@ -876,7 +876,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
           </div>
 
           {/* View Toggle */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:col-span-2 xl:col-span-1">
             <button
               onClick={() => setViewMode('card')}
               className={`flex-1 px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-2 ${
@@ -935,7 +935,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
           </div>
         )}
 
-        <div className="flex items-center justify-between mt-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4">
           <p className="text-sm text-gray-600">
             Showing <strong>{filteredCandidates.length}</strong> of <strong>{candidates.length}</strong> candidates
           </p>
@@ -961,7 +961,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {filteredCandidates.map((c) => {
               const skills = safeJsonArray(c.skills);
               const confidenceScore = confidenceScore10(c.extraction_confidence);
@@ -1063,11 +1063,11 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
                   </div>
 
                   {/* Card Content */}
-                  <div className="pt-20 p-6">
+                  <div className="pt-20 p-4 sm:p-6">
                     {/* Name and Title */}
                     <div className="mb-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="text-2xl font-semibold text-gray-900">{c.name}</h3>
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <h3 className="text-xl sm:text-2xl font-semibold text-gray-900 break-words">{c.name}</h3>
                         {c.needs_review && (
                           <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium flex items-center gap-1">
                             <AlertTriangle className="w-3 h-3" />
@@ -1081,11 +1081,11 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 text-gray-600 mb-1">
+                      <div className="flex items-start gap-2 text-gray-600 mb-1">
                         <Briefcase className="w-5 h-5" />
-                        <span className="text-lg">{c.position || '—'}</span>
+                        <span className="text-base sm:text-lg break-words">{c.position || '—'}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-gray-500">
+                      <div className="flex flex-wrap items-center gap-2 text-gray-500">
                         <span className="text-sm">{c.nationality || '—'}</span>
                         <span className="text-gray-400">→</span>
                         <MapPin className="w-4 h-4" />
@@ -1182,8 +1182,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
 
                     {/* Documents - Smart Display */}
                     <div className="mb-4 pb-4 border-b border-gray-200">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                        <div className="flex flex-wrap items-center gap-2">
                           <FileText className="w-4 h-4 text-gray-600" />
                           <span className="text-sm font-semibold text-gray-700">Document List</span>
                           {processingDocuments.get(c.id)?.isProcessing ? (
@@ -1480,7 +1480,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
 
                     {/* Action Buttons */}
                     <div className="space-y-2">
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <button 
                           onClick={() => handleViewProfile(c)}
                           className="px-5 py-3.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all flex items-center justify-center gap-2 font-medium shadow-lg hover:shadow-xl"

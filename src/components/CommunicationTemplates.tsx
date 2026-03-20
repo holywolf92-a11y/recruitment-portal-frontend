@@ -268,19 +268,19 @@ export function CommunicationTemplates() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
         <div>
-          <h1 className="text-3xl">Communication Templates</h1>
+          <h1 className="text-2xl sm:text-3xl">Communication Templates</h1>
           <p className="text-gray-600 mt-1">Automated messages for WhatsApp, Email & SMS</p>
         </div>
-        <button className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-lg">
+        <button className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-lg w-full sm:w-auto">
           <Plus className="w-5 h-5" />
           Create Template
         </button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4">
         <div className="bg-white rounded-lg p-4 border-2 border-gray-200">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-600">Total</span>
@@ -327,7 +327,7 @@ export function CommunicationTemplates() {
 
       {/* Filter Tabs */}
       <div className="bg-white rounded-lg p-4 border border-gray-200">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:flex-wrap">
           <button
             onClick={() => setFilterType('all')}
             className={`px-4 py-2 rounded-lg transition-colors ${
@@ -367,7 +367,7 @@ export function CommunicationTemplates() {
       </div>
 
       {/* Templates Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {filteredTemplates.map((template) => (
           <div
             key={template.id}
@@ -453,7 +453,7 @@ export function CommunicationTemplates() {
               </div>
 
               {/* Actions */}
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <button
                   onClick={() => {
                     setSelectedTemplate(template);
@@ -487,7 +487,7 @@ export function CommunicationTemplates() {
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
             <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
+              <div className="flex items-start sm:items-center justify-between gap-3">
                 <h2 className="text-2xl font-semibold">Template Preview</h2>
                 <button
                   onClick={() => setShowPreview(false)}
@@ -537,14 +537,14 @@ export function CommunicationTemplates() {
               </div>
             </div>
 
-            <div className="border-t border-gray-200 p-6 bg-gray-50 flex items-center justify-end gap-3">
+            <div className="border-t border-gray-200 p-6 bg-gray-50 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3">
               <button
                 onClick={() => setShowPreview(false)}
-                className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+                className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors w-full sm:w-auto"
               >
                 Close
               </button>
-              <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+              <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 w-full sm:w-auto">
                 <Send className="w-5 h-5" />
                 Send Test Message
               </button>
@@ -564,7 +564,7 @@ export function CommunicationTemplates() {
             <p className="text-sm text-gray-700 mb-3">
               Templates with "Auto-Send" enabled will automatically send messages when triggered. You can use variables like {`{name}`}, {`{position}`}, etc. to personalize messages.
             </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 text-sm">
               <div className="flex items-center gap-2 text-gray-700">
                 <CheckCircle className="w-4 h-4 text-green-600" />
                 Auto-send on CV received

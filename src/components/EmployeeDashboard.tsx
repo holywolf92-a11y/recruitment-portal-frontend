@@ -102,10 +102,10 @@ export const EmployeeDashboard = () => {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-4">
+      <div className="p-4 sm:p-6 space-y-4">
         <div className="animate-pulse space-y-4">
           <div className="h-32 bg-gray-200 rounded-lg"></div>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="h-24 bg-gray-200 rounded-lg"></div>
             ))}
@@ -116,11 +116,11 @@ export const EmployeeDashboard = () => {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-4 sm:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">📝 Daily Work Logbook</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">📝 Daily Work Logbook</h1>
           <p className="text-gray-600 mt-1">Track your work activities and build accountability</p>
         </div>
         <DailyLogForm onSuccess={handleLogSuccess} />
@@ -141,7 +141,7 @@ export const EmployeeDashboard = () => {
           </div>
         </div>
       )}      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* Today's Logs */}
         <Card>
           <CardHeader className="pb-3">
@@ -215,7 +215,7 @@ export const EmployeeDashboard = () => {
       {/* Recent Activity */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-start sm:items-center justify-between gap-3">
             <div>
               <CardTitle>📋 Today's Activity</CardTitle>
               <CardDescription>Your recent logs from today</CardDescription>
@@ -235,9 +235,9 @@ export const EmployeeDashboard = () => {
           ) : (
             <div className="space-y-3">
               {recentLogs.map((log) => (
-                <div key={log.id} className="flex items-start justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors">
+                <div key={log.id} className="flex items-start justify-between gap-3 p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
                       <p className="font-medium text-gray-900 truncate">{log.candidate_name}</p>
                       <Badge variant="secondary" className="flex-shrink-0">
                         {log.task_type}

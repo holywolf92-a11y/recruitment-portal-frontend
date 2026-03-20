@@ -359,7 +359,7 @@ export function CVInbox() {
       </div>
 
       {/* View switcher */}
-      <div className="flex gap-2 border-b border-gray-200 pb-1">
+      <div className="flex gap-2 border-b border-gray-200 pb-1 overflow-x-auto">
         <button
           onClick={() => setActiveView('inbox')}
           className={`flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${
@@ -399,8 +399,8 @@ export function CVInbox() {
         <>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <div className="bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl p-6 shadow-lg text-white transform transition-all hover:scale-105">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+        <div className="bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl p-5 sm:p-6 shadow-lg text-white transform transition-all hover:scale-105">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm opacity-90">Total CVs</span>
             <Inbox className="w-6 h-6 opacity-80" />
@@ -409,7 +409,7 @@ export function CVInbox() {
           <div className="text-xs opacity-75 mt-2">All time</div>
         </div>
         
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 shadow-lg text-white transform transition-all hover:scale-105">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-5 sm:p-6 shadow-lg text-white transform transition-all hover:scale-105">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm opacity-90">Processing</span>
             <Sparkles className="w-6 h-6 opacity-80 animate-pulse" />
@@ -418,7 +418,7 @@ export function CVInbox() {
           <div className="text-xs opacity-75 mt-2">AI extracting now...</div>
         </div>
         
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 shadow-lg text-white transform transition-all hover:scale-105">
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-5 sm:p-6 shadow-lg text-white transform transition-all hover:scale-105">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm opacity-90">Extracted</span>
             <CheckCircle className="w-6 h-6 opacity-80" />
@@ -427,7 +427,7 @@ export function CVInbox() {
           <div className="text-xs opacity-75 mt-2">Now candidates</div>
         </div>
         
-        <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl p-6 shadow-lg text-white transform transition-all hover:scale-105">
+        <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl p-5 sm:p-6 shadow-lg text-white transform transition-all hover:scale-105">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm opacity-90">Needs Review</span>
             <AlertTriangle className="w-6 h-6 opacity-80" />
@@ -436,7 +436,7 @@ export function CVInbox() {
           <div className="text-xs opacity-75 mt-2">Low confidence</div>
         </div>
         
-        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-6 shadow-lg text-white transform transition-all hover:scale-105">
+        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-5 sm:p-6 shadow-lg text-white transform transition-all hover:scale-105 sm:col-span-2 xl:col-span-1">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm opacity-90">Errors</span>
             <AlertTriangle className="w-6 h-6 opacity-80" />
@@ -448,7 +448,7 @@ export function CVInbox() {
 
       {/* Filter Tabs */}
       <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-nowrap overflow-x-auto pb-1 sm:flex-wrap">
           <button
             onClick={() => setFilterStatus('all')}
             className={`px-5 py-2.5 rounded-lg transition-all font-medium ${
@@ -501,7 +501,7 @@ export function CVInbox() {
           {error && (
             <div className="p-4 text-sm text-red-600">{error}</div>
           )}
-          <table className="w-full">
+          <table className="w-full min-w-[960px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-4 text-left text-xs uppercase tracking-wider text-gray-600">
@@ -550,7 +550,7 @@ export function CVInbox() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {cv.source === 'WhatsApp' && (
                         <>
                           <MessageSquare className="w-4 h-4 text-green-600" />
@@ -672,7 +672,7 @@ export function CVInbox() {
             <p className="text-sm text-gray-700 mb-4">
               When a CV arrives from WhatsApp, Email, or Web Form, our AI automatically:
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 text-sm mb-4">
               <div className="flex items-center gap-2 text-gray-700">
                 <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-semibold">1</div>
                 Reads the CV file

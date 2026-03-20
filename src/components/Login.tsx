@@ -48,21 +48,21 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.12),_transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(14,165,233,0.12),_transparent_28%),linear-gradient(180deg,_#f8fbff_0%,_#eef4ff_46%,_#f8fafc_100%)] flex items-center justify-center p-3 sm:p-4 lg:p-8">
+      <div className="w-full max-w-7xl grid grid-cols-1 xl:grid-cols-[minmax(0,1.02fr)_minmax(320px,0.98fr)] gap-4 lg:gap-6 xl:gap-8 items-start">
         {/* Left Side - Login Form */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8 lg:p-12">
+        <div className="bg-white/96 backdrop-blur rounded-[28px] border border-white/70 shadow-[0_24px_80px_rgba(15,23,42,0.12)] p-5 sm:p-6 lg:p-10 xl:p-12 order-2 xl:order-1">
           {/* Logo and Title */}
-          <div className="text-center mb-8">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <Shield className="w-10 h-10 text-white" />
+          <div className="text-center mb-6 sm:mb-8">
+            <div className="w-16 h-16 sm:w-18 sm:h-18 bg-gradient-to-br from-slate-900 via-blue-700 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200/70">
+              <Shield className="w-8 h-8 sm:w-9 sm:h-9 text-white" />
             </div>
-            <h1 className="text-3xl text-gray-900 mb-2">Falisha Manpower</h1>
-            <p className="text-gray-600">AI-Powered Recruitment Portal</p>
+            <h1 className="text-2xl sm:text-3xl text-gray-900 mb-2 font-semibold tracking-tight">Falisha Manpower</h1>
+            <p className="text-sm sm:text-base text-gray-600">Secure recruitment workspace for operations, compliance, and client delivery.</p>
           </div>
 
           {/* Login Type Toggle */}
-          <div className="flex gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 sm:mb-8">
             <button
               onClick={() => setLoginType('admin')}
               className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
@@ -88,7 +88,7 @@ export function Login() {
           </div>
 
           {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
             {/* Email Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -144,7 +144,7 @@ export function Login() {
             )}
 
             {/* Remember Me and Forgot Password */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" />
                 <span className="text-sm text-gray-600">Remember me</span>
@@ -179,7 +179,7 @@ export function Login() {
           </form>
 
           {/* Divider */}
-          <div className="relative my-8">
+          <div className="relative my-6 sm:my-8">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300"></div>
             </div>
@@ -189,7 +189,7 @@ export function Login() {
           </div>
 
           {/* Social Login (Optional) */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button className="px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 text-sm">
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -209,35 +209,35 @@ export function Login() {
         </div>
 
         {/* Right Side - Demo Accounts & Info */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6 order-1 xl:order-2">
           {/* Welcome Card */}
-          <div className={`rounded-2xl shadow-2xl p-8 text-white ${
+          <div className={`rounded-[28px] shadow-[0_24px_80px_rgba(15,23,42,0.14)] p-5 sm:p-6 lg:p-8 text-white ${
             loginType === 'admin'
               ? 'bg-gradient-to-br from-purple-600 to-purple-700'
               : 'bg-gradient-to-br from-blue-600 to-blue-700'
           }`}>
-            <h2 className="text-2xl mb-4">
+            <h2 className="text-xl sm:text-2xl mb-3 sm:mb-4 font-semibold">
               {loginType === 'admin' ? 'Admin Portal' : 'Employee Portal'}
             </h2>
-            <p className="text-blue-100 mb-6">
+            <p className="text-blue-100 text-sm sm:text-base mb-5 sm:mb-6 leading-relaxed">
               {loginType === 'admin'
                 ? 'Access your recruitment dashboard to manage candidates, track applications, and streamline your hiring process with AI-powered insights.'
                 : 'Log your daily work activities, track completed tasks, and contribute to the team\'s progress. Monitor your productivity and achievements.'}
             </p>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
               {loginType === 'admin' ? (
                 <>
-                  <div className="bg-white bg-opacity-20 rounded-lg p-4 text-center">
+                  <div className="bg-white/18 rounded-xl p-4 text-center backdrop-blur-sm border border-white/10">
                     <Users className="w-8 h-8 mx-auto mb-2" />
                     <div className="text-2xl mb-1">150+</div>
                     <div className="text-xs text-blue-100">Candidates</div>
                   </div>
-                  <div className="bg-white bg-opacity-20 rounded-lg p-4 text-center">
+                  <div className="bg-white/18 rounded-xl p-4 text-center backdrop-blur-sm border border-white/10">
                     <Shield className="w-8 h-8 mx-auto mb-2" />
                     <div className="text-2xl mb-1">98%</div>
                     <div className="text-xs text-blue-100">Success Rate</div>
                   </div>
-                  <div className="bg-white bg-opacity-20 rounded-lg p-4 text-center">
+                  <div className="bg-white/18 rounded-xl p-4 text-center backdrop-blur-sm border border-white/10">
                     <UserCheck className="w-8 h-8 mx-auto mb-2" />
                     <div className="text-2xl mb-1">45</div>
                     <div className="text-xs text-blue-100">Deployed</div>
@@ -245,17 +245,17 @@ export function Login() {
                 </>
               ) : (
                 <>
-                  <div className="bg-white bg-opacity-20 rounded-lg p-4 text-center">
+                  <div className="bg-white/18 rounded-xl p-4 text-center backdrop-blur-sm border border-white/10">
                     <BarChart3 className="w-8 h-8 mx-auto mb-2" />
                     <div className="text-2xl mb-1">120+</div>
                     <div className="text-xs text-blue-100">Task Types</div>
                   </div>
-                  <div className="bg-white bg-opacity-20 rounded-lg p-4 text-center">
+                  <div className="bg-white/18 rounded-xl p-4 text-center backdrop-blur-sm border border-white/10">
                     <CheckCircle className="w-8 h-8 mx-auto mb-2" />
                     <div className="text-2xl mb-1">89%</div>
                     <div className="text-xs text-blue-100">Completion Rate</div>
                   </div>
-                  <div className="bg-white bg-opacity-20 rounded-lg p-4 text-center">
+                  <div className="bg-white/18 rounded-xl p-4 text-center backdrop-blur-sm border border-white/10">
                     <Users className="w-8 h-8 mx-auto mb-2" />
                     <div className="text-2xl mb-1">25</div>
                     <div className="text-xs text-blue-100">Team Members</div>
@@ -266,8 +266,8 @@ export function Login() {
           </div>
 
           {/* Demo Accounts Card */}
-          <div className="bg-white rounded-2xl shadow-2xl p-8">
-            <h3 className="text-xl mb-2 text-gray-900">
+          <div className="bg-white/96 backdrop-blur rounded-[28px] border border-white/70 shadow-[0_24px_80px_rgba(15,23,42,0.12)] p-5 sm:p-6 lg:p-8">
+            <h3 className="text-lg sm:text-xl mb-2 text-gray-900 font-semibold">
               {loginType === 'admin' ? 'Admin Accounts' : 'Demo Employees'}
             </h3>
             <p className="text-sm text-gray-600 mb-6">
@@ -280,24 +280,24 @@ export function Login() {
                   onClick={() => quickLogin(account.email, account.password)}
                   className="w-full group"
                 >
-                  <div className={`bg-gradient-to-r ${account.color} rounded-lg p-4 hover:shadow-lg transition-all`}>
-                    <div className="flex items-center justify-between text-white">
+                  <div className={`bg-gradient-to-r ${account.color} rounded-xl p-4 hover:shadow-lg transition-all`}>
+                    <div className="flex items-center justify-between gap-3 text-white">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                        <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center shrink-0">
                           {loginType === 'admin' ? (
                             <Shield className="w-5 h-5" />
                           ) : (
                             <UserCheck className="w-5 h-5" />
                           )}
                         </div>
-                        <div className="text-left">
+                        <div className="text-left min-w-0">
                           <div className="font-semibold">{account.role}</div>
-                          <div className="text-xs text-white text-opacity-90">
+                          <div className="text-xs text-white/90 truncate max-w-[180px] sm:max-w-none">
                             {(account as any).name || account.email}
                           </div>
                         </div>
                       </div>
-                      <div className="text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="hidden sm:block text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                         Login →
                       </div>
                     </div>

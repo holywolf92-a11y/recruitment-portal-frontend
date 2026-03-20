@@ -819,7 +819,7 @@ export function CandidateBrowserExcel() {
         <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="space-y-4 p-4">
       {activeMenu === 'browser' ? (
-        <section className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm flex items-center justify-between">
+        <section className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <button
               onClick={() => {
@@ -831,7 +831,7 @@ export function CandidateBrowserExcel() {
             >
               ← Back to Dashboard
             </button>
-            <h2 className="text-2xl font-semibold text-gray-900 mt-2">{professionMode || 'Candidate Browser'}</h2>
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mt-2">{professionMode || 'Candidate Browser'}</h2>
             <p className="text-sm text-gray-600">Showing {filteredCandidates.length} candidates</p>
           </div>
         </section>
@@ -839,38 +839,38 @@ export function CandidateBrowserExcel() {
         <>
           {/* Header Section */}
           <section className="mb-4">
-            <h1 className="text-3xl font-bold text-gray-900">Candidate Browser</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Candidate Browser</h1>
             <p className="text-gray-600 mt-2">Browse and manage all candidates with advanced filters and professional organization.</p>
           </section>
 
           {/* KPI Cards Section */}
           {dailyStats && (
-            <div className="flex gap-4 overflow-x-auto pb-2">
-              <div className="min-w-[220px] flex-1 bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-lg p-4 shadow-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+              <div className="bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-lg p-4 shadow-sm">
                 <div className="text-sm font-medium text-slate-700">Total Applied</div>
                 <div className="text-2xl font-bold text-slate-900 mt-1">{dailyStats.total}</div>
                 <div className="text-xs text-slate-600 mt-2">All candidates in system</div>
               </div>
               
-              <div className="min-w-[220px] flex-1 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-4 shadow-sm">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-4 shadow-sm">
                 <div className="text-sm font-medium text-blue-700">Applied</div>
                 <div className="text-2xl font-bold text-blue-900 mt-1">{dailyStats.applied}</div>
                 <div className="text-xs text-blue-600 mt-2">Awaiting review</div>
               </div>
               
-              <div className="min-w-[220px] flex-1 bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-4 shadow-sm">
+              <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-4 shadow-sm">
                 <div className="text-sm font-medium text-green-700">Verified</div>
                 <div className="text-2xl font-bold text-green-900 mt-1">{dailyStats.verified}</div>
                 <div className="text-xs text-green-600 mt-2">Approved candidates</div>
               </div>
               
-              <div className="min-w-[220px] flex-1 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200 rounded-lg p-4 shadow-sm">
+              <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200 rounded-lg p-4 shadow-sm">
                 <div className="text-sm font-medium text-yellow-700">Pending</div>
                 <div className="text-2xl font-bold text-yellow-900 mt-1">{dailyStats.pending}</div>
                 <div className="text-xs text-yellow-600 mt-2">Under processing</div>
               </div>
               
-              <div className="min-w-[220px] flex-1 bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-lg p-4 shadow-sm">
+              <div className="bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-lg p-4 shadow-sm sm:col-span-2 xl:col-span-1">
                 <div className="text-sm font-medium text-red-700">Rejected</div>
                 <div className="text-2xl font-bold text-red-900 mt-1">{dailyStats.rejected}</div>
                 <div className="text-xs text-red-600 mt-2">Not qualified</div>
@@ -879,7 +879,7 @@ export function CandidateBrowserExcel() {
           )}
 
           {/* Filters Section */}
-          <section className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <section className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 shadow-sm">
             <div className="mb-6">
               <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
               <p className="text-sm text-gray-600 mt-1">
@@ -887,7 +887,7 @@ export function CandidateBrowserExcel() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-4">
           {/* Search Column */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">Search</label>
@@ -964,7 +964,7 @@ export function CandidateBrowserExcel() {
         </div>
 
         {/* Quick Filters and Action Buttons */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => applyQuickDateFilter('today')}
@@ -1038,8 +1038,8 @@ export function CandidateBrowserExcel() {
       {/* Browser Section */}
       <div className={`${activeMenu === 'browser' ? 'h-[calc(100vh-215px)]' : 'h-[calc(100vh-385px)]'} bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col shadow-sm`}>
         {/* Table Header Actions */}
-        <div className="border-b border-gray-200 p-4 bg-gray-50 flex-shrink-0">
-          <div className="flex items-center justify-between">
+          <div className="border-b border-gray-200 p-4 bg-gray-50 flex-shrink-0">
+          <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
             <div>
               <h3 className="font-semibold text-gray-900">{selectedFolder?.name || 'Select a folder'}</h3>
               <p className="text-sm text-gray-600">
@@ -1048,7 +1048,7 @@ export function CandidateBrowserExcel() {
               </p>
 
               {selectedCandidates.size > 0 && (
-                <div className="mt-2 flex items-center gap-3">
+                <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-3">
                   <span className="text-sm text-blue-600 font-medium">
                     {selectedCandidates.size} selected
                   </span>
@@ -1062,11 +1062,11 @@ export function CandidateBrowserExcel() {
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <div className="flex gap-1 bg-gray-200 rounded-lg p-1">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2">
+              <div className="flex gap-1 bg-gray-200 rounded-lg p-1 w-full sm:w-auto">
                 <button
                   onClick={() => setViewMode('basic')}
-                  className={`px-3 py-1 text-xs rounded transition-colors ${
+                  className={`flex-1 sm:flex-none px-3 py-1 text-xs rounded transition-colors ${
                     viewMode === 'basic' ? 'bg-white text-gray-900 shadow' : 'text-gray-600'
                   }`}
                 >
@@ -1074,7 +1074,7 @@ export function CandidateBrowserExcel() {
                 </button>
                 <button
                   onClick={() => setViewMode('detailed')}
-                  className={`px-3 py-1 text-xs rounded transition-colors ${
+                  className={`flex-1 sm:flex-none px-3 py-1 text-xs rounded transition-colors ${
                     viewMode === 'detailed' ? 'bg-white text-gray-900 shadow' : 'text-gray-600'
                   }`}
                 >
@@ -1084,7 +1084,7 @@ export function CandidateBrowserExcel() {
               <div className="relative">
                 <button
                   onClick={() => handleExport('xlsx')}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center gap-2"
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center justify-center gap-2 w-full sm:w-auto"
                 >
                   <Download className="w-4 h-4" />
                   Export Excel
@@ -1092,7 +1092,7 @@ export function CandidateBrowserExcel() {
               </div>
               <button
                 onClick={() => handleExport('csv')}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center gap-2"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center justify-center gap-2 w-full sm:w-auto"
               >
                 <Download className="w-4 h-4" />
                 Export CSV
@@ -1104,7 +1104,7 @@ export function CandidateBrowserExcel() {
         {/* Excel-like Table */}
         <div className="flex-1 min-h-0 overflow-auto">
           {filteredCandidates.length > 0 ? (
-            <table className="w-full border-collapse">
+            <table className="w-full min-w-[1100px] border-collapse">
               <thead className="bg-gray-100 sticky top-0 z-10">
                 <tr>
                   <th className="border border-gray-300 p-2 text-left bg-gray-100">

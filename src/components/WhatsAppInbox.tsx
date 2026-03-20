@@ -357,11 +357,11 @@ export function WhatsAppInbox() {
 
   return (
     <div className="rounded-xl border border-border/60 bg-background/60 dark:bg-background/40 backdrop-blur-xl overflow-hidden shadow-sm">
-      <div className="h-[calc(100vh-73px-48px)] min-h-[520px] flex flex-col">
+      <div className="h-[calc(100vh-73px-48px)] min-h-[440px] sm:min-h-[520px] flex flex-col">
         {view === 'list' ? (
           <div className="flex-1 flex flex-col bg-background/40 dark:bg-background/20">
             <div className="px-4 py-3 border-b border-border/60 bg-background/60 dark:bg-background/40 backdrop-blur-xl sticky top-0 z-10">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-start sm:items-center justify-between gap-3">
                 <div className="min-w-0">
                   <h2 className="text-base font-semibold tracking-tight">WhatsApp Inbox</h2>
                   <p className="text-xs text-muted-foreground">Conversations</p>
@@ -391,7 +391,7 @@ export function WhatsAppInbox() {
               {loadError && <div className="mt-2 text-xs text-destructive break-words">{loadError}</div>}
 
               {/* ── Agent Android App Banner ────────────────────── */}
-              <div className="mt-3 flex items-center gap-2 rounded-lg bg-[#075E54]/10 border border-[#075E54]/20 px-3 py-2">
+              <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-2 rounded-lg bg-[#075E54]/10 border border-[#075E54]/20 px-3 py-2">
                 <Smartphone className="w-4 h-4 text-[#075E54] flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-[#075E54]">Falisha Agent App</p>
@@ -402,7 +402,7 @@ export function WhatsAppInbox() {
                     href={AGENT_APK_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1 rounded-md bg-[#075E54] px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-[#064d45] transition-colors flex-shrink-0"
+                    className="inline-flex items-center justify-center gap-1 rounded-md bg-[#075E54] px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-[#064d45] transition-colors flex-shrink-0 w-full sm:w-auto"
                   >
                     <Download className="w-3 h-3" />
                     Download APK
@@ -606,7 +606,7 @@ export function WhatsAppInbox() {
 
                     return (
                       <div key={m.id} className={`flex ${isInbound ? 'justify-start' : 'justify-end'}`}>
-                        <div className={`max-w-[72%] rounded-2xl px-3 py-2 text-sm shadow-sm ${bubbleStyle}`}>
+                        <div className={`max-w-[88%] sm:max-w-[72%] rounded-2xl px-3 py-2 text-sm shadow-sm ${bubbleStyle}`}>
                           <div className="whitespace-pre-wrap break-words leading-5">{m.body || ''}</div>
                           <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-muted-foreground">
                             <span>{formatBubbleTime(m.created_at)}</span>
@@ -654,7 +654,7 @@ export function WhatsAppInbox() {
                     }
                   }}
                   disabled={isTakenOverByOther}
-                  className="flex-1 bg-input-background border border-border/60 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/60"
+                  className="flex-1 min-w-0 bg-input-background border border-border/60 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/60"
                   placeholder="Type a message"
                 />
 
@@ -670,7 +670,7 @@ export function WhatsAppInbox() {
               </div>
 
               {showTemplateComposer && !isTakenOverByOther && (
-                <div className="mt-3 flex items-center gap-2">
+                <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-2">
                   <input
                     value={templateName}
                     onChange={(e) => setTemplateName(e.target.value)}
@@ -680,12 +680,12 @@ export function WhatsAppInbox() {
                   <input
                     value={templateLanguage}
                     onChange={(e) => setTemplateLanguage(e.target.value)}
-                    className="w-[110px] bg-input-background border border-border/60 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/60"
+                    className="w-full sm:w-[110px] bg-input-background border border-border/60 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/60"
                     placeholder="en_US"
                   />
                   <button
                     onClick={() => sendTemplate(selectedConversation.id)}
-                    className="px-4 py-2 text-sm rounded-md border border-border/60 hover:bg-accent/60 transition-colors"
+                    className="px-4 py-2 text-sm rounded-md border border-border/60 hover:bg-accent/60 transition-colors w-full sm:w-auto"
                   >
                     Send Template
                   </button>

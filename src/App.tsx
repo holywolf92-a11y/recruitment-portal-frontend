@@ -258,10 +258,10 @@ const AppContent = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 shrink-0 sticky top-0 z-40">
+      <header className="bg-white/95 border-b border-gray-200 shrink-0 sticky top-0 z-40 backdrop-blur supports-[backdrop-filter]:bg-white/85">
         <div className="px-3 md:px-6 py-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 md:gap-4 min-w-0">
+          <div className="flex items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
               {/* Hamburger — mobile only */}
               {!isBrowserView && (
                 <button
@@ -273,14 +273,22 @@ const AppContent = () => {
                 </button>
               )}
               {/* Logo */}
-              <img
-                src={APP_CONFIG.company.logo}
-                alt={APP_CONFIG.company.name}
-                className="h-9 w-9 md:h-12 md:w-12 object-contain flex-shrink-0"
-              />
-              <div className="min-w-0">
-                <h1 className="text-blue-600 font-bold text-base md:text-lg truncate">{APP_CONFIG.company.name}</h1>
-                <p className="text-gray-600 text-xs hidden sm:flex gap-2">
+              <div className="flex h-10 w-10 md:h-11 md:w-11 items-center justify-center rounded-xl border border-blue-100 bg-white p-1 shadow-sm shadow-blue-100/70 flex-shrink-0 overflow-hidden">
+                <img
+                  src={APP_CONFIG.company.logo}
+                  alt={APP_CONFIG.company.name}
+                  className="max-h-full max-w-full object-contain"
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 min-w-0">
+                  <h1 className="text-slate-900 font-semibold text-sm sm:text-base md:text-lg truncate">{APP_CONFIG.company.name}</h1>
+                  <span className="hidden md:inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-700">
+                    Enterprise
+                  </span>
+                </div>
+                <p className="text-slate-500 text-[11px] sm:text-xs truncate">Recruitment Operations Platform</p>
+                <p className="text-gray-600 text-xs hidden lg:flex gap-2 mt-1">
                   <span className="flex items-center gap-1">
                     <Phone className="w-3 h-3" />
                     {APP_CONFIG.contact.phone}
@@ -293,10 +301,10 @@ const AppContent = () => {
                 </p>
               </div>
             </div>
-            <div className="relative flex-shrink-0">
+            <div className="relative flex-shrink-0 self-center">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-2 md:gap-3 px-2 md:px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-2 md:gap-3 px-2 md:px-4 py-2 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-200"
               >
                 <div className="hidden sm:block text-right">
                   <p className="text-sm font-medium text-gray-900">{user.name}</p>
@@ -798,7 +806,7 @@ const AppContent = () => {
         )}
 
         {/* Main Content */}
-        <main className="flex-1 min-w-0 min-h-0 overflow-y-auto">
+        <main className="flex-1 min-w-0 min-h-0 overflow-y-auto bg-gradient-to-b from-slate-50 to-white">
           {/* Back button for Browser view */}
           {isBrowserView && (
             <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-3">
@@ -812,7 +820,7 @@ const AppContent = () => {
             </div>
           )}
           
-          <div className={isBrowserView ? '' : 'p-4 md:p-6'}>
+          <div className={isBrowserView ? '' : 'p-3 sm:p-4 md:p-6'}>
             {renderContent()}
           </div>
         </main>

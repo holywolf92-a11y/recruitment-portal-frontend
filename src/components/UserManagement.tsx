@@ -31,14 +31,14 @@ export function UserManagement() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <div>
-            <h1 className="text-3xl">User Management</h1>
+            <h1 className="text-2xl sm:text-3xl">User Management</h1>
             <p className="text-gray-600 mt-1">Manage users, roles, and permissions</p>
           </div>
           <button
             onClick={() => setShowAddUser(true)}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg flex items-center gap-2"
+            className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg flex items-center justify-center gap-2 w-full sm:w-auto"
           >
             <Plus className="w-5 h-5" />
             Add New User
@@ -46,7 +46,7 @@ export function UserManagement() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
           <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white">
             <div className="flex items-center justify-between mb-2">
               <div className="text-sm opacity-90">Total Users</div>
@@ -79,8 +79,8 @@ export function UserManagement() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200 shadow-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
@@ -104,7 +104,7 @@ export function UserManagement() {
             <option value="Suspended">Suspended</option>
           </select>
 
-          <div className="md:col-span-2 relative">
+          <div className="sm:col-span-2 xl:col-span-2 relative">
             <Search className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
             <input
               type="text"
@@ -116,7 +116,7 @@ export function UserManagement() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between mt-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4">
           <p className="text-sm text-gray-600">
             Showing <strong>{filteredUsers.length}</strong> of <strong>{mockUsers.length}</strong> users
           </p>
@@ -130,7 +130,7 @@ export function UserManagement() {
       {/* Users Table */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[920px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-4 text-left text-xs uppercase tracking-wider text-gray-600">User</th>
@@ -149,14 +149,14 @@ export function UserManagement() {
                       <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
                         {user.name[0]}
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <div className="font-medium text-gray-900 flex items-center gap-2">
                           {user.name}
                           {user.id === currentUser?.id && (
                             <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">You</span>
                           )}
                         </div>
-                        <div className="text-sm text-gray-500 flex items-center gap-1">
+                        <div className="text-sm text-gray-500 flex items-center gap-1 min-w-0 truncate">
                           <Mail className="w-3 h-3" />
                           {user.email}
                         </div>
@@ -253,7 +253,7 @@ export function UserManagement() {
                     </div>
                     {resource}
                   </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                     {Object.entries(permissions).map(([action, allowed]) => (
                       <div
                         key={action}

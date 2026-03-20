@@ -77,17 +77,17 @@ export function Reports() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
         <div>
           <h2>Reports & Analytics</h2>
           <p className="text-gray-600">Generate and export detailed reports</p>
         </div>
-        <div className="flex gap-2">
-          <button className="bg-white border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <button className="bg-white border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 w-full sm:w-auto">
             <Calendar className="w-4 h-4" />
             Select Date Range
           </button>
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 w-full sm:w-auto">
             <Download className="w-4 h-4" />
             Export All
           </button>
@@ -95,7 +95,7 @@ export function Reports() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         <div className="bg-white rounded-lg p-6 border border-gray-200">
           <p className="text-sm text-gray-600 mb-2">Total Applications</p>
           <p className="text-3xl mb-1">{totalCandidates}</p>
@@ -119,7 +119,7 @@ export function Reports() {
       </div>
 
       {/* Report Types */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
         {reports.map((report) => {
           const Icon = report.icon;
           const colorClasses = {
@@ -154,8 +154,8 @@ export function Reports() {
       </div>
 
       {/* Detailed Country Report */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <h3>Country-wise Distribution</h3>
           <button className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
             <Download className="w-4 h-4" />
@@ -163,7 +163,7 @@ export function Reports() {
           </button>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[640px]">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs text-gray-600 uppercase tracking-wider">
@@ -207,15 +207,15 @@ export function Reports() {
       </div>
 
       {/* Position Distribution */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <h3>Position-wise Distribution</h3>
           <button className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
             <Download className="w-4 h-4" />
             Export to Excel
           </button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {Object.entries(positionStats)
             .sort((a, b) => b[1] - a[1])
             .map(([position, count]) => {
@@ -242,9 +242,9 @@ export function Reports() {
       </div>
 
       {/* Source Analysis */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
         <h3 className="mb-6">Application Source Analysis</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {Object.entries(sourceStats).map(([source, count]) => {
             const percentage = (count / totalCandidates) * 100;
             return (

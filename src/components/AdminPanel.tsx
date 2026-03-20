@@ -226,7 +226,7 @@ export function AdminPanel() {
               <Smartphone className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
             <div className="min-w-0">
-              <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Falisha Agent App â€” Android</h3>
+                        <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Falisha Agent App - Android</h3>
               <p className="text-xs sm:text-sm text-gray-600 mt-0.5 leading-snug">WhatsApp-style mobile app for agents. Manage conversations and send messages from their phone.</p>
             </div>
           </div>
