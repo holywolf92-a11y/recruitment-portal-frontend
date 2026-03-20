@@ -3,7 +3,7 @@ import { Users, Plus, Lock, Trash2, Eye, EyeOff, AlertCircle, CheckCircle, X, Sm
 import { apiClient } from '../lib/apiClient';
 import { useAuth } from '../lib/authContext';
 
-const AGENT_APK_URL = 'https://expo.dev/artifacts/eas/emja7v2yg5Suv9y2EoTfMk.apk';
+const AGENT_APK_URL = 'https://expo.dev/artifacts/eas/6meTxPRQvVRfMepbPTe81a.apk';
 
 interface Employee {
   id: string;
