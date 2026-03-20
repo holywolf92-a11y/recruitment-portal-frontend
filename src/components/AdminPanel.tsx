@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Users, Plus, Lock, Trash2, Eye, EyeOff, AlertCircle, CheckCircle, X } from 'lucide-react';
+import { Users, Plus, Lock, Trash2, Eye, EyeOff, AlertCircle, CheckCircle, X, Smartphone, Download } from 'lucide-react';
 import { apiClient } from '../lib/apiClient';
 import { useAuth } from '../lib/authContext';
+
+const AGENT_APK_URL: string | undefined = (import.meta as any).env?.VITE_AGENT_APK_URL;
 
 interface Employee {
   id: string;
@@ -215,6 +217,33 @@ export function AdminPanel() {
             <h1 className="text-3xl font-bold text-gray-900">Admin Panel</h1>
           </div>
           <p className="text-gray-600">Manage employee accounts and settings</p>
+        </div>
+
+        {/* ── Agent Android App Card ──────────────────────────── */}
+        <div className="mb-8 rounded-xl border border-[#075E54]/25 bg-gradient-to-r from-[#075E54]/5 to-[#25D366]/5 p-5 flex items-center gap-4">
+          <div className="w-12 h-12 bg-[#075E54] rounded-xl flex items-center justify-center flex-shrink-0">
+            <Smartphone className="w-6 h-6 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-gray-900">Falisha Agent App — Android</h3>
+            <p className="text-sm text-gray-600 mt-0.5">WhatsApp-style mobile app for agents. Manage conversations, take control, send messages directly from their phone.</p>
+          </div>
+          {AGENT_APK_URL ? (
+            <a
+              href={AGENT_APK_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 rounded-lg bg-[#075E54] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#064d45] transition-colors flex-shrink-0 shadow-sm"
+            >
+              <Download className="w-4 h-4" />
+              Download APK
+            </a>
+          ) : (
+            <div className="text-center flex-shrink-0">
+              <span className="inline-block rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-500">Build pending…</span>
+              <p className="text-xs text-gray-400 mt-1">Set VITE_AGENT_APK_URL env var after build</p>
+            </div>
+          )}
         </div>
 
         {/* Alerts */}
