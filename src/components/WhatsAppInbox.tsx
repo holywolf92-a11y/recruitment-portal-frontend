@@ -4,7 +4,7 @@ import { useAuth, supabase } from '../lib/authContext';
 import { ArrowLeft, CheckCheck, MoreVertical, Phone, Search, Send, Smile, Paperclip, Video, Smartphone, Download } from 'lucide-react';
 
 // APK download URL — Falisha Agent Android App (built via EAS)
-const AGENT_APK_URL = 'https://expo.dev/artifacts/eas/6meTxPRQvVRfMepbPTe81a.apk';
+const AGENT_APK_URL = 'https://expo.dev/artifacts/eas/4UHM4fr7khi7epQohrvcHL.apk';
 
 type ReplyMode = 'ai' | 'human';
 
