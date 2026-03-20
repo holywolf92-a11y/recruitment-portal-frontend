@@ -3,8 +3,8 @@ import { API_BASE_URL } from '../lib/apiClient';
 import { useAuth, supabase } from '../lib/authContext';
 import { ArrowLeft, CheckCheck, MoreVertical, Phone, Search, Send, Smile, Paperclip, Video, Smartphone, Download } from 'lucide-react';
 
-// APK download URL — set VITE_AGENT_APK_URL in Railway/Vite env to the EAS build URL
-const AGENT_APK_URL: string | undefined = (import.meta as any).env?.VITE_AGENT_APK_URL;
+// APK download URL — Falisha Agent Android App (built via EAS)
+const AGENT_APK_URL = 'https://expo.dev/artifacts/eas/emja7v2yg5Suv9y2EoTfMk.apk';
 
 type ReplyMode = 'ai' | 'human';
 
@@ -397,7 +397,7 @@ export function WhatsAppInbox() {
                   <p className="text-xs font-semibold text-[#075E54]">Falisha Agent App</p>
                   <p className="text-[10px] text-muted-foreground">Android app for managing conversations on mobile</p>
                 </div>
-                {AGENT_APK_URL ? (
+                {AGENT_APK_URL && (
                   <a
                     href={AGENT_APK_URL}
                     target="_blank"
@@ -407,8 +407,6 @@ export function WhatsAppInbox() {
                     <Download className="w-3 h-3" />
                     Download APK
                   </a>
-                ) : (
-                  <span className="text-[10px] text-muted-foreground italic flex-shrink-0">Build pending…</span>
                 )}
               </div>
             </div>

@@ -3,7 +3,7 @@ import { Users, Plus, Lock, Trash2, Eye, EyeOff, AlertCircle, CheckCircle, X, Sm
 import { apiClient } from '../lib/apiClient';
 import { useAuth } from '../lib/authContext';
 
-const AGENT_APK_URL: string | undefined = (import.meta as any).env?.VITE_AGENT_APK_URL;
+const AGENT_APK_URL = 'https://expo.dev/artifacts/eas/emja7v2yg5Suv9y2EoTfMk.apk';
 
 interface Employee {
   id: string;
@@ -228,7 +228,7 @@ export function AdminPanel() {
             <h3 className="font-semibold text-gray-900">Falisha Agent App — Android</h3>
             <p className="text-sm text-gray-600 mt-0.5">WhatsApp-style mobile app for agents. Manage conversations, take control, send messages directly from their phone.</p>
           </div>
-          {AGENT_APK_URL ? (
+          {AGENT_APK_URL && (
             <a
               href={AGENT_APK_URL}
               target="_blank"
@@ -238,11 +238,6 @@ export function AdminPanel() {
               <Download className="w-4 h-4" />
               Download APK
             </a>
-          ) : (
-            <div className="text-center flex-shrink-0">
-              <span className="inline-block rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-500">Build pending…</span>
-              <p className="text-xs text-gray-400 mt-1">Set VITE_AGENT_APK_URL env var after build</p>
-            </div>
           )}
         </div>
 
