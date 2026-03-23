@@ -36,6 +36,7 @@ const AppContent = () => {
   const [selectedProfession, setSelectedProfession] = useState<string>('all');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [candidateToOpen, setCandidateToOpen] = useState<string | null>(null);
+  const [candidateTabToOpen, setCandidateTabToOpen] = useState<'details' | 'documents' | 'missing-data'>('details');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const TAB_PATHS: Record<string, string> = {
@@ -58,13 +59,19 @@ const AppContent = () => {
     reviews: '/admin/reviews',
   };
 
-  function buildAdminUrl(tab: string, opts?: { profession?: string }) {
+  function buildAdminUrl(tab: string, opts?: { profession?: string; candidateId?: string | null; candidateTab?: 'details' | 'documents' | 'missing-data' | null }) {
     const base = TAB_PATHS[tab] || '/admin/dashboard';
     const url = new URL(base, window.location.origin);
     if (tab === 'candidates') {
       const profession = (opts?.profession ?? selectedProfession ?? 'all').toString();
       if (profession && profession !== 'all') {
         url.searchParams.set('profession', profession);
+      }
+      if (opts?.candidateId) {
+        url.searchParams.set('candidateId', opts.candidateId);
+      }
+      if (opts?.candidateTab) {
+        url.searchParams.set('candidateTab', opts.candidateTab);
       }
     }
     return `${url.pathname}${url.search}`;
@@ -76,12 +83,12 @@ const AppContent = () => {
 
     // Treat "/" and "/admin" as dashboard.
     if (normalizedPathname === '/' || normalizedPathname === '/admin') {
-      return { tab: 'dashboard', profession: 'all' };
+      return { tab: 'dashboard', profession: 'all', candidateId: null, candidateTab: 'details' as const };
     }
 
     // Public routes are handled before auth in App(); ignore here.
     if (!normalizedPathname.startsWith('/admin/')) {
-      return { tab: 'dashboard', profession: 'all' };
+      return { tab: 'dashboard', profession: 'all', candidateId: null, candidateTab: 'details' as const };
     }
 
     const adminPath = normalizedPathname;
@@ -89,12 +96,19 @@ const AppContent = () => {
     const tab = match?.[0] || 'dashboard';
 
     let profession: string | null = null;
+    let candidateId: string | null = null;
+    let candidateTab: 'details' | 'documents' | 'missing-data' = 'details';
     if (tab === 'candidates') {
       const params = new URLSearchParams(search);
       profession = params.get('profession');
+      candidateId = params.get('candidateId');
+      const rawCandidateTab = params.get('candidateTab');
+      if (rawCandidateTab === 'documents' || rawCandidateTab === 'missing-data' || rawCandidateTab === 'details') {
+        candidateTab = rawCandidateTab;
+      }
     }
 
-    return { tab, profession: profession || 'all' };
+    return { tab, profession: profession || 'all', candidateId, candidateTab };
   }
 
   const navigateTab = (tab: string, opts?: { profession?: string }) => {
@@ -127,6 +141,11 @@ const AppContent = () => {
       setActiveTab(parsed.tab);
       if (parsed.tab === 'candidates') {
         setSelectedProfession(parsed.profession);
+        setCandidateToOpen(parsed.candidateId);
+        setCandidateTabToOpen(parsed.candidateTab);
+      } else {
+        setCandidateToOpen(null);
+        setCandidateTabToOpen('details');
       }
     };
 
@@ -209,10 +228,25 @@ const AppContent = () => {
       case 'candidate-excel-browser':
         return <CandidateBrowserExcel onOpenCandidate={(candidateId) => {
           setCandidateToOpen(candidateId);
-          navigateTab('candidates');
+          setCandidateTabToOpen('details');
+          navigateTab('candidates', { candidateId, candidateTab: 'details' });
         }} />;
       case 'candidates':
-        return <CandidateManagement initialProfessionFilter={selectedProfession} />;
+        return (
+          <CandidateManagement
+            initialProfessionFilter={selectedProfession}
+            candidateIdToOpen={candidateToOpen}
+            candidateInitialTabToOpen={candidateTabToOpen}
+            onCandidateOpened={() => {
+              setCandidateToOpen(null);
+              setCandidateTabToOpen('details');
+              if (typeof window !== 'undefined') {
+                const nextUrl = buildAdminUrl('candidates', { profession: selectedProfession });
+                window.history.replaceState({}, '', nextUrl);
+              }
+            }}
+          />
+        );
       case 'employers':
         return <EmployerManagement />;
       case 'jobs':

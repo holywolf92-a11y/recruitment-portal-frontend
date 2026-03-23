@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { AlertCircle, CheckCircle, Loader, Pencil, Save, X, FileText, Clock } from 'lucide-react';
-import { Candidate } from '../lib/apiClient';
+import { AlertCircle, CheckCircle, Loader, Pencil, Save, X, FileText, Clock, Mail, Paperclip, RefreshCw, MessageSquare } from 'lucide-react';
+import { Candidate, CandidateReplyTrace } from '../lib/apiClient';
 import { apiClient } from '../lib/apiClient';
 
 interface MissingDataTabProps {
@@ -22,9 +22,13 @@ export function MissingDataTab({ candidate, onFieldUpdate }: MissingDataTabProps
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
   const [saving, setSaving] = useState(false);
+  const [replyTrace, setReplyTrace] = useState<CandidateReplyTrace | null>(null);
+  const [traceLoading, setTraceLoading] = useState(true);
+  const [downloadingDocumentId, setDownloadingDocumentId] = useState<string | null>(null);
+  const [expandedReplyId, setExpandedReplyId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchMissingFields();
+    void Promise.all([fetchMissingFields(), fetchReplyTrace()]);
   }, [candidate.id]);
 
   const fetchMissingFields = async () => {
@@ -36,6 +40,19 @@ export function MissingDataTab({ candidate, onFieldUpdate }: MissingDataTabProps
       console.error('Error fetching missing fields:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchReplyTrace = async () => {
+    try {
+      setTraceLoading(true);
+      const response = await apiClient.getCandidateReplyTrace(candidate.id);
+      setReplyTrace(response);
+    } catch (error: any) {
+      console.error('Error fetching reply trace:', error);
+      setReplyTrace(null);
+    } finally {
+      setTraceLoading(false);
     }
   };
 
@@ -95,6 +112,28 @@ export function MissingDataTab({ candidate, onFieldUpdate }: MissingDataTabProps
       passport: 'AB1234567',
     };
     return placeholders[field] || `Enter ${field.replace(/_/g, ' ')}`;
+  };
+
+  const formatDateTime = (value?: string | null) => {
+    if (!value) return 'Not available';
+    try {
+      return new Date(value).toLocaleString();
+    } catch {
+      return value;
+    }
+  };
+
+  const handleDownloadDocument = async (documentId: string) => {
+    try {
+      setDownloadingDocumentId(documentId);
+      const downloadUrl = await apiClient.getCandidateDocumentDownloadUrl(documentId);
+      window.open(downloadUrl, '_blank', 'noopener,noreferrer');
+    } catch (error: any) {
+      console.error('Error getting document download URL:', error);
+      alert(error?.message || 'Failed to get document download URL');
+    } finally {
+      setDownloadingDocumentId(null);
+    }
   };
 
   if (loading) {
@@ -246,6 +285,158 @@ export function MissingDataTab({ candidate, onFieldUpdate }: MissingDataTabProps
           <li>You can manually update any missing field at any time</li>
           <li>Missing fields are calculated based on Excel Browser requirements</li>
         </ul>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <h4 className="font-medium text-gray-900 flex items-center gap-2">
+              <Mail className="w-4 h-4 text-blue-600" />
+              Reply Trace
+            </h4>
+            <p className="text-sm text-gray-600 mt-1">Sent emails, candidate replies, attached documents, and candidate updates for this profile.</p>
+          </div>
+          <button
+            onClick={fetchReplyTrace}
+            disabled={traceLoading}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${traceLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
+
+        {traceLoading ? (
+          <div className="py-8 flex items-center justify-center text-gray-500">
+            <Loader className="w-5 h-5 animate-spin mr-2" />
+            Loading reply trace...
+          </div>
+        ) : !replyTrace ? (
+          <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500">
+            Reply trace is not available for this candidate yet.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Tracking Token</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900">{replyTrace.candidate.emailTrackingToken || 'Not assigned'}</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Last Sent</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900">{formatDateTime(replyTrace.candidate.lastSentAt)}</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Last Reply Processed</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900">{formatDateTime(replyTrace.candidate.lastReplyProcessedAt)}</p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="rounded-lg border border-gray-200 p-4">
+                <h5 className="font-medium text-gray-900 flex items-center gap-2 mb-3">
+                  <Mail className="w-4 h-4 text-blue-600" />
+                  Sent
+                </h5>
+                <div className="space-y-3">
+                  {replyTrace.sentMessages.length === 0 ? (
+                    <p className="text-sm text-gray-500">No outbound messages logged.</p>
+                  ) : replyTrace.sentMessages.map((message) => (
+                    <div key={message.id} className="rounded-lg bg-blue-50 border border-blue-100 p-3">
+                      <p className="text-sm font-medium text-gray-900">{message.subject || 'No subject'}</p>
+                      <p className="text-xs text-gray-600 mt-1">{formatDateTime(message.sentAt)} · {message.provider || 'unknown provider'}</p>
+                      <p className="text-xs text-gray-600 mt-1">Trigger: {message.trigger || 'n/a'}</p>
+                      {(message.missingFields.length > 0 || message.missingDocs.length > 0) && (
+                        <p className="text-xs text-gray-600 mt-1">Requested: {[...message.missingFields, ...message.missingDocs].join(', ')}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 p-4">
+                <h5 className="font-medium text-gray-900 flex items-center gap-2 mb-3">
+                  <MessageSquare className="w-4 h-4 text-green-600" />
+                  Replies
+                </h5>
+                <div className="space-y-3">
+                  {replyTrace.replyMessages.length === 0 ? (
+                    <p className="text-sm text-gray-500">No reply messages matched yet.</p>
+                  ) : replyTrace.replyMessages.map((message) => (
+                    <div key={message.id} className="rounded-lg bg-green-50 border border-green-100 p-3">
+                      <p className="text-sm font-medium text-gray-900">{message.subject || 'No subject'}</p>
+                      <p className="text-xs text-gray-600 mt-1">{message.from || 'Unknown sender'} · {formatDateTime(message.receivedAt)}</p>
+                      <p className="text-xs text-gray-600 mt-1">Matched by {message.matchedBy || 'unknown'} · {message.attachmentCount} attachment{message.attachmentCount === 1 ? '' : 's'}</p>
+                      {message.bodyPreview && (
+                        <div className="mt-2 rounded-md bg-white/80 p-2 text-xs text-gray-700 whitespace-pre-wrap">
+                          {expandedReplyId === message.id ? (message.bodyText || message.bodyPreview) : message.bodyPreview}
+                        </div>
+                      )}
+                      {message.bodyText && message.bodyText.length > (message.bodyPreview?.length || 0) && (
+                        <button
+                          onClick={() => setExpandedReplyId((current) => current === message.id ? null : message.id)}
+                          className="mt-2 inline-flex items-center gap-2 rounded-md border border-green-200 bg-white px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-100"
+                        >
+                          {expandedReplyId === message.id ? 'Collapse Full Reply' : 'Expand Full Reply'}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="rounded-lg border border-gray-200 p-4">
+                <h5 className="font-medium text-gray-900 flex items-center gap-2 mb-3">
+                  <Paperclip className="w-4 h-4 text-purple-600" />
+                  Documents From Replies
+                </h5>
+                <div className="space-y-3">
+                  {replyTrace.documents.length === 0 ? (
+                    <p className="text-sm text-gray-500">No email-sourced documents linked yet.</p>
+                  ) : replyTrace.documents.map((doc) => (
+                    <div key={doc.id} className="rounded-lg bg-purple-50 border border-purple-100 p-3">
+                      <p className="text-sm font-medium text-gray-900">{doc.fileName || 'Unnamed document'}</p>
+                      <p className="text-xs text-gray-600 mt-1">{doc.documentType || doc.category || 'Unknown type'} · {doc.verificationStatus || 'pending'}</p>
+                      <p className="text-xs text-gray-600 mt-1">{formatDateTime(doc.createdAt)}</p>
+                      <button
+                        onClick={() => handleDownloadDocument(doc.id)}
+                        disabled={downloadingDocumentId === doc.id}
+                        className="mt-2 inline-flex items-center gap-2 rounded-md border border-purple-200 bg-white px-3 py-1.5 text-xs font-medium text-purple-700 hover:bg-purple-100 disabled:opacity-50"
+                      >
+                        {downloadingDocumentId === doc.id ? (
+                          <Loader className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <FileText className="w-3.5 h-3.5" />
+                        )}
+                        Download
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 p-4">
+                <h5 className="font-medium text-gray-900 flex items-center gap-2 mb-3">
+                  <CheckCircle className="w-4 h-4 text-emerald-600" />
+                  Candidate Updates
+                </h5>
+                <div className="space-y-3">
+                  {replyTrace.candidateUpdates.length === 0 ? (
+                    <p className="text-sm text-gray-500">No candidate field updates traced from replies yet.</p>
+                  ) : replyTrace.candidateUpdates.map((update, index) => (
+                    <div key={`${update.field}-${index}`} className="rounded-lg bg-emerald-50 border border-emerald-100 p-3">
+                      <p className="text-sm font-medium text-gray-900">{update.field.replace(/_/g, ' ')}</p>
+                      <p className="text-xs text-gray-600 mt-1">Source: {update.source}</p>
+                      <p className="text-xs text-gray-600 mt-1">{formatDateTime(update.updatedAt)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

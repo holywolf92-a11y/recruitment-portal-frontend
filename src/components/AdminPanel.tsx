@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
-import { Users, Plus, Lock, Trash2, Eye, EyeOff, AlertCircle, CheckCircle, X, Smartphone, Download } from 'lucide-react';
-import { apiClient } from '../lib/apiClient';
+import { Users, Plus, Lock, Trash2, Eye, EyeOff, AlertCircle, CheckCircle, X, Smartphone, Download, Mail, RefreshCw } from 'lucide-react';
+import { apiClient, HostingerPollingStatus } from '../lib/apiClient';
 import { useAuth } from '../lib/authContext';
 
 const AGENT_APK_URL = 'https://expo.dev/artifacts/eas/nGLFf9bYmd4R7fzXcgGpNM.apk';
@@ -24,13 +24,15 @@ interface FormData {
 
 export function AdminPanel() {
   const { session } = useAuth();
-  const [activeTab, setActiveTab] = useState<'list' | 'create' | 'manage'>('list');
+  const [activeTab, setActiveTab] = useState<'list' | 'create' | 'manage' | 'email'>('list');
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [hostingerStatus, setHostingerStatus] = useState<HostingerPollingStatus | null>(null);
+  const [statusLoading, setStatusLoading] = useState(false);
 
   // Form states
   const [formData, setFormData] = useState<FormData>({
@@ -49,34 +51,71 @@ export function AdminPanel() {
   // Load employees on mount
   useEffect(() => {
     loadEmployees();
+    loadHostingerStatus();
   }, []);
+
+  const loadHostingerStatus = async () => {
+    try {
+      setStatusLoading(true);
+      const data = await apiClient.getHostingerPollingStatus();
+      setHostingerStatus(data);
+    } catch (err: any) {
+      console.error('Error loading Hostinger status:', err);
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
+  const triggerHostingerPoll = async () => {
+    try {
+      setStatusLoading(true);
+      await apiClient.triggerHostingerPolling();
+      await loadHostingerStatus();
+      setSuccess('Hostinger mailbox poll completed');
+    } catch (err: any) {
+      setError(err.message || 'Failed to trigger Hostinger mailbox poll');
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
+  const formatDateTime = (value?: string | null) => {
+    if (!value) return 'Never';
+    try {
+      return new Date(value).toLocaleString();
+    } catch {
+      return value;
+    }
+  };
+
+  const formatDuration = (value?: number | null) => {
+    if (!value || value < 0) return 'n/a';
+    if (value < 1000) return `${value} ms`;
+    const seconds = value / 1000;
+    if (seconds < 60) return `${seconds.toFixed(1)} s`;
+    return `${(seconds / 60).toFixed(1)} min`;
+  };
+
+  const getAuthHeaders = () => {
+    const token = session?.session?.access_token || session?.access_token;
+
+    if (!token) {
+      throw new Error('No authentication token available');
+    }
+
+    return {
+      Authorization: `Bearer ${token}`,
+    };
+  };
 
   const loadEmployees = async () => {
     try {
       setLoading(true);
       setError('');
-      const token = session?.session?.access_token || session?.access_token;
-      
-      if (!token) {
-        setError('No authentication token available');
-        return;
-      }
-
-      // Fetch employees from backend
-      const response = await fetch('/api/auth/employees', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
+      const data = await apiClient.get<{ employees?: Employee[] }>('/auth/employees', {
+        headers: getAuthHeaders(),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to load employees (${response.status})`);
-      }
-
-      const data = await response.json();
       if (data.employees && Array.isArray(data.employees)) {
         setEmployees(data.employees);
       } else {
@@ -98,18 +137,7 @@ export function AdminPanel() {
       setError('');
       setSuccess('');
 
-      const response = await fetch('/api/auth/register-employee', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to create employee');
-      }
-
-      const data = await response.json();
+      await apiClient.post('/auth/register-employee', formData);
       setSuccess(`Employee ${formData.email} created successfully! Reloading employee list...`);
       
       // Clear form
@@ -144,24 +172,13 @@ export function AdminPanel() {
         throw new Error('No employee selected');
       }
 
-      const token = session?.session?.access_token || session?.access_token;
-
-      const response = await fetch('/api/auth/change-employee-password', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token || ''}`
-        },
-        body: JSON.stringify({
+      await apiClient.post('/auth/change-employee-password', {
           employeeId: selectedEmployee.id,
           newPassword: passwordForm.newPassword
-        })
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to change password');
-      }
+        }, {
+          headers: getAuthHeaders(),
+        }
+      );
 
       setSuccess('Password changed successfully');
       setPasswordForm({ employeeId: '', newPassword: '' });
@@ -182,21 +199,9 @@ export function AdminPanel() {
       setError('');
       setSuccess('');
 
-      const token = session?.session?.access_token || session?.access_token;
-
-      const response = await fetch('/api/auth/delete-employee', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token || ''}`
-        },
-        body: JSON.stringify({ employeeId })
+      await apiClient.post('/auth/delete-employee', { employeeId }, {
+        headers: getAuthHeaders(),
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to delete employee');
-      }
 
       setSuccess(`Employee ${email} deleted successfully`);
       loadEmployees();
@@ -304,6 +309,17 @@ export function AdminPanel() {
           >
             <Lock className="w-4 h-4 flex-shrink-0" />
             <span>Manage Access</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('email')}
+            className={`flex items-center gap-1.5 px-3 sm:px-4 py-3 font-medium transition-colors border-b-2 text-sm whitespace-nowrap ${
+              activeTab === 'email'
+                ? 'text-purple-600 border-purple-600'
+                : 'text-gray-600 border-transparent hover:text-gray-900'
+            }`}
+          >
+            <Mail className="w-4 h-4 flex-shrink-0" />
+            <span>Email Ops</span>
           </button>
         </div>
 
@@ -597,6 +613,208 @@ export function AdminPanel() {
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'email' && (
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6 space-y-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                  <Mail className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Hostinger Mailbox Status</h3>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-0.5">Direct inbox polling for candidate replies to support@falishajobs.com</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={loadHostingerStatus}
+                  disabled={statusLoading}
+                  className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-4 h-4 ${statusLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+                <button
+                  onClick={triggerHostingerPoll}
+                  disabled={statusLoading}
+                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  <Mail className="w-4 h-4" />
+                  Poll Now
+                </button>
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-4">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Configured</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900">{hostingerStatus?.configured ? 'Yes' : 'No'}</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Polling Enabled</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900">{hostingerStatus?.enabled ? 'Yes' : 'No'}</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Unread Replies</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900">{hostingerStatus?.unreadCount ?? 0}</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Last Poll</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900">{formatDateTime(hostingerStatus?.polling?.lastPollCompletedAt)}</p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-4">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Last Heartbeat</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900">{formatDateTime(hostingerStatus?.polling?.lastHeartbeatAt)}</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Checkpoint UID</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900">{hostingerStatus?.checkpoint?.lastSeenUid ?? 0}</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Stale Runs</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900">{hostingerStatus?.watchdog?.staleRunCount ?? 0}</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Running Rows</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900">{hostingerStatus?.watchdog?.runningRunCount ?? 0}</p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-lg border border-gray-200 p-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Last Result</p>
+                <p className="mt-1 text-sm text-gray-700">
+                  Success: <span className="font-semibold text-gray-900">{hostingerStatus?.polling?.lastResult?.successCount ?? 0}</span>
+                  {' '}| Errors: <span className="font-semibold text-gray-900">{hostingerStatus?.polling?.lastResult?.errorCount ?? 0}</span>
+                </p>
+                {hostingerStatus?.polling?.lastError && (
+                  <p className="mt-2 text-xs text-red-600">{hostingerStatus.polling.lastError}</p>
+                )}
+                <p className="mt-2 text-xs text-gray-600">Checkpoint updated: {formatDateTime(hostingerStatus?.checkpoint?.updatedAt)}</p>
+                <p className="mt-1 text-xs text-gray-600">Last checkpointed message: {hostingerStatus?.checkpoint?.lastSeenMessageId || 'n/a'}</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 p-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Last Matched Reply</p>
+                {hostingerStatus?.lastMatchedReply ? (
+                  <div className="mt-1 text-sm text-gray-700 space-y-1">
+                    <p className="font-semibold text-gray-900">{hostingerStatus.lastMatchedReply.subject || 'No subject'}</p>
+                    <p>{hostingerStatus.lastMatchedReply.from || 'Unknown sender'}</p>
+                    <p>Matched by {hostingerStatus.lastMatchedReply.matchedBy || 'unknown'} at {formatDateTime(hostingerStatus.lastMatchedReply.receivedAt)}</p>
+                    {hostingerStatus.lastMatchedReply.bodyPreview && (
+                      <div className="mt-2 rounded-md bg-gray-50 p-2 text-xs text-gray-600 whitespace-pre-wrap">
+                        {hostingerStatus.lastMatchedReply.bodyPreview}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="mt-1 text-sm text-gray-500">No matched reply yet</p>
+                )}
+                <p className="mt-2 text-xs text-gray-600">Last abandoned run: {formatDateTime(hostingerStatus?.watchdog?.lastAbandonedRunAt)}</p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-3">
+              <div className="rounded-lg border border-gray-200 p-4">
+                <h4 className="font-semibold text-gray-900 mb-3">Poll Run History</h4>
+                <div className="space-y-3">
+                  {(hostingerStatus?.recentRuns || []).length === 0 ? (
+                    <p className="text-sm text-gray-500">No polling runs recorded yet.</p>
+                  ) : hostingerStatus!.recentRuns.map((run) => (
+                    <div key={run.id} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-medium text-gray-900">{run.trigger === 'manual' ? 'Manual Poll' : 'Scheduled Poll'}</p>
+                        <span className="text-xs text-gray-500">{formatDateTime(run.startedAt)}</span>
+                      </div>
+                      <p className="mt-1 text-xs text-gray-600">Status: <span className="font-semibold text-gray-900">{run.status}</span> · Duration: <span className="font-semibold text-gray-900">{formatDuration(run.durationMs)}</span></p>
+                      <p className="mt-1 text-xs text-gray-600">Heartbeat: <span className="font-semibold text-gray-900">{formatDateTime(run.lastHeartbeatAt)}</span></p>
+                      <p className="mt-1 text-xs text-gray-600">
+                        Success: <span className="font-semibold text-gray-900">{run.successCount}</span>
+                        {' '}| Errors: <span className="font-semibold text-gray-900">{run.errorCount}</span>
+                      </p>
+                      <p className="mt-1 text-xs text-gray-600">Unread before/after: <span className="font-semibold text-gray-900">{run.unreadCountBefore}</span> / <span className="font-semibold text-gray-900">{run.unreadCountAfter}</span></p>
+                      <p className="mt-1 text-xs text-gray-600">Messages: discovered <span className="font-semibold text-gray-900">{run.messagesDiscovered}</span>, processed <span className="font-semibold text-gray-900">{run.messagesProcessed}</span>, matched <span className="font-semibold text-gray-900">{run.messagesMatched}</span>, unmatched <span className="font-semibold text-gray-900">{run.messagesUnmatched}</span></p>
+                      <p className="mt-1 text-xs text-gray-600">Attachment uploads: success <span className="font-semibold text-gray-900">{run.attachmentUploadSuccessCount}</span>, errors <span className="font-semibold text-gray-900">{run.attachmentUploadErrorCount}</span></p>
+                      {run.workerInstanceId && <p className="mt-1 text-xs text-gray-600">Worker: {run.workerInstanceId}</p>}
+                      <p className="mt-1 text-xs text-gray-600">Completed: {formatDateTime(run.completedAt)}</p>
+                      {run.abandonedAt && <p className="mt-1 text-xs text-red-600">Abandoned: {formatDateTime(run.abandonedAt)}</p>}
+                      {run.errorCode && <p className="mt-2 text-xs text-red-600">{run.errorCode}</p>}
+                      {run.errorMessage && <p className="mt-2 text-xs text-red-600">{run.errorMessage}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 p-4">
+                <h4 className="font-semibold text-gray-900 mb-3">Per-Message Run Items</h4>
+                <div className="space-y-3">
+                  {(hostingerStatus?.recentRunItems || []).length === 0 ? (
+                    <p className="text-sm text-gray-500">No per-message run items recorded yet.</p>
+                  ) : hostingerStatus!.recentRunItems.map((item) => (
+                    <div key={item.id} className="rounded-lg border border-amber-100 bg-amber-50 p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">UID {item.messageUid ?? 'n/a'} · {item.status}</p>
+                          <p className="mt-1 text-xs text-gray-600">Message ID: {item.providerMessageId || 'n/a'}</p>
+                          <p className="mt-1 text-xs text-gray-600">Received: {formatDateTime(item.receivedAt)}</p>
+                          <p className="mt-1 text-xs text-gray-600">Candidate: {item.candidateName || item.candidateId || 'Not matched'}</p>
+                          <p className="mt-1 text-xs text-gray-600">Matched by: {item.matchedBy || 'n/a'}</p>
+                          <p className="mt-1 text-xs text-gray-600">Attachments: {item.attachmentCount} total, {item.attachmentUploadSuccessCount} uploaded, {item.attachmentUploadErrorCount} failed</p>
+                          <p className="mt-1 text-xs text-gray-600">Completed: {formatDateTime(item.completedAt)}</p>
+                        </div>
+                        {item.candidateId && (
+                          <a
+                            href={`/admin/candidates?candidateId=${encodeURIComponent(item.candidateId)}&candidateTab=missing-data`}
+                            className="inline-flex items-center gap-2 rounded-md bg-white px-3 py-1.5 text-xs font-medium text-amber-700 border border-amber-200 hover:bg-amber-100"
+                          >
+                            Open Trace
+                          </a>
+                        )}
+                      </div>
+                      {item.errorCode && <p className="mt-2 text-xs text-red-600">{item.errorCode}</p>}
+                      {item.errorMessage && <p className="mt-1 text-xs text-red-600">{item.errorMessage}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 p-4">
+                <h4 className="font-semibold text-gray-900 mb-3">Recent Matched Replies</h4>
+                <div className="space-y-3">
+                  {(hostingerStatus?.recentMatchedReplies || []).length === 0 ? (
+                    <p className="text-sm text-gray-500">No matched replies recorded yet.</p>
+                  ) : hostingerStatus!.recentMatchedReplies.map((reply) => (
+                    <div key={reply.id} className="rounded-lg border border-blue-100 bg-blue-50 p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{reply.subject || 'No subject'}</p>
+                          <p className="mt-1 text-xs text-gray-600">{reply.from || 'Unknown sender'} · {formatDateTime(reply.receivedAt)}</p>
+                          <p className="mt-1 text-xs text-gray-600">Candidate: {reply.candidateName || reply.candidateId || 'Unknown'} · {reply.attachmentCount} attachment{reply.attachmentCount === 1 ? '' : 's'}</p>
+                        </div>
+                        {reply.candidateId && (
+                          <a
+                            href={`/admin/candidates?candidateId=${encodeURIComponent(reply.candidateId)}&candidateTab=missing-data`}
+                            className="inline-flex items-center gap-2 rounded-md bg-white px-3 py-1.5 text-xs font-medium text-blue-700 border border-blue-200 hover:bg-blue-100"
+                          >
+                            Open Trace
+                          </a>
+                        )}
+                      </div>
+                      {reply.bodyPreview && (
+                        <div className="mt-2 rounded-md bg-white/80 p-2 text-xs text-gray-700 whitespace-pre-wrap">
+                          {reply.bodyPreview}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

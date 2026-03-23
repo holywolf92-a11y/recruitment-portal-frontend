@@ -43,6 +43,7 @@ import { analyzeDocumentHealth, getHealthBadgeInfo, analyzeDocumentError } from 
 interface CandidateManagementProps {
   initialProfessionFilter?: string;
   candidateIdToOpen?: string | null;
+  candidateInitialTabToOpen?: 'details' | 'documents' | 'missing-data' | null;
   onCandidateOpened?: () => void;
 }
 
@@ -127,7 +128,7 @@ function ProgressDots() {
   );
 }
 
-export function CandidateManagement({ initialProfessionFilter = 'all', candidateIdToOpen, onCandidateOpened }: CandidateManagementProps) {
+export function CandidateManagement({ initialProfessionFilter = 'all', candidateIdToOpen, candidateInitialTabToOpen, onCandidateOpened }: CandidateManagementProps) {
   // Use shared candidate context
   const { 
     candidates, 
@@ -161,7 +162,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
   // Modal states
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [detailsInitialTab, setDetailsInitialTab] = useState<'details' | 'documents'>('details');
+  const [detailsInitialTab, setDetailsInitialTab] = useState<'details' | 'documents' | 'missing-data'>('details');
   
   // Track if we've already processed this candidateIdToOpen to prevent reopening
   const processedCandidateIdRef = useRef<string | null>(null);
@@ -180,7 +181,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
       // Found in current list - open immediately
       processedCandidateIdRef.current = candidateIdToOpen; // Mark as processed
       setSelectedCandidate(candidate);
-      setDetailsInitialTab('details');
+      setDetailsInitialTab(candidateInitialTabToOpen || 'details');
       setShowDetailsModal(true);
       // Notify parent that candidate has been opened (this clears candidateIdToOpen)
       if (onCandidateOpened) {
@@ -192,7 +193,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
       apiClient.getCandidate(candidateIdToOpen)
         .then((fetchedCandidate) => {
           setSelectedCandidate(fetchedCandidate);
-          setDetailsInitialTab('details');
+          setDetailsInitialTab(candidateInitialTabToOpen || 'details');
           setShowDetailsModal(true);
           if (onCandidateOpened) {
             onCandidateOpened();
@@ -206,7 +207,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
           }
         });
     }
-  }, [candidateIdToOpen, candidates, loading, showDetailsModal, onCandidateOpened]);
+  }, [candidateIdToOpen, candidateInitialTabToOpen, candidates, loading, showDetailsModal, onCandidateOpened]);
   
   // Reset processed ref when candidateIdToOpen changes to a new value
   useEffect(() => {

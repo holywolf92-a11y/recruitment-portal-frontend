@@ -9,7 +9,7 @@ import { renderPdfFirstPageToDataUrl } from '../lib/pdfThumb';
 interface CandidateDetailsModalProps {
   candidate: Candidate;
   onClose: () => void;
-  initialTab?: 'details' | 'documents';
+  initialTab?: 'details' | 'documents' | 'missing-data';
   onDocumentChange?: () => void;
 }
 

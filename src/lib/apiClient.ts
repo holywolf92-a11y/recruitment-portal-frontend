@@ -382,6 +382,173 @@ export interface TimelineResponse {
   total: number;
 }
 
+export interface HostingerPollingStatus {
+  configured: boolean;
+  enabled: boolean;
+  polling: {
+    isRunning: boolean;
+    lastPollStartedAt: string | null;
+    lastPollCompletedAt: string | null;
+    lastHeartbeatAt: string | null;
+    lastResult: { successCount: number; errorCount: number } | null;
+    lastError: string | null;
+    lastMatchedReply: {
+      candidateId: string;
+      messageId: string;
+      subject: string;
+      from: string;
+      matchedBy: string;
+      receivedAt: string;
+    } | null;
+  };
+  unreadCount: number;
+  checkpoint: {
+    id: string;
+    provider: string;
+    mailbox: string;
+    lastSeenUid: number;
+    lastSeenMessageId: string | null;
+    lastSeenReceivedAt: string | null;
+    lastPollRunId: string | null;
+    lastPollStartedAt: string | null;
+    lastPollCompletedAt: string | null;
+    metadata: Record<string, unknown>;
+    updatedAt: string | null;
+  };
+  watchdog: {
+    staleRunCount: number;
+    runningRunCount: number;
+    lastAbandonedRunAt: string | null;
+  };
+  lastMatchedReply: {
+    id: string;
+    candidateId: string | null;
+    subject: string | null;
+    from: string | null;
+    matchedBy: string | null;
+    receivedAt: string | null;
+    messageId: string | null;
+    bodyPreview?: string | null;
+  } | null;
+  recentRuns: Array<{
+    id: string;
+    trigger: string;
+    status: string;
+    workerInstanceId: string | null;
+    startedAt: string | null;
+    completedAt: string | null;
+    lastHeartbeatAt: string | null;
+    abandonedAt: string | null;
+    durationMs: number | null;
+    unreadCountBefore: number;
+    unreadCountAfter: number;
+    messagesDiscovered: number;
+    messagesProcessed: number;
+    messagesMatched: number;
+    messagesUnmatched: number;
+    attachmentUploadSuccessCount: number;
+    attachmentUploadErrorCount: number;
+    successCount: number;
+    errorCount: number;
+    errorCode: string | null;
+    errorMessage: string | null;
+  }>;
+  recentRunItems: Array<{
+    id: string;
+    runId: string | null;
+    providerMessageId: string | null;
+    messageUid: number | null;
+    candidateId: string | null;
+    candidateName: string | null;
+    matchedBy: string | null;
+    status: string;
+    attachmentCount: number;
+    attachmentUploadSuccessCount: number;
+    attachmentUploadErrorCount: number;
+    receivedAt: string | null;
+    completedAt: string | null;
+    errorCode: string | null;
+    errorMessage: string | null;
+  }>;
+  recentMatchedReplies: Array<{
+    id: string;
+    candidateId: string | null;
+    candidateName: string | null;
+    subject: string | null;
+    from: string | null;
+    matchedBy: string | null;
+    receivedAt: string | null;
+    attachmentCount: number;
+    bodyPreview: string | null;
+  }>;
+}
+
+export interface CandidateReplyTrace {
+  candidate: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    emailTrackingToken: string | null;
+    lastSentAt: string | null;
+    lastReplyProcessedAt: string | null;
+    updatedAt: string | null;
+  };
+  sentMessages: Array<{
+    id: string;
+    source: string;
+    status: string;
+    sentAt: string | null;
+    provider: string | null;
+    providerMessageId: string | null;
+    subject: string | null;
+    trigger: string | null;
+    missingFields: string[];
+    missingDocs: string[];
+  }>;
+  replyMessages: Array<{
+    id: string;
+    source: string;
+    status: string;
+    receivedAt: string | null;
+    subject: string | null;
+    from: string | null;
+    matchedBy: string | null;
+    attachmentCount: number;
+    messageId: string | null;
+    bodyPreview: string | null;
+    bodyText: string | null;
+    runId?: string | null;
+    runItemId?: string | null;
+    attachmentUploadErrorCount?: number;
+  }>;
+  documents: Array<{
+    id: string;
+    fileName: string | null;
+    documentType: string | null;
+    category: string | null;
+    verificationStatus: string | null;
+    createdAt: string | null;
+    source: string | null;
+  }>;
+  candidateUpdates: Array<{
+    field: string;
+    source: string;
+    updatedAt: string | null;
+    updatedBy: string | null;
+  }>;
+  logEntries: Array<{
+    id: string;
+    toEmail: string | null;
+    subject: string | null;
+    attemptNo: number | null;
+    trigger: string | null;
+    sentAt: string | null;
+    providerMessageId: string | null;
+    missingFields: string[];
+    missingDocs: string[];
+  }>;
+}
+
 export interface Employer {
   id: string;
   company_name: string;
@@ -624,6 +791,25 @@ class ApiClient {
     total_missing: number;
   }> {
     return this.request(`/candidates/${candidateId}/missing-fields`);
+  }
+
+  async getHostingerPollingStatus(): Promise<HostingerPollingStatus> {
+    return this.request('/email/hostinger/status');
+  }
+
+  async triggerHostingerPolling(): Promise<{
+    ok: boolean;
+    result: { successCount: number; errorCount: number };
+    polling: HostingerPollingStatus['polling'];
+  }> {
+    return this.request('/email/hostinger/poll', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async getCandidateReplyTrace(candidateId: string): Promise<CandidateReplyTrace> {
+    return this.request(`/email/reply-trace/${candidateId}`);
   }
 
   /**
