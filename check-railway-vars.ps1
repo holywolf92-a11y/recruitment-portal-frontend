@@ -21,6 +21,6 @@ try {
 
 Write-Host ""
 Write-Host "===========================================" -ForegroundColor Yellow
-Write-Host "NEXT STEP: Select gleaming-healing project" -ForegroundColor Yellow
-Write-Host "THEN select: recruitment-portal-backend service" -ForegroundColor Yellow
+Write-Host "NEXT STEP: Select glorious-flexibility project" -ForegroundColor Yellow
+Write-Host "THEN select: glorious-flexibility backend service" -ForegroundColor Yellow
 Write-Host "===========================================" -ForegroundColor Yellow

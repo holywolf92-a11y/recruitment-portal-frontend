@@ -1,4 +1,4 @@
-[string]$BACKEND = "https://recruitment-portal-backend-production-d1f7.up.railway.app"
+[string]$BACKEND = "https://glorious-flexibility-production.up.railway.app"
 
 Write-Host "Testing simple attachment upload (small JSON)..." -ForegroundColor Cyan
 

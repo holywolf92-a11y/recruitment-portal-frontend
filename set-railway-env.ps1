@@ -4,13 +4,13 @@
 Write-Host "`n=== Setting VITE_API_BASE_URL in Railway ===" -ForegroundColor Cyan
 
 # Backend URL
-$backendUrl = "https://recruitment-portal-backend-production-d1f7.up.railway.app/api"
+$backendUrl = "https://glorious-flexibility-production.up.railway.app/api"
 
-# Frontend service ID (from Railway config)
-$serviceId = "10b59aee-074a-49e4-b7b5-d303b953ce4f"
+# Frontend service name
+$serviceName = "recruitment-frontend"
 
 Write-Host "`nBackend URL: $backendUrl" -ForegroundColor White
-Write-Host "Service ID: $serviceId" -ForegroundColor White
+Write-Host "Service: $serviceName" -ForegroundColor White
 
 # Check if Railway CLI is authenticated
 Write-Host "`nChecking Railway authentication..." -ForegroundColor Yellow
@@ -27,7 +27,7 @@ Write-Host "✅ Railway CLI is authenticated" -ForegroundColor Green
 
 # Set the environment variable
 Write-Host "`nSetting VITE_API_BASE_URL..." -ForegroundColor Yellow
-railway variables --set "VITE_API_BASE_URL=$backendUrl" --service $serviceId
+railway variable set VITE_API_BASE_URL=$backendUrl --service $serviceName
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "`n✅ Successfully set VITE_API_BASE_URL!" -ForegroundColor Green
@@ -37,7 +37,7 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "`n❌ Failed to set variable. Error code: $LASTEXITCODE" -ForegroundColor Red
     Write-Host "`nPlease set it manually via Railway Dashboard:" -ForegroundColor Yellow
     Write-Host "1. Go to https://railway.app" -ForegroundColor White
-    Write-Host "2. Open 'exquisite-surprise' project" -ForegroundColor White
-    Write-Host "3. Click 'Variables' tab" -ForegroundColor White
+    Write-Host "2. Open 'glorious-flexibility' project" -ForegroundColor White
+    Write-Host "3. Click 'recruitment-frontend' service, then 'Variables'" -ForegroundColor White
     Write-Host "4. Add: VITE_API_BASE_URL = $backendUrl" -ForegroundColor White
 }

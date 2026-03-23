@@ -1,4 +1,4 @@
-$BACKEND = "https://recruitment-portal-backend-production-d1f7.up.railway.app"
+$BACKEND = "https://glorious-flexibility-production.up.railway.app"
 $PDF_PATH = "D:\falisha\Recruitment Automation Portal (2)\Abdullah cv.pdf"
 
 Write-Host "=== CV Upload & Parsing Test ===" -ForegroundColor Cyan
@@ -107,7 +107,7 @@ try {
 }
 
 Write-Host "`n5. Checking frontend visibility..."
-Write-Host "   Visit: https://exquisite-surprise-production.up.railway.app" -ForegroundColor Cyan
+Write-Host "   Visit: https://falishajobs.up.railway.app" -ForegroundColor Cyan
 Write-Host "   Look for 'Ibtehaj Uddin Ahmed Siddiqui' in Inbox/Candidates" -ForegroundColor Cyan
 
 Write-Host "`n=== CV Upload Complete ===" -ForegroundColor Green

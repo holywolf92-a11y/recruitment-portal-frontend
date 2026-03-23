@@ -1,19 +1,21 @@
 # Railway Environment Variables Setup Script
 # This script sets up all required environment variables for the backend service
 
-$BackendURL = "https://exquisite-surprise-production.up.railway.app"
+$BackendURL = "https://glorious-flexibility-production.up.railway.app"
 $RedisURL = "redis://default:sBtnDrpJrbASwbGejzqByuCroCidLUVI@redis.railway.internal:6379"
 $SupabaseURL = "https://hncvsextwmvjydcukdwx.supabase.co"
 $SupabaseAnonKey = "sb_publishable_5qD27qPFc04oqSmS61s1tw_lgt8FhBV"
 $SupabaseServiceRoleKey = "" # ⚠️ NEVER commit secrets! Set via Railway environment or secure vault
 $PythonHmacSecret = "Itbfr/p8ky/dRMAHLdi/DIiQRLEJtm2SqyNfwuXa3r0="
-$PythonCVParserURL = "https://cv-parser-production.railway.app"
+$PythonCVParserURL = "https://recruitment-python-parser-production.up.railway.app"
 $JWTSecret = "your-jwt-secret-key-min-32-characters-long"
 $OpenAIKey = "sk-proj-your-openai-key-here"
 
 # Variables to set on backend service
 $BackendVariables = @{
     "RUN_WORKER" = "true"
+    "RUN_HOSTINGER_POLLING" = "true"
+    "HOSTINGER_POLL_INTERVAL_MINUTES" = "10"
     "REDIS_URL" = $RedisURL
     "PYTHON_HMAC_SECRET" = $PythonHmacSecret
     "PYTHON_CV_PARSER_URL" = $PythonCVParserURL
@@ -65,7 +67,7 @@ Write-Host "  3. JWT_SECRET - Generate a secure random secret"
 Write-Host "  4. OPENAI_API_KEY - Add your OpenAI key if needed"
 Write-Host ""
 Write-Host "To apply variables manually via Railway Dashboard:" -ForegroundColor Yellow
-Write-Host "1. Go to: https://railway.app/project/54e09ca0-5643-4b5e-a172-8704293ae095"
-Write-Host "2. Click on recruitment-portal-backend service"
+Write-Host "1. Go to: https://railway.app/project/glorious-flexibility"
+Write-Host "2. Click on glorious-flexibility service"
 Write-Host "3. Click 'Variables' tab"
 Write-Host "4. Add each variable shown above"

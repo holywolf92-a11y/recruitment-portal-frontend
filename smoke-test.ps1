@@ -1,8 +1,8 @@
 # End-to-End Smoke Test
 $ErrorActionPreference = "Stop"
 
-$FRONTEND = "https://exquisite-surprise-production.up.railway.app"
-$BACKEND = "https://recruitment-portal-backend-production-d1f7.up.railway.app"
+$FRONTEND = "https://falishajobs.up.railway.app"
+$BACKEND = "https://glorious-flexibility-production.up.railway.app"
 
 Write-Host "`n=== Recruitment Portal E2E Test ===`n" -ForegroundColor Cyan
 

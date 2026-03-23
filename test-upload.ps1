@@ -1,4 +1,4 @@
-[string]$BACKEND = "https://recruitment-portal-backend-production-d1f7.up.railway.app"
+[string]$BACKEND = "https://glorious-flexibility-production.up.railway.app"
 [string]$PDF_PATH = "D:\falisha\recruitment-portal-backend\Ibtehaj Uddin Ahmed Siddiqui.pdf"
 
 Write-Host "Step 1: Creating inbox message..." -ForegroundColor Cyan
@@ -69,4 +69,4 @@ try {
 }
 
 Write-Host "`n=== SUCCESS ===" -ForegroundColor Green
-Write-Host "Check frontend at: https://exquisite-surprise-production.up.railway.app" -ForegroundColor Cyan
+Write-Host "Check frontend at: https://falishajobs.up.railway.app" -ForegroundColor Cyan

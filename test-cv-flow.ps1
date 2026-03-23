@@ -1,6 +1,6 @@
 param()
 
-$BACKEND_URL = "https://recruitment-portal-backend-production-d1f7.up.railway.app"
+$BACKEND_URL = "https://glorious-flexibility-production.up.railway.app"
 
 Write-Host "Test: Full CV Upload and Parse Flow"
 Write-Host "===================================="

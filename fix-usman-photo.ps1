@@ -3,7 +3,7 @@ $pdfPath = "candidates/25c2e464-359f-479d-a8b9-ac7bb9fec3b5/other_documents/1769
 
 Write-Host "Finding document record for the PDF..." -ForegroundColor Cyan
 
-$apiBase = "https://recruitment-portal-backend-production-d1f7.up.railway.app/api"
+$apiBase = "https://glorious-flexibility-production.up.railway.app/api"
 $docsResponse = Invoke-RestMethod -Uri "$apiBase/documents/candidates/$candidateId/documents" -Method Get
 
 $pdfDoc = $docsResponse | Where-Object { $_.storage_path -eq $pdfPath } | Select-Object -First 1

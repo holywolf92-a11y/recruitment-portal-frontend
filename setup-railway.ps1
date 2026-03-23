@@ -2,19 +2,18 @@
 # Week 4 Railway Deployment Setup
 # Run this to configure both backend and frontend for Railway deployment
 
-$ProjectId = "585a6314-92d3-4312-8476-0cf8d388488b"
-$ProjectName = "gleaming-healing"
-$AccountToken = "46f5f85f-ba9b-4c7d-80aa-1f75441d6040"
+$ProjectId = "eba3c27d-3b58-4a9a-b5cc-b378445e50f9"
+$ProjectName = "glorious-flexibility"
 
 Write-Host "🚀 Week 4 Railway Deployment Setup" -ForegroundColor Cyan
 Write-Host "=================================="
 Write-Host ""
 
 # Step 1: Save config
-Write-Host "✓ Railway Project Credentials Saved:" -ForegroundColor Green
+Write-Host "✓ Railway Project Details:" -ForegroundColor Green
 Write-Host "  - Project: $ProjectName"
 Write-Host "  - Project ID: $ProjectId"
-Write-Host "  - Token: ${AccountToken.Substring(0, 8)}..."
+Write-Host "  - Auth: Use 'railway login' in the browser"
 Write-Host ""
 
 # Step 2: Verify repos pushed
@@ -42,15 +41,17 @@ Write-Host "4️⃣  Configure Backend Variables:"
 Write-Host "   Set in Railway Dashboard:"
 Write-Host "   - REDIS_URL = (from Redis service)"
 Write-Host "   - RUN_WORKER = true"
-Write-Host "   - PYTHON_CV_PARSER_URL = https://your-python.railway.app"
+Write-Host "   - PYTHON_CV_PARSER_URL = https://recruitment-python-parser-production.up.railway.app"
 Write-Host "   - PYTHON_HMAC_SECRET = (generate random key)"
+Write-Host "   - RUN_HOSTINGER_POLLING = true (only if continuous mailbox polling is desired)"
+Write-Host "   - HOSTINGER_POLL_INTERVAL_MINUTES = 10"
 Write-Host ""
 Write-Host "5️⃣  Add Frontend Service:"
 Write-Host "   - Click 'New' → 'GitHub Repo'"
 Write-Host "   - Select: recruitment-portal-frontend"
 Write-Host ""
 Write-Host "6️⃣  Configure Frontend Variables:"
-Write-Host "   - VITE_API_BASE_URL = https://your-backend.railway.app/api"
+Write-Host "   - VITE_API_BASE_URL = https://glorious-flexibility-production.up.railway.app/api"
 Write-Host ""
 Write-Host "7️⃣  Deploy Python Service (Week 4 Day 2):"
 Write-Host "   - Create FastAPI service with OpenAI integration"

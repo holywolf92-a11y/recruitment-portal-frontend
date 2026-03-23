@@ -1,4 +1,4 @@
-[string]$BACKEND = "https://recruitment-portal-backend-production-d1f7.up.railway.app"
+[string]$BACKEND = "https://glorious-flexibility-production.up.railway.app"
 
 Write-Host "Checking parsing job status..." -ForegroundColor Cyan
 
@@ -34,6 +34,6 @@ for ($i = 1; $i -le 5; $i++) {
 }
 
 Write-Host "`n=== Checking Frontend Inbox ===" -ForegroundColor Cyan
-Write-Host "Visit: https://exquisite-surprise-production.up.railway.app" -ForegroundColor Cyan
+Write-Host "Visit: https://falishajobs.up.railway.app" -ForegroundColor Cyan
 Write-Host "Navigate to: Inbox (CVs)" -ForegroundColor Cyan
 Write-Host "Look for: Ibtehaj Uddin Ahmed Siddiqui" -ForegroundColor Cyan

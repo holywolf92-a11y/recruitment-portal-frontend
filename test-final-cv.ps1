@@ -1,4 +1,4 @@
-[string]$BACKEND = "https://recruitment-portal-backend-production-d1f7.up.railway.app"
+[string]$BACKEND = "https://glorious-flexibility-production.up.railway.app"
 [string]$PDF_PATH = "D:\falisha\recruitment-portal-backend\Ibtehaj Uddin Ahmed Siddiqui.pdf"
 
 Write-Host "=== Final CV Parsing Test ===" -ForegroundColor Cyan
@@ -82,7 +82,7 @@ for ($i = 1; $i -le 15; $i++) {
 
 if ($success) {
     Write-Host "`n✅ CV Extraction Complete!" -ForegroundColor Green
-    Write-Host "Check frontend at: https://exquisite-surprise-production.up.railway.app" -ForegroundColor Cyan
+    Write-Host "Check frontend at: https://falishajobs.up.railway.app" -ForegroundColor Cyan
 } else {
     Write-Host "`n⏳ Still processing or failed. Check logs in Railway." -ForegroundColor Yellow
 }
