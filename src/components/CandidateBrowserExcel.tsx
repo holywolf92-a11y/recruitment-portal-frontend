@@ -320,6 +320,7 @@ export function CandidateBrowserExcel() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasLoadedOnceRef = useRef(false);
+  const contentScrollRef = useRef<HTMLDivElement | null>(null);
 
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [selectedFolder, setSelectedFolder] = useState<FolderNode | null>(null);
@@ -505,10 +506,17 @@ export function CandidateBrowserExcel() {
     setExpandedFolders(newExpanded);
   };
 
+  const scrollContentToTop = () => {
+    if (contentScrollRef.current) {
+      contentScrollRef.current.scrollTo({ top: 0, behavior: 'auto' });
+    }
+  };
+
   const selectFolder = (folder: FolderNode) => {
     setSelectedFolder(folder);
     setSelectedCandidates(new Set());
     setCurrentPage(1); // Reset to first page when folder changes
+    scrollContentToTop();
   };
 
   const renderFolder = (folder: FolderNode, level: number = 0) => {
@@ -748,6 +756,7 @@ export function CandidateBrowserExcel() {
               setActiveMenu('dashboard');
               setProfessionMode(null);
               setSelectedFolder(null);
+              scrollContentToTop();
             }}
             className={`w-full flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
               activeMenu === 'dashboard'
@@ -759,7 +768,10 @@ export function CandidateBrowserExcel() {
             Dashboard
           </button>
           <button
-            onClick={() => setActiveMenu('browser')}
+            onClick={() => {
+              setActiveMenu('browser');
+              scrollContentToTop();
+            }}
             className={`w-full flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
               activeMenu === 'browser'
                 ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
@@ -816,7 +828,7 @@ export function CandidateBrowserExcel() {
           </span>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        <div ref={contentScrollRef} className="flex-1 min-h-0 overflow-y-auto">
         <div className="h-full min-h-0 flex flex-col gap-4 p-4">
       {activeMenu === 'browser' ? (
         <section className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -826,6 +838,7 @@ export function CandidateBrowserExcel() {
                 setActiveMenu('dashboard');
                 setProfessionMode(null);
                 setSelectedFolder(null);
+                scrollContentToTop();
               }}
               className="text-sm text-blue-600 hover:text-blue-700 font-medium"
             >
