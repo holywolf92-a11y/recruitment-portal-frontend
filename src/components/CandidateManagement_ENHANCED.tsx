@@ -20,6 +20,7 @@ import {
   Mail,
   MapPin,
   MessageSquare,
+  Phone,
   Plus,
   Search,
   Send,
