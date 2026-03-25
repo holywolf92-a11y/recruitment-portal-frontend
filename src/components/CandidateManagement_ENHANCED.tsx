@@ -34,7 +34,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { apiClient, Candidate } from '../lib/apiClient';
+import { apiClient, Candidate, CandidateDashboardStats } from '../lib/apiClient';
 import { useCandidates } from '../lib/candidateContext';
 import { useDebounce } from '../hooks/useDebounce';
 import { CandidateDetailsModal } from './CandidateDetailsModal';
@@ -155,6 +155,13 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
   const [positions, setPositions] = useState<string[]>([]);
   const [countries, setCountries] = useState<string[]>([]);
   const [statuses, setStatuses] = useState<string[]>([]);
+  const [dashboardStats, setDashboardStats] = useState<CandidateDashboardStats>({
+    totalCandidates: 0,
+    totalProfessions: 0,
+    pendingReview: 0,
+    deployed: 0,
+    newThisWeek: 0,
+  });
   // Cache of signed photo URLs fetched on-demand (id -> url)
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   // Cache of rendered PDF thumbnails (id -> dataUrl)
@@ -454,6 +461,42 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
     setStatuses(uniqueStatuses.length ? uniqueStatuses : ['Applied', 'Pending', 'Deployed', 'Cancelled']);
   }, [candidates]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadDashboardStats = async () => {
+      try {
+        const stats = await apiClient.getCandidateDashboardStats();
+        if (!cancelled) {
+          setDashboardStats(stats);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.warn('Failed to load candidate dashboard stats', err);
+        }
+      }
+    };
+
+    void loadDashboardStats();
+    const interval = window.setInterval(() => {
+      void loadDashboardStats();
+    }, 15000);
+
+    const onVisibilityChange = () => {
+      if (!document.hidden) {
+        void loadDashboardStats();
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, []);
+
   const filteredCandidates = useMemo(() => {
     return candidates.filter(c => {
       const searchLower = debouncedSearch.toLowerCase();
@@ -468,20 +511,6 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
       return matchesSearch && matchesPosition && matchesCountry && matchesStatus;
     });
   }, [candidates, debouncedSearch, filters.position, filters.country, filters.status]);
-
-  const stats = useMemo(() => {
-    const totalCandidates = candidates.length;
-    const totalProfessions = positions.length;
-    const pendingReview = candidates.filter((c) => !!c.needs_review).length;
-    const deployed = candidates.filter((c) => (c.status || 'Applied') === 'Deployed').length;
-    const now = Date.now();
-    const weekMs = 7 * 24 * 60 * 60 * 1000;
-    const newThisWeek = candidates.filter((c) => {
-      const created = c.created_at ? Date.parse(c.created_at) : NaN;
-      return Number.isFinite(created) && now - created <= weekMs;
-    }).length;
-    return { totalCandidates, totalProfessions, pendingReview, deployed, newThisWeek };
-  }, [candidates, positions.length]);
 
   const positionCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -831,23 +860,23 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
         <div className="flex gap-3 overflow-x-auto pb-2 mb-6">
           <div className="min-w-[200px] flex-1 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-5 text-white shadow-lg">
             <div className="text-sm opacity-90">Total Candidates</div>
-            <div className="text-3xl font-bold mt-2">{stats.totalCandidates}</div>
+            <div className="text-3xl font-bold mt-2">{dashboardStats.totalCandidates}</div>
           </div>
           <div className="min-w-[200px] flex-1 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-5 text-white shadow-lg">
             <div className="text-sm opacity-90">Total Professions</div>
-            <div className="text-3xl font-bold mt-2">{stats.totalProfessions}</div>
+            <div className="text-3xl font-bold mt-2">{dashboardStats.totalProfessions}</div>
           </div>
           <div className="min-w-[200px] flex-1 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg p-5 text-white shadow-lg">
             <div className="text-sm opacity-90">Pending Review</div>
-            <div className="text-3xl font-bold mt-2">{stats.pendingReview}</div>
+            <div className="text-3xl font-bold mt-2">{dashboardStats.pendingReview}</div>
           </div>
           <div className="min-w-[200px] flex-1 bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-5 text-white shadow-lg">
             <div className="text-sm opacity-90">Deployed</div>
-            <div className="text-3xl font-bold mt-2">{stats.deployed}</div>
+            <div className="text-3xl font-bold mt-2">{dashboardStats.deployed}</div>
           </div>
           <div className="min-w-[200px] flex-1 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-5 text-white shadow-lg">
             <div className="text-sm opacity-90">New This Week</div>
-            <div className="text-3xl font-bold mt-2">{stats.newThisWeek}</div>
+            <div className="text-3xl font-bold mt-2">{dashboardStats.newThisWeek}</div>
           </div>
         </div>
       </div>

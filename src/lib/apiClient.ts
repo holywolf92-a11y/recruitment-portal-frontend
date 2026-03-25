@@ -346,6 +346,14 @@ export interface CandidatesResponse {
   offset?: number;
 }
 
+export interface CandidateDashboardStats {
+  totalCandidates: number;
+  totalProfessions: number;
+  pendingReview: number;
+  deployed: number;
+  newThisWeek: number;
+}
+
 export interface Document {
   id: string;
   candidate_id: string;
@@ -691,6 +699,10 @@ class ApiClient {
 
     const query = params.toString();
     return this.request<CandidatesResponse>(`/candidates${query ? `?${query}` : ''}`);
+  }
+
+  async getCandidateDashboardStats(): Promise<CandidateDashboardStats> {
+    return this.request<CandidateDashboardStats>('/candidates/dashboard-stats');
   }
 
   /**
