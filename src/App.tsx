@@ -189,7 +189,7 @@ const AppContent = () => {
     const base = TAB_PATHS[tab] || '/admin/dashboard';
     const url = new URL(base, window.location.origin);
     if (tab === 'candidates') {
-      const profession = (opts?.profession ?? selectedProfession ?? 'all').toString();
+      const profession = (opts?.profession ?? 'all').toString();
       if (profession && profession !== 'all') {
         url.searchParams.set('profession', profession);
       }
