@@ -7,15 +7,16 @@ const GOOGLE_REVIEW_URL =
 const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || '/api';
 const BUSINESS_NAME = (import.meta as any).env?.VITE_BUSINESS_NAME || 'Falisha Manpower';
 const BUSINESS_LOGO_URL: string = (import.meta as any).env?.VITE_BUSINESS_LOGO_URL || '/logo.png';
+const GOOGLE_REVIEW_FLOW_PATH = '/review/google';
 
 const SOCIAL_ACTIONS = [
   {
     label: 'Google Business Profile',
     icon: '📍',
-    buttonLabel: 'Review On Google',
+    buttonLabel: 'Open Review Setup',
     accent: '#16a34a',
-    url: 'https://share.google/YwbQYIfdQo2DnRzI6',
-    description: 'Leave a public review on Google Maps.',
+    internalHref: GOOGLE_REVIEW_FLOW_PATH,
+    description: 'Open the guided Google review flow with emojis and comment help.',
   },
   {
     label: 'LinkedIn',
@@ -566,64 +567,71 @@ function SocialActionList({ compact = false }: { compact?: boolean }) {
 
       <div style={{ display: 'grid', gap: 10 }}>
         {SOCIAL_ACTIONS.map((action) => (
-          <a
-            key={action.label}
-            href={action.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              padding: compact ? '12px 13px' : '14px 15px',
-              borderRadius: 18,
-              border: '1px solid #e5e7eb',
-              background: '#ffffff',
-              boxShadow: '0 8px 22px rgba(15,23,42,0.06)',
-              textDecoration: 'none',
-            }}
-          >
-            <div style={{
-              width: compact ? 42 : 46,
-              height: compact ? 42 : 46,
-              borderRadius: 14,
-              background: action.accent,
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: action.icon.length > 1 ? 16 : 22,
-              fontWeight: 800,
-              flexShrink: 0,
-              letterSpacing: action.icon.length > 1 ? '-0.04em' : undefined,
-            }}>
-              {action.icon}
-            </div>
+          (() => {
+            const href = action.internalHref || action.url;
+            const external = !action.internalHref;
 
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ color: '#111827', fontSize: 14, fontWeight: 800, marginBottom: 2 }}>
-                {action.label}
-              </div>
-              <div style={{ color: '#6b7280', fontSize: 12, lineHeight: 1.5 }}>
-                {action.description}
-              </div>
-            </div>
+            return (
+              <a
+                key={action.label}
+                href={href}
+                target={external ? '_blank' : '_self'}
+                rel={external ? 'noopener noreferrer' : undefined}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: compact ? '12px 13px' : '14px 15px',
+                  borderRadius: 18,
+                  border: '1px solid #e5e7eb',
+                  background: '#ffffff',
+                  boxShadow: '0 8px 22px rgba(15,23,42,0.06)',
+                  textDecoration: 'none',
+                }}
+              >
+                <div style={{
+                  width: compact ? 42 : 46,
+                  height: compact ? 42 : 46,
+                  borderRadius: 14,
+                  background: action.accent,
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: action.icon.length > 1 ? 16 : 22,
+                  fontWeight: 800,
+                  flexShrink: 0,
+                  letterSpacing: action.icon.length > 1 ? '-0.04em' : undefined,
+                }}>
+                  {action.icon}
+                </div>
 
-            <div style={{
-              background: action.accent,
-              color: '#ffffff',
-              borderRadius: 999,
-              padding: compact ? '9px 11px' : '10px 13px',
-              fontSize: 11,
-              fontWeight: 800,
-              textAlign: 'center',
-              lineHeight: 1.2,
-              flexShrink: 0,
-              minWidth: compact ? 92 : 108,
-            }}>
-              {action.buttonLabel}
-            </div>
-          </a>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ color: '#111827', fontSize: 14, fontWeight: 800, marginBottom: 2 }}>
+                    {action.label}
+                  </div>
+                  <div style={{ color: '#6b7280', fontSize: 12, lineHeight: 1.5 }}>
+                    {action.description}
+                  </div>
+                </div>
+
+                <div style={{
+                  background: action.accent,
+                  color: '#ffffff',
+                  borderRadius: 999,
+                  padding: compact ? '9px 11px' : '10px 13px',
+                  fontSize: 11,
+                  fontWeight: 800,
+                  textAlign: 'center',
+                  lineHeight: 1.2,
+                  flexShrink: 0,
+                  minWidth: compact ? 92 : 108,
+                }}>
+                  {action.buttonLabel}
+                </div>
+              </a>
+            );
+          })()
         ))}
       </div>
     </div>
@@ -739,7 +747,12 @@ function QRCodePage() {
 type Screen = 'rating' | 'redirected' | 'low_form' | 'thank_you';
 
 export function ReviewPage() {
-  if (typeof window !== 'undefined' && window.location.pathname === '/review/qr') {
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '/review';
+  const isQRCodeRoute = pathname === '/review/qr';
+  const isGoogleReviewRoute = pathname === GOOGLE_REVIEW_FLOW_PATH;
+  const isMenuRoute = pathname === '/review';
+
+  if (isQRCodeRoute) {
     return <QRCodePage />;
   }
 
@@ -876,6 +889,38 @@ export function ReviewPage() {
     setSubmitting(false);
     setScreen('thank_you');
   }, [rating, comment]);
+
+  const renderMenu = () => (
+    <div style={{ animation: 'fadeSlideUp 0.4s ease both' }}>
+      {renderHeader()}
+
+      <div style={{ textAlign: 'center', marginBottom: 22 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 900, color: '#111827', margin: '0 0 8px', lineHeight: 1.2 }}>
+          Choose What You Want To Do
+        </h1>
+        <p style={{ color: '#6b7280', fontSize: 14, lineHeight: 1.65, margin: 0 }}>
+          Leave a Google review using our guided setup, or follow Falisha Manpower on your preferred platform.
+        </p>
+      </div>
+
+      <div style={{
+        background: 'linear-gradient(135deg,#ecfdf5,#f0fdf4)',
+        border: '1.5px solid #bbf7d0',
+        borderRadius: 20,
+        padding: '14px 16px',
+        marginBottom: 18,
+      }}>
+        <p style={{ fontSize: 12, fontWeight: 800, color: '#166534', margin: '0 0 5px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          Recommended First
+        </p>
+        <p style={{ fontSize: 13, color: '#166534', lineHeight: 1.6, margin: 0 }}>
+          Tap Google Business Profile to open the old emoji-based review flow and post your review with guided steps.
+        </p>
+      </div>
+
+      <SocialActionList />
+    </div>
+  );
 
   // ── Shared header ──────────────────────────────────────────────────────
   const renderHeader = () => (
@@ -1123,7 +1168,6 @@ export function ReviewPage() {
             </p>
           )}
 
-          <SocialActionList />
           </div>
         </div>
       )}
@@ -1289,7 +1333,8 @@ export function ReviewPage() {
 
   // ── Nav menu items ───────────────────────────────────────────────────────
   const NAV_ITEMS = [
-    { icon: '⭐', label: 'Leave a Review', href: '/review' },
+    { icon: '🧭', label: 'Review Menu', href: '/review' },
+    { icon: '⭐', label: 'Google Review', href: GOOGLE_REVIEW_FLOW_PATH },
     { icon: '📋', label: 'QR Code & Share', href: '/review/qr' },
     { icon: '💼', label: 'Apply for Jobs',  href: '/apply' },
     { icon: '🏢', label: 'Falisha Manpower', href: CANONICAL_FRONTEND_URL, external: true },
@@ -1516,9 +1561,10 @@ export function ReviewPage() {
           boxShadow: '0 8px 40px rgba(0,0,0,0.10)',
           padding: '30px 22px 26px',
         }}>
-          {screen === 'rating'     && renderRating()}
-          {screen === 'redirected' && renderRedirected()}
-          {screen === 'thank_you'  && renderThankYou()}
+          {isMenuRoute && renderMenu()}
+          {isGoogleReviewRoute && screen === 'rating'     && renderRating()}
+          {isGoogleReviewRoute && screen === 'redirected' && renderRedirected()}
+          {isGoogleReviewRoute && screen === 'thank_you'  && renderThankYou()}
         </div>
       </div>
       <p style={{ position: 'fixed', bottom: 10, left: 0, right: 0, textAlign: 'center', fontSize: 11, color: '#d1d5db' }}>
