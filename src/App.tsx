@@ -522,6 +522,11 @@ const AppContent = () => {
 
   // Show login if not authenticated
   if (!session) {
+    if (typeof window !== 'undefined' && window.location.pathname === '/admin/reviews') {
+      window.history.replaceState({}, '', '/review/qr');
+      return <ReviewPage />;
+    }
+
     return <Login />;
   }
 
