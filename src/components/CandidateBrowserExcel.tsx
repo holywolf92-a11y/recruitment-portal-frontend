@@ -817,7 +817,7 @@ export function CandidateBrowserExcel() {
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto">
-        <div className="space-y-4 p-4">
+        <div className="h-full min-h-0 flex flex-col gap-4 p-4">
       {activeMenu === 'browser' ? (
         <section className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
@@ -1036,7 +1036,7 @@ export function CandidateBrowserExcel() {
       )}
 
       {/* Browser Section */}
-      <div className={`${activeMenu === 'browser' ? 'h-[calc(100vh-215px)]' : 'h-[calc(100vh-385px)]'} bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col shadow-sm`}>
+      <div className="flex-1 min-h-0 bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col shadow-sm">
         {/* Table Header Actions */}
           <div className="border-b border-gray-200 p-4 bg-gray-50 flex-shrink-0">
           <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
