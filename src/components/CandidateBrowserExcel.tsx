@@ -30,6 +30,7 @@ import {
   LayoutDashboard
 } from 'lucide-react';
 import { API_BASE_URL } from '../lib/apiClient';
+import { getFrontendBaseUrl } from '../lib/publicUrl';
 import { toast } from 'sonner';
 import { Toaster } from './ui/sonner';
 import { apiClient, Candidate, CandidateFilters } from '../lib/apiClient';
@@ -123,9 +124,7 @@ function generateProfileLink(candidate: Candidate): string {
   const name = candidate.name || 'candidate';
   const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
   const candidateId = candidate.id || '';
-  const baseUrl = typeof window !== 'undefined' 
-    ? window.location.origin 
-    : 'https://falishamanpower.up.railway.app';
+  const baseUrl = getFrontendBaseUrl();
   return `${baseUrl}/profile/${candidateId}/${slug}`;
 }
 

@@ -1,13 +1,12 @@
 import { Candidate } from './mockData';
+import { getFrontendBaseUrl } from './publicUrl';
 
 // Generate unique profile link for candidate (uses current frontend URL)
 export function generateProfileLink(candidate: Candidate): string {
   const name = candidate.name || 'candidate';
   const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
   const candidateId = candidate.id || '';
-  const baseUrl = typeof window !== 'undefined' 
-    ? window.location.origin 
-    : 'https://falishamanpower.up.railway.app';
+  const baseUrl = getFrontendBaseUrl();
   return `${baseUrl}/profile/${candidateId}/${slug}`;
 }
 
@@ -16,9 +15,7 @@ export function generateCVShareLink(candidate: Candidate): string {
   const name = candidate.name || 'candidate';
   const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
   const candidateId = candidate.id || '';
-  const baseUrl = typeof window !== 'undefined' 
-    ? window.location.origin 
-    : 'https://falishamanpower.up.railway.app';
+  const baseUrl = getFrontendBaseUrl();
   return `${baseUrl}/cv/${candidateId}/${slug}`;
 }
 

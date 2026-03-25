@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useCallback, useRef } from 'react';
+import { CANONICAL_FRONTEND_URL } from '../lib/publicUrl';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 const GOOGLE_REVIEW_URL =
@@ -1149,7 +1150,7 @@ export function ReviewPage() {
     { icon: '⭐', label: 'Leave a Review', href: '/review' },
     { icon: '📋', label: 'QR Code & Share', href: '/review/qr' },
     { icon: '💼', label: 'Apply for Jobs',  href: '/apply' },
-    { icon: '🏢', label: 'Falisha Manpower', href: 'https://falishamanpower.up.railway.app', external: true },
+    { icon: '🏢', label: 'Falisha Manpower', href: CANONICAL_FRONTEND_URL, external: true },
   ];
 
   // ── Sidebar ──────────────────────────────────────────────────────────────

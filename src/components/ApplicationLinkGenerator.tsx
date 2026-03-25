@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { Link2, Copy, QrCode, Check, Share2, MessageSquare, Mail, Eye } from 'lucide-react';
 import { ApplicationFormPreview } from './ApplicationFormPreview';
+import { getPublicApplicationLink } from '../lib/publicUrl';
 
 export function ApplicationLinkGenerator() {
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   
-  // In production, this would be your actual domain
-  const applicationLink = 'https://falishamanpower.com/apply';
+  const applicationLink = getPublicApplicationLink();
   
   const copyToClipboard = () => {
     navigator.clipboard.writeText(applicationLink);
