@@ -8,6 +8,57 @@ const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || '/api';
 const BUSINESS_NAME = (import.meta as any).env?.VITE_BUSINESS_NAME || 'Falisha Manpower';
 const BUSINESS_LOGO_URL: string = (import.meta as any).env?.VITE_BUSINESS_LOGO_URL || '/logo.png';
 
+const SOCIAL_ACTIONS = [
+  {
+    label: 'Google Business Profile',
+    icon: '📍',
+    buttonLabel: 'Review On Google',
+    accent: '#16a34a',
+    url: 'https://share.google/YwbQYIfdQo2DnRzI6',
+    description: 'Leave a public review on Google Maps.',
+  },
+  {
+    label: 'LinkedIn',
+    icon: 'in',
+    buttonLabel: 'Follow On LinkedIn',
+    accent: '#0A66C2',
+    url: 'https://www.linkedin.com/company/falishaenterprises',
+    description: 'Follow company updates and hiring news.',
+  },
+  {
+    label: 'Facebook',
+    icon: 'f',
+    buttonLabel: 'Follow On Facebook',
+    accent: '#1877F2',
+    url: 'https://www.facebook.com/falishaenterprises.pk/',
+    description: 'See updates, posts, and community activity.',
+  },
+  {
+    label: 'Instagram',
+    icon: '◎',
+    buttonLabel: 'Follow On Instagram',
+    accent: '#E4405F',
+    url: 'https://www.instagram.com/falisha.manpower',
+    description: 'View reels, stories, and daily highlights.',
+  },
+  {
+    label: 'TikTok',
+    icon: '♪',
+    buttonLabel: 'Follow On TikTok',
+    accent: '#111827',
+    url: 'https://www.tiktok.com/@falishamanpower',
+    description: 'Watch short videos and follow new content.',
+  },
+  {
+    label: 'YouTube',
+    icon: '▶',
+    buttonLabel: 'Subscribe On YouTube',
+    accent: '#FF0000',
+    url: 'https://youtube.com/@falishamanpower897?si=-sKB5_wZdoICyLbj',
+    description: 'Watch videos and subscribe for updates.',
+  },
+] as const;
+
 // ─── Mood options (emoji + label + auto-comment) ─────────────────────────────
 const MOODS = [
   { emoji: '🤩', label: 'Exceptional', comment: 'Absolutely exceptional service! Far exceeded all my expectations. Highly recommended to everyone looking for professional manpower services.' },
@@ -492,6 +543,93 @@ function ShareButton({ color, icon, label, onClick }: { color: string; icon: str
   );
 }
 
+function SocialActionList({ compact = false }: { compact?: boolean }) {
+  return (
+    <div style={{ marginTop: compact ? 18 : 24, textAlign: 'left' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <div style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
+        <span style={{ color: '#6b7280', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: '0.05em' }}>
+          REVIEW AND FOLLOW
+        </span>
+        <div style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
+      </div>
+
+      <p style={{
+        color: '#6b7280',
+        fontSize: compact ? 12 : 13,
+        lineHeight: 1.6,
+        margin: compact ? '0 0 12px' : '0 0 14px',
+        textAlign: compact ? 'center' : 'left',
+      }}>
+        Review us on Google first, then choose any social platform below to follow {BUSINESS_NAME}.
+      </p>
+
+      <div style={{ display: 'grid', gap: 10 }}>
+        {SOCIAL_ACTIONS.map((action) => (
+          <a
+            key={action.label}
+            href={action.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: compact ? '12px 13px' : '14px 15px',
+              borderRadius: 18,
+              border: '1px solid #e5e7eb',
+              background: '#ffffff',
+              boxShadow: '0 8px 22px rgba(15,23,42,0.06)',
+              textDecoration: 'none',
+            }}
+          >
+            <div style={{
+              width: compact ? 42 : 46,
+              height: compact ? 42 : 46,
+              borderRadius: 14,
+              background: action.accent,
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: action.icon.length > 1 ? 16 : 22,
+              fontWeight: 800,
+              flexShrink: 0,
+              letterSpacing: action.icon.length > 1 ? '-0.04em' : undefined,
+            }}>
+              {action.icon}
+            </div>
+
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ color: '#111827', fontSize: 14, fontWeight: 800, marginBottom: 2 }}>
+                {action.label}
+              </div>
+              <div style={{ color: '#6b7280', fontSize: 12, lineHeight: 1.5 }}>
+                {action.description}
+              </div>
+            </div>
+
+            <div style={{
+              background: action.accent,
+              color: '#ffffff',
+              borderRadius: 999,
+              padding: compact ? '9px 11px' : '10px 13px',
+              fontSize: 11,
+              fontWeight: 800,
+              textAlign: 'center',
+              lineHeight: 1.2,
+              flexShrink: 0,
+              minWidth: compact ? 92 : 108,
+            }}>
+              {action.buttonLabel}
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── QR Code Page ─────────────────────────────────────────────────────────────
 function QRCodePage() {
   useEffect(() => { injectStyles(); }, []);
@@ -588,6 +726,8 @@ function QRCodePage() {
         }}>
           {copied ? '✅ Link Copied!' : '🔗 Copy Review Link'}
         </button>
+
+        <SocialActionList compact />
 
         <a href="/review" style={{ display: 'block', marginTop: 14, color: '#6b7280', fontSize: 12, textDecoration: 'underline' }}>← Back to Review Page</a>
       </div>
@@ -982,6 +1122,8 @@ export function ReviewPage() {
               Copy failed — paste manually in Google.
             </p>
           )}
+
+          <SocialActionList />
           </div>
         </div>
       )}
