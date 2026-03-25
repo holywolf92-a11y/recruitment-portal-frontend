@@ -67,7 +67,7 @@ export function CVInbox() {
             id: a.id,
             messageId: msg.id,
             fileName: a.file_name || 'Attachment',
-            source: (msg.source === 'whatsapp' ? 'WhatsApp' : msg.source === 'email' ? 'Email' : msg.source === 'web' ? 'Web Form' : 'Unknown'),
+            source: (msg.source === 'whatsapp' ? 'WhatsApp' : (msg.source === 'email' || msg.source === 'hostinger-imap') ? 'Email' : msg.source === 'web' ? 'Web Form' : 'Unknown'),
             senderName: (msg.payload?.sender_name || 'Unknown'),
             senderContact: (msg.payload?.sender_contact || 'Unknown'),
             receivedDate: msg.received_at ? new Date(msg.received_at).toLocaleString() : '-',
