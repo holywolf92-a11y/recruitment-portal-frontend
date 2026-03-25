@@ -704,6 +704,7 @@ class ApiClient {
     applied_from?: string;
     applied_to?: string;
   }): Promise<{
+    total_candidates: number;
     total: number;
     applied: number;
     verified: number;
