@@ -828,24 +828,24 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-5 sm:p-6 text-white shadow-lg">
+        <div className="flex gap-3 overflow-x-auto pb-2 mb-6">
+          <div className="min-w-[200px] flex-1 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-5 text-white shadow-lg">
             <div className="text-sm opacity-90">Total Candidates</div>
             <div className="text-3xl font-bold mt-2">{stats.totalCandidates}</div>
           </div>
-          <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-5 sm:p-6 text-white shadow-lg">
+          <div className="min-w-[200px] flex-1 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-5 text-white shadow-lg">
             <div className="text-sm opacity-90">Total Professions</div>
             <div className="text-3xl font-bold mt-2">{stats.totalProfessions}</div>
           </div>
-          <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg p-5 sm:p-6 text-white shadow-lg">
+          <div className="min-w-[200px] flex-1 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg p-5 text-white shadow-lg">
             <div className="text-sm opacity-90">Pending Review</div>
             <div className="text-3xl font-bold mt-2">{stats.pendingReview}</div>
           </div>
-          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-5 sm:p-6 text-white shadow-lg">
+          <div className="min-w-[200px] flex-1 bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-5 text-white shadow-lg">
             <div className="text-sm opacity-90">Deployed</div>
             <div className="text-3xl font-bold mt-2">{stats.deployed}</div>
           </div>
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-5 sm:p-6 text-white shadow-lg sm:col-span-2 xl:col-span-1">
+          <div className="min-w-[200px] flex-1 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-5 text-white shadow-lg">
             <div className="text-sm opacity-90">New This Week</div>
             <div className="text-3xl font-bold mt-2">{stats.newThisWeek}</div>
           </div>

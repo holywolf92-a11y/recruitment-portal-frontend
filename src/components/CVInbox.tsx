@@ -399,8 +399,8 @@ export function CVInbox() {
         <>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
-        <div className="bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl p-5 sm:p-6 shadow-lg text-white transform transition-all hover:scale-105">
+      <div className="flex gap-3 overflow-x-auto pb-2">
+        <div className="min-w-[200px] flex-1 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl p-5 shadow-lg text-white transform transition-all hover:scale-105">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm opacity-90">Total CVs</span>
             <Inbox className="w-6 h-6 opacity-80" />
@@ -409,7 +409,7 @@ export function CVInbox() {
           <div className="text-xs opacity-75 mt-2">All time</div>
         </div>
         
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-5 sm:p-6 shadow-lg text-white transform transition-all hover:scale-105">
+        <div className="min-w-[200px] flex-1 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-5 shadow-lg text-white transform transition-all hover:scale-105">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm opacity-90">Processing</span>
             <Sparkles className="w-6 h-6 opacity-80 animate-pulse" />
@@ -418,7 +418,7 @@ export function CVInbox() {
           <div className="text-xs opacity-75 mt-2">AI extracting now...</div>
         </div>
         
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-5 sm:p-6 shadow-lg text-white transform transition-all hover:scale-105">
+        <div className="min-w-[200px] flex-1 bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-5 shadow-lg text-white transform transition-all hover:scale-105">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm opacity-90">Extracted</span>
             <CheckCircle className="w-6 h-6 opacity-80" />
@@ -427,7 +427,7 @@ export function CVInbox() {
           <div className="text-xs opacity-75 mt-2">Now candidates</div>
         </div>
         
-        <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl p-5 sm:p-6 shadow-lg text-white transform transition-all hover:scale-105">
+        <div className="min-w-[200px] flex-1 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl p-5 shadow-lg text-white transform transition-all hover:scale-105">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm opacity-90">Needs Review</span>
             <AlertTriangle className="w-6 h-6 opacity-80" />
@@ -436,7 +436,7 @@ export function CVInbox() {
           <div className="text-xs opacity-75 mt-2">Low confidence</div>
         </div>
         
-        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-5 sm:p-6 shadow-lg text-white transform transition-all hover:scale-105 sm:col-span-2 xl:col-span-1">
+        <div className="min-w-[200px] flex-1 bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-5 shadow-lg text-white transform transition-all hover:scale-105">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm opacity-90">Errors</span>
             <AlertTriangle className="w-6 h-6 opacity-80" />
