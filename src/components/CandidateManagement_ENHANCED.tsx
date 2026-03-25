@@ -16,10 +16,10 @@ import {
   Grid3x3,
   Image,
   List,
+  Trash2,
   Mail,
   MapPin,
   MessageSquare,
-  Phone,
   Plus,
   Search,
   Send,
@@ -163,6 +163,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [detailsInitialTab, setDetailsInitialTab] = useState<'details' | 'documents' | 'missing-data'>('details');
+  const [deletingCandidateId, setDeletingCandidateId] = useState<string | null>(null);
   
   // Track if we've already processed this candidateIdToOpen to prevent reopening
   const processedCandidateIdRef = useRef<string | null>(null);
@@ -542,6 +543,34 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
     setShowDetailsModal(true);
   }
 
+  async function handleDeleteCandidate(candidate: Candidate) {
+    const label = candidate.name || candidate.email || candidate.candidate_code || 'this candidate';
+    const confirmed = window.confirm(
+      `Delete ${label}?\n\nThis is mainly useful for removing test users and other unwanted records.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setDeletingCandidateId(candidate.id);
+      await apiClient.deleteCandidate(candidate.id);
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(candidate.id);
+        return next;
+      });
+      toast.success('Candidate deleted successfully');
+      await refreshCandidates();
+    } catch (error: any) {
+      console.error('Failed to delete candidate:', error);
+      toast.error('Failed to delete candidate', {
+        description: error?.message || 'Unknown error',
+      });
+    } finally {
+      setDeletingCandidateId(null);
+    }
+  }
+
   async function handleDownloadCV(candidate: Candidate) {
     try {
       // ✅ NEW SYSTEM: Server-side Puppeteer PDF generation (employer-safe format)
@@ -743,7 +772,9 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
     input.click();
   }
 
-  if (loading) {
+  const showBlockingLoader = loading && candidates.length === 0 && !error;
+
+  if (showBlockingLoader) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
         <div className="text-center">
@@ -860,8 +891,14 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
               }}
               role="searchbox"
               aria-label="Search candidates"
-              className="w-full pl-12 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="w-full pl-12 pr-20 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
+
+            {loading && !showBlockingLoader && (
+              <div className="absolute right-10 top-1/2 -translate-y-1/2 text-blue-600" aria-hidden="true">
+                <Loader2 className="w-4 h-4 animate-spin" />
+              </div>
+            )}
 
             {searchInput && (
               <button
@@ -940,6 +977,12 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
           <p className="text-sm text-gray-600">
             Showing <strong>{filteredCandidates.length}</strong> of <strong>{candidates.length}</strong> candidates
           </p>
+          {loading && !showBlockingLoader && (
+            <div className="flex items-center gap-2 text-sm text-blue-600">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Updating results...
+            </div>
+          )}
           <button
             onClick={allFilteredSelected ? clearSelection : selectAllFiltered}
             className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
@@ -1497,6 +1540,23 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
                           Download CV
                         </button>
                       </div>
+                      <button
+                        onClick={() => handleDeleteCandidate(c)}
+                        disabled={deletingCandidateId === c.id}
+                        className="w-full px-5 py-3 border border-red-200 bg-red-50 text-red-700 rounded-xl hover:bg-red-100 transition-all flex items-center justify-center gap-2 font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {deletingCandidateId === c.id ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Deleting...
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 className="w-5 h-5" />
+                            Delete Candidate
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
                 </div>
