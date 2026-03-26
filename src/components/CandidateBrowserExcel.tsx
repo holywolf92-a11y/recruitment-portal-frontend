@@ -169,17 +169,23 @@ async function copyToClipboard(text: string): Promise<void> {
 
 // Build folder structure from lightweight metadata instead of full candidate rows
 function buildFolderStructure(metadata: CandidateBrowseMetadata | null): FolderNode[] {
-  if (!metadata?.professions.length) {
+  const professions = metadata?.professions ?? [];
+
+  if (!professions.length) {
     return [];
   }
 
-  return metadata.professions.map((profession) => {
-    const positionLower = profession.name.toLowerCase();
+  return professions.map((profession) => {
+    const professionName = profession.name || 'Unknown';
+    const positionLower = professionName.toLowerCase();
     const positionSlug = positionLower.replace(/\s+/g, '-');
+    const countries = profession.countries ?? [];
+    const statuses = profession.statuses ?? [];
+    const documents = profession.documents ?? { complete: 0, missing: 0 };
 
     return {
       id: `profession-${positionSlug}`,
-      name: profession.name,
+      name: professionName,
       type: 'profession' as const,
       icon: Users,
       count: profession.count,
@@ -190,21 +196,21 @@ function buildFolderStructure(metadata: CandidateBrowseMetadata | null): FolderN
           type: 'smart-folder' as const,
           icon: Users,
           count: profession.count,
-          filters: { position: profession.name },
+          filters: { position: professionName },
         },
         {
           id: `${positionSlug}-by-country`,
           name: 'By Country',
           type: 'smart-folder' as const,
           icon: MapPin,
-          count: profession.countries.reduce((sum, country) => sum + country.count, 0),
-          children: profession.countries.map((country) => ({
+          count: countries.reduce((sum, country) => sum + country.count, 0),
+          children: countries.map((country) => ({
             id: `${positionSlug}-${country.name.toLowerCase().replace(/\s+/g, '-')}`,
             name: country.name,
             type: 'subfolder' as const,
             icon: MapPin,
             count: country.count,
-            filters: { position: profession.name, country_of_interest: country.name },
+            filters: { position: professionName, country_of_interest: country.name },
           })),
         },
         {
@@ -212,14 +218,14 @@ function buildFolderStructure(metadata: CandidateBrowseMetadata | null): FolderN
           name: 'By Status',
           type: 'smart-folder' as const,
           icon: CheckCircle,
-          count: profession.statuses.reduce((sum, status) => sum + status.count, 0),
-          children: profession.statuses.map((status) => ({
+          count: statuses.reduce((sum, status) => sum + status.count, 0),
+          children: statuses.map((status) => ({
             id: `${positionSlug}-${status.name.toLowerCase().replace(/\s+/g, '-')}`,
             name: status.name,
             type: 'subfolder' as const,
             icon: CheckCircle,
             count: status.count,
-            filters: { position: profession.name, status: status.name },
+            filters: { position: professionName, status: status.name },
           })),
         },
         {
@@ -227,23 +233,23 @@ function buildFolderStructure(metadata: CandidateBrowseMetadata | null): FolderN
           name: 'By Documents',
           type: 'smart-folder' as const,
           icon: FileText,
-          count: profession.documents.complete + profession.documents.missing,
+          count: documents.complete + documents.missing,
           children: [
             {
               id: `${positionSlug}-complete`,
               name: 'Complete',
               type: 'subfolder' as const,
               icon: FileText,
-              count: profession.documents.complete,
-              filters: { position: profession.name, documents: 'complete' },
+              count: documents.complete,
+              filters: { position: professionName, documents: 'complete' },
             },
             {
               id: `${positionSlug}-missing`,
               name: 'Missing',
               type: 'subfolder' as const,
               icon: FileText,
-              count: profession.documents.missing,
-              filters: { position: profession.name, documents: 'missing' },
+              count: documents.missing,
+              filters: { position: professionName, documents: 'missing' },
             },
           ],
         },
@@ -654,7 +660,7 @@ export function CandidateBrowserExcel() {
           <div className="text-xs text-gray-600 space-y-1">
             <div className="flex items-center justify-between">
               <span>Total Candidates:</span>
-              <span className="font-semibold text-gray-900">{browseMetadata?.totalCandidates ?? dailyStats?.total_candidates ?? 0}</span>
+              <span className="font-semibold text-gray-900">{browseMetadata?.totalCandidates ?? totalCandidates ?? 0}</span>
             </div>
             <div className="flex items-center justify-between">
               <span>Showing:</span>
