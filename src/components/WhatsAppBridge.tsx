@@ -136,6 +136,14 @@ export function WhatsAppBridge() {
     return sessions.find((entry) => entry.accountId === selectedAccountId) ?? null;
   }, [selectedAccountId, sessions]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedAccountId = params.get('account');
+    if (requestedAccountId) {
+      setSelectedAccountId(requestedAccountId);
+    }
+  }, []);
+
   async function loadStatus() {
     if (!authHeader) return;
     setLoadingStatus(true);
@@ -276,8 +284,18 @@ export function WhatsAppBridge() {
     }
   }, [selectedSession?.accountId, selectedSession?.hasQrCode, selectedSession?.pairingCode]);
 
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (selectedAccountId) {
+      url.searchParams.set('account', selectedAccountId);
+    } else {
+      url.searchParams.delete('account');
+    }
+    window.history.replaceState({}, '', url.toString());
+  }, [selectedAccountId]);
+
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <div className="space-y-4 p-3 sm:space-y-6 sm:p-4 md:p-6">
       <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-emerald-50 p-6 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
@@ -291,7 +309,7 @@ export function WhatsAppBridge() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
             <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
               <div className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Mode</div>
               <div className="mt-1 font-medium text-slate-900">{bridgeMode}</div>
@@ -299,7 +317,7 @@ export function WhatsAppBridge() {
             <button
               type="button"
               onClick={() => void loadStatus()}
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-400 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-400 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
               disabled={loadingStatus || !authHeader}
             >
               <RefreshCw className={`h-4 w-4 ${loadingStatus ? 'animate-spin' : ''}`} />
@@ -315,87 +333,75 @@ export function WhatsAppBridge() {
         </div>
       ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_430px]">
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 px-5 py-4">
-            <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Sessions</h3>
+      <div className="space-y-6">
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">Accounts</h3>
+              <p className="mt-2 text-sm text-slate-600">
+                Each WhatsApp slot has its own focused page below. Choose one account to open only its QR, status, and login actions.
+              </p>
+            </div>
+            <div className="text-xs text-slate-500">Open one account at a time to keep the screen clean.</div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.12em] text-slate-500">
-                <tr>
-                  <th className="px-5 py-3 font-semibold">Account</th>
-                  <th className="px-5 py-3 font-semibold">Owner</th>
-                  <th className="px-5 py-3 font-semibold">Live</th>
-                  <th className="px-5 py-3 font-semibold">Status</th>
-                  <th className="px-5 py-3 font-semibold">Last Event</th>
-                  <th className="px-5 py-3 font-semibold">QR</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
-                {sessions.map((entry) => (
-                  <tr
-                    key={entry.accountId}
-                    className={`cursor-pointer ${selectedAccountId === entry.accountId ? 'bg-emerald-50/60' : 'hover:bg-slate-50'}`}
-                    onClick={() => setSelectedAccountId(entry.accountId)}
-                  >
-                    <td className="px-5 py-4">
-                      <div className="font-medium text-slate-900">{entry.displayName}</div>
-                      <div className="text-xs text-slate-500">{entry.accountId}</div>
-                    </td>
-                    <td className="px-5 py-4 text-slate-600">{entry.owner || 'Unassigned'}</td>
-                    <td className="px-5 py-4">
-                      <span className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${connectionState(entry.status).classes}`}>
-                        <span className={`h-2 w-2 rounded-full ${connectionState(entry.status).dot}`} />
-                        {connectionState(entry.status).label}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${statusClasses(entry.status)}`}>
-                        {entry.status.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-slate-600">{formatDateTime(entry.lastEventAt)}</td>
-                    <td className="px-5 py-4">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedAccountId(entry.accountId)}
-                        className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-slate-400 hover:text-slate-900"
-                      >
-                        <QrCode className="h-3.5 w-3.5" />
-                        Manage
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {sessions.map((entry) => {
+              const liveState = connectionState(entry.status);
+              const isActive = selectedAccountId === entry.accountId;
 
-                {!loadingStatus && sessions.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-5 py-10 text-center text-sm text-slate-500">
-                      No bridge sessions configured.
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
+              return (
+                <button
+                  key={entry.accountId}
+                  type="button"
+                  onClick={() => setSelectedAccountId(entry.accountId)}
+                  className={`rounded-3xl border p-4 text-left transition ${isActive ? 'border-emerald-300 bg-emerald-50 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-base font-semibold text-slate-900">{entry.displayName}</div>
+                      <div className="mt-1 text-xs text-slate-500">{entry.accountId}</div>
+                    </div>
+                    <span className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset ${liveState.classes}`}>
+                      <span className={`h-2 w-2 rounded-full ${liveState.dot}`} />
+                      {liveState.label}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between text-xs text-slate-600">
+                    <span>{statusLabel(entry.status)}</span>
+                    <span>{entry.hasQrCode ? 'QR ready' : 'No QR'}</span>
+                  </div>
+
+                  <div className="mt-3 text-xs text-slate-500">
+                    Last event: {formatDateTime(entry.lastEventAt)}
+                  </div>
+                </button>
+              );
+            })}
+
+            {!loadingStatus && sessions.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-slate-300 px-5 py-10 text-center text-sm text-slate-500 md:col-span-2 xl:col-span-4">
+                No bridge sessions configured.
+              </div>
+            ) : null}
           </div>
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Selected Session</div>
+                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Account Page</div>
                 <h3 className="mt-2 text-lg font-semibold text-slate-900">
                   {selectedSession ? selectedSession.displayName : 'Choose an account'}
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  {selectedSession ? selectedSession.accountId : 'Pick a row from the session list to start.'}
+                  {selectedSession ? `Account ID: ${selectedSession.accountId}` : 'Pick one WhatsApp account above to open its dedicated view.'}
                 </p>
               </div>
               {selectedSession ? (
-                <div className="flex flex-col items-end gap-2">
+                <div className="flex flex-row flex-wrap gap-2 sm:flex-col sm:items-end">
                   <span className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${connectionState(selectedSession.status).classes}`}>
                     <span className={`h-2 w-2 rounded-full ${connectionState(selectedSession.status).dot}`} />
                     {connectionState(selectedSession.status).label}
@@ -409,11 +415,11 @@ export function WhatsAppBridge() {
 
             <p className="mt-4 text-sm leading-6 text-slate-600">{statusGuidance(selectedSession)}</p>
 
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               <button
                 type="button"
                 onClick={() => setAuthMethod('qr')}
-                className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-medium transition ${authMethod === 'qr' ? 'bg-slate-900 text-white shadow-sm' : 'border border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:text-slate-900'}`}
+                className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-medium transition sm:w-auto ${authMethod === 'qr' ? 'bg-slate-900 text-white shadow-sm' : 'border border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:text-slate-900'}`}
                 disabled={!selectedSession}
               >
                 <QrCode className="h-4 w-4" />
@@ -422,7 +428,7 @@ export function WhatsAppBridge() {
               <button
                 type="button"
                 onClick={() => setAuthMethod('pairing')}
-                className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-medium transition ${authMethod === 'pairing' ? 'bg-slate-900 text-white shadow-sm' : 'border border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:text-slate-900'}`}
+                className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-medium transition sm:w-auto ${authMethod === 'pairing' ? 'bg-slate-900 text-white shadow-sm' : 'border border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:text-slate-900'}`}
                 disabled={!selectedSession}
               >
                 <Smartphone className="h-4 w-4" />
@@ -431,7 +437,7 @@ export function WhatsAppBridge() {
               <button
                 type="button"
                 onClick={() => selectedSession && void loadStatus()}
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:text-slate-900 disabled:opacity-60"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:text-slate-900 disabled:opacity-60 sm:w-auto"
                 disabled={!selectedSession || loadingStatus}
               >
                 <RefreshCw className={`h-4 w-4 ${loadingStatus ? 'animate-spin' : ''}`} />
@@ -441,7 +447,7 @@ export function WhatsAppBridge() {
           </div>
 
           <div className="mt-4 rounded-3xl border border-slate-200 bg-white p-4">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Step 1</div>
                 <h4 className="mt-1 text-base font-semibold text-slate-900">
@@ -452,7 +458,7 @@ export function WhatsAppBridge() {
                 <button
                   type="button"
                   onClick={() => void loadQr(selectedSession.accountId)}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-slate-400 hover:text-slate-900 disabled:opacity-60"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-slate-400 hover:text-slate-900 disabled:opacity-60 sm:w-auto"
                   disabled={loadingQr}
                 >
                   <RefreshCw className={`h-3.5 w-3.5 ${loadingQr ? 'animate-spin' : ''}`} />
@@ -470,12 +476,14 @@ export function WhatsAppBridge() {
                   </div>
                 ) : qrImageDataUrl ? (
                   <div className="space-y-4">
-                    <div className="flex items-start gap-4">
-                      <img
-                        src={qrImageDataUrl}
-                        alt="WhatsApp Bridge QR"
-                        className="aspect-square w-full max-w-[160px] rounded-2xl border border-slate-200 bg-white p-2 shadow-sm object-contain sm:max-w-[180px]"
-                      />
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+                      <div className="mx-auto flex h-[200px] w-[200px] flex-none items-center justify-center rounded-3xl border border-slate-200 bg-white p-3 shadow-sm sm:h-[240px] sm:w-[240px]">
+                        <img
+                          src={qrImageDataUrl}
+                          alt="WhatsApp Bridge QR"
+                          className="h-full w-full rounded-2xl object-contain"
+                        />
+                      </div>
                       <div className="flex-1 space-y-3">
                         <div className="rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-700">
                           <div className="font-semibold text-slate-900">Scan flow</div>
@@ -485,12 +493,15 @@ export function WhatsAppBridge() {
                             <li>3. Tap Link a device and scan this QR within a few seconds.</li>
                           </ol>
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="rounded-2xl border border-slate-200 bg-white p-3 text-xs leading-5 text-slate-600">
+                          WhatsApp does not publish an official QR pixel size. This page now uses a fixed scan box of about 240 x 240 so every account opens inside the same stable frame.
+                        </div>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                           <a
                             href={qrImageDataUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-slate-400 hover:text-slate-900"
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-slate-400 hover:text-slate-900 sm:w-auto"
                           >
                             <QrCode className="h-3.5 w-3.5" />
                             Open large QR
@@ -498,7 +509,7 @@ export function WhatsAppBridge() {
                           <button
                             type="button"
                             onClick={() => setAuthMethod('pairing')}
-                            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-slate-400 hover:text-slate-900"
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-slate-400 hover:text-slate-900 sm:w-auto"
                           >
                             <Smartphone className="h-3.5 w-3.5" />
                             Switch to phone code
