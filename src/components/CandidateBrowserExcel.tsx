@@ -1078,7 +1078,7 @@ export function CandidateBrowserExcel() {
                           className="w-4 h-4 cursor-pointer"
                         />
                       </td>
-                      <td className="border border-gray-300 p-2 text-xs font-mono text-gray-600">{candidate.candidate_code || candidate.id}</td>
+                      <td className="border border-gray-300 p-2 text-xs font-mono text-gray-600">{candidate.candidate_code || 'Pending code'}</td>
                       <td className="border border-gray-300 p-2 text-sm font-medium text-gray-900">{candidate.name || 'missing'}</td>
                       <td className="border border-gray-300 p-2 text-sm text-gray-700">{candidate.position || 'missing'}</td>
                       <td className="border border-gray-300 p-2 text-sm text-gray-700 text-center">{age !== null ? age : 'missing'}</td>
