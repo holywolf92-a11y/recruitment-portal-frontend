@@ -16,7 +16,6 @@ import { Login } from './components/Login';
 import { InboxUI } from './components/InboxUI';
 import { WhatsAppBridge } from './components/WhatsAppBridge';
 import { WhatsAppInbox } from './components/WhatsAppInbox';
-import { CandidateBrowserExcel } from './components/CandidateBrowserExcel';
 import { PublicCandidateProfile } from './components/PublicCandidateProfile';
 import { EmployeesModule } from './components/EmployeesModule';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
@@ -467,11 +466,21 @@ const AppContent = () => {
       case 'whatsapp-bridge':
         return <WhatsAppBridge />;
       case 'candidate-excel-browser':
-        return <CandidateBrowserExcel onOpenCandidate={(candidateId) => {
-          setCandidateToOpen(candidateId);
-          setCandidateTabToOpen('details');
-          navigateTab('candidates', { candidateId, candidateTab: 'details' });
-        }} />;
+        return (
+          <CandidateManagement
+            initialProfessionFilter={selectedProfession}
+            candidateIdToOpen={candidateToOpen}
+            candidateInitialTabToOpen={candidateTabToOpen}
+            onCandidateOpened={() => {
+              setCandidateToOpen(null);
+              setCandidateTabToOpen('details');
+              if (typeof window !== 'undefined') {
+                const nextUrl = buildAdminUrl('candidate-excel-browser');
+                window.history.replaceState({}, '', nextUrl);
+              }
+            }}
+          />
+        );
       case 'candidates':
         return (
           <CandidateManagement

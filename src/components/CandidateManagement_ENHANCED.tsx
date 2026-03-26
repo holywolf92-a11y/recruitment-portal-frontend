@@ -55,6 +55,8 @@ interface FilterState {
   status: string;
 }
 
+const PAGE_SIZE_OPTIONS = [20, 50, 100, 200];
+
 function getInitials(name: string) {
   const trimmed = (name || '').trim();
   if (!trimmed) return '??';
@@ -135,6 +137,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
     candidates, 
     loading, 
     error, 
+    total,
     fetchCandidates: fetchCandidatesFromContext,
     refreshCandidates 
   } = useCandidates();
@@ -152,6 +155,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
   });
   const [searchInput, setSearchInput] = useState('');
   const debouncedSearch = useDebounce(searchInput.trim(), 400);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [positions, setPositions] = useState<string[]>([]);
   const [countries, setCountries] = useState<string[]>([]);
   const [statuses, setStatuses] = useState<string[]>([]);
@@ -334,23 +339,9 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
       position: filters.position === 'all' ? undefined : filters.position,
       country_of_interest: filters.country === 'all' ? undefined : filters.country,
       status: filters.status === 'all' ? undefined : filters.status,
+      limit: pageSize,
+      offset: (currentPage - 1) * pageSize,
     });
-    
-    // Update local filter options from fetched candidates
-    const uniquePositions = Array.from(
-      new Set(candidates.map(c => c.position).filter(Boolean))
-    ).sort() as string[];
-    setPositions(uniquePositions);
-
-    const uniqueCountries = Array.from(
-      new Set(candidates.map((c) => c.country_of_interest).filter(Boolean))
-    ).sort() as string[];
-    setCountries(uniqueCountries);
-
-    const uniqueStatuses = Array.from(
-      new Set(candidates.map((c) => (c.status || 'Applied')).filter(Boolean))
-    ).sort() as string[];
-    setStatuses(uniqueStatuses.length ? uniqueStatuses : ['Applied', 'Pending', 'Deployed', 'Cancelled']);
   };
 
   // Backend-driven processing: show "Processing" only when the backend has documents
@@ -434,7 +425,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
       if (!loading) setSlowLoadWarning(false); // Clear warning when loading finishes
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, filters.position, filters.country, filters.status]);
+  }, [debouncedSearch, filters.position, filters.country, filters.status, currentPage, pageSize]);
   
   // Clear slow-load warning when loading finishes
   useEffect(() => {
@@ -443,23 +434,28 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
     }
   }, [loading]);
 
-  // Update filter options when candidates change
   useEffect(() => {
-    const uniquePositions = Array.from(
-      new Set(candidates.map(c => c.position).filter(Boolean))
-    ).sort() as string[];
-    setPositions(uniquePositions);
+    let cancelled = false;
 
-    const uniqueCountries = Array.from(
-      new Set(candidates.map((c) => c.country_of_interest).filter(Boolean))
-    ).sort() as string[];
-    setCountries(uniqueCountries);
+    const loadBrowseMetadata = async () => {
+      try {
+        const metadata = await apiClient.getCandidateBrowseMetadata();
+        if (cancelled) return;
+        setPositions(metadata.professions.map((profession) => profession.name));
+        setCountries(metadata.countries.map((country) => country.name));
+        setStatuses(metadata.statuses.map((status) => status.name));
+      } catch (err) {
+        if (!cancelled) {
+          console.warn('Failed to load candidate browse metadata', err);
+        }
+      }
+    };
 
-    const uniqueStatuses = Array.from(
-      new Set(candidates.map((c) => (c.status || 'Applied')).filter(Boolean))
-    ).sort() as string[];
-    setStatuses(uniqueStatuses.length ? uniqueStatuses : ['Applied', 'Pending', 'Deployed', 'Cancelled']);
-  }, [candidates]);
+    void loadBrowseMetadata();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -497,20 +493,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
     };
   }, []);
 
-  const filteredCandidates = useMemo(() => {
-    return candidates.filter(c => {
-      const searchLower = debouncedSearch.toLowerCase();
-      const matchesSearch = !debouncedSearch ||
-        (c.name || '').toLowerCase().includes(searchLower) ||
-        (c.email || '').toLowerCase().includes(searchLower) ||
-        (c.phone || '').toLowerCase().includes(searchLower) ||
-        (c.candidate_code || '').toLowerCase().includes(searchLower);
-      const matchesPosition = filters.position === 'all' || c.position === filters.position;
-      const matchesCountry = filters.country === 'all' || (c.country_of_interest || '—') === filters.country;
-      const matchesStatus = filters.status === 'all' || (c.status || 'Applied') === filters.status;
-      return matchesSearch && matchesPosition && matchesCountry && matchesStatus;
-    });
-  }, [candidates, debouncedSearch, filters.position, filters.country, filters.status]);
+  const filteredCandidates = useMemo(() => candidates, [candidates]);
 
   const positionCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -527,6 +510,16 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
     return filteredCandidates.every((c) => selectedIds.has(c.id));
   }, [filteredCandidates, selectedIds]);
 
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize]);
+  const pageStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const pageEnd = total === 0 ? 0 : Math.min(total, currentPage * pageSize);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
   function toggleSelected(id: string) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -542,6 +535,12 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
 
   function clearSelection() {
     setSelectedIds(new Set());
+  }
+
+  function scrollToTop() {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
   }
 
   async function applyBulkStatusUpdate() {
@@ -887,7 +886,10 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
           {/* Country Filter */}
           <select
             value={filters.country}
-            onChange={(e) => setFilters(prev => ({ ...prev, country: e.target.value }))}
+            onChange={(e) => {
+              setCurrentPage(1);
+              setFilters(prev => ({ ...prev, country: e.target.value }));
+            }}
             className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
           >
             <option value="all">All Countries</option>
@@ -899,7 +901,10 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
           {/* Status Filter */}
           <select
             value={filters.status}
-            onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+            onChange={(e) => {
+              setCurrentPage(1);
+              setFilters(prev => ({ ...prev, status: e.target.value }));
+            }}
             className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
           >
             <option value="all">All Status</option>
@@ -915,7 +920,10 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
               type="search"
               placeholder="Search candidates by name, email, phone..."
               value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
+              onChange={(e) => {
+                setCurrentPage(1);
+                setSearchInput(e.target.value);
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') e.preventDefault();
               }}
@@ -933,7 +941,10 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
             {searchInput && (
               <button
                 type="button"
-                onClick={() => setSearchInput('')}
+                onClick={() => {
+                  setCurrentPage(1);
+                  setSearchInput('');
+                }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
                 aria-label="Clear search"
                 title="Clear"
@@ -963,6 +974,22 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
               <List className="w-4 h-4" />
               Table
             </button>
+          </div>
+
+          <div className="sm:col-span-2 xl:col-span-1 flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Rows</label>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              {PAGE_SIZE_OPTIONS.map((option) => (
+                <option key={option} value={option}>{option} per page</option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -1005,7 +1032,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4">
           <p className="text-sm text-gray-600">
-            Showing <strong>{filteredCandidates.length}</strong> of <strong>{candidates.length}</strong> candidates
+            Showing <strong>{pageStart}-{pageEnd}</strong> of <strong>{total}</strong> candidates
           </p>
           {loading && !showBlockingLoader && (
             <div className="flex items-center gap-2 text-sm text-blue-600">
@@ -1020,6 +1047,57 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
             {allFilteredSelected ? 'Deselect All' : 'Select All'}
           </button>
         </div>
+
+        {total > 0 && (
+          <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between border-t border-gray-200 pt-4">
+            <div className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => {
+                  setCurrentPage(1);
+                  scrollToTop();
+                }}
+                disabled={currentPage === 1}
+                className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                First
+              </button>
+              <button
+                onClick={() => {
+                  setCurrentPage((page) => Math.max(1, page - 1));
+                  scrollToTop();
+                }}
+                disabled={currentPage === 1}
+                className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span className="px-3 py-2 text-sm text-gray-700">{currentPage}</span>
+              <button
+                onClick={() => {
+                  setCurrentPage((page) => Math.min(totalPages, page + 1));
+                  scrollToTop();
+                }}
+                disabled={currentPage >= totalPages}
+                className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+              <button
+                onClick={() => {
+                  setCurrentPage(totalPages);
+                  scrollToTop();
+                }}
+                disabled={currentPage >= totalPages}
+                className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Last
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Candidates Display */}

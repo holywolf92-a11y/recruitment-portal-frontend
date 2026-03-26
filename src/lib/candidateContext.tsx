@@ -6,6 +6,7 @@ interface CandidateContextType {
   candidates: Candidate[];
   loading: boolean;
   error: string | null;
+  total: number;
   
   // Actions
   fetchCandidates: (filters?: CandidateFilters) => Promise<void>;
@@ -35,6 +36,7 @@ export const CandidateProvider: React.FC<CandidateProviderProps> = ({ children }
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [total, setTotal] = useState(0);
   const [currentFilters, setCurrentFilters] = useState<CandidateFilters>({});
 
   // Fetch candidates with optional filters
@@ -48,6 +50,7 @@ export const CandidateProvider: React.FC<CandidateProviderProps> = ({ children }
       const elapsed = performance.now() - startTime;
       console.log('[CandidateContext] Fetched candidates:', response.candidates?.length || 0, `(${elapsed.toFixed(0)}ms)`);
       setCandidates(response.candidates || []);
+      setTotal(response.total || 0);
       setCurrentFilters(filters);
     } catch (e: any) {
       console.error('[CandidateContext] Error fetching candidates:', e);
@@ -82,6 +85,7 @@ export const CandidateProvider: React.FC<CandidateProviderProps> = ({ children }
     candidates,
     loading,
     error,
+    total,
     fetchCandidates,
     refreshCandidates,
     updateCandidateInList,
