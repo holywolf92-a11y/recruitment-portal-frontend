@@ -424,6 +424,11 @@ export function CandidateBrowserExcel() {
     }
   };
 
+  const filteredCandidates = useMemo(() => candidates, [candidates]);
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(totalCandidates / pageSize)), [totalCandidates, pageSize]);
+  const pageStart = totalCandidates === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const pageEnd = totalCandidates === 0 ? 0 : Math.min(totalCandidates, currentPage * pageSize);
+
   useEffect(() => {
     if (currentPage > totalPages) {
       setCurrentPage(totalPages);
@@ -515,11 +520,6 @@ export function CandidateBrowserExcel() {
     );
   };
 
-  const filteredCandidates = useMemo(() => candidates, [candidates]);
-  const totalPages = useMemo(() => Math.max(1, Math.ceil(totalCandidates / pageSize)), [totalCandidates, pageSize]);
-  const pageStart = totalCandidates === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-  const pageEnd = totalCandidates === 0 ? 0 : Math.min(totalCandidates, currentPage * pageSize);
-  
   const [quickDateFilter, setQuickDateFilter] = useState<'today' | 'yesterday' | '7days' | '30days' | null>('30days');
 
   // Quick date filters
