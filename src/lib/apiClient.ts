@@ -346,6 +346,29 @@ export interface CandidatesResponse {
   offset?: number;
 }
 
+export interface CandidateBrowseCountItem {
+  name: string;
+  count: number;
+}
+
+export interface CandidateBrowseProfessionMetadata {
+  name: string;
+  count: number;
+  countries: CandidateBrowseCountItem[];
+  statuses: CandidateBrowseCountItem[];
+  documents: {
+    complete: number;
+    missing: number;
+  };
+}
+
+export interface CandidateBrowseMetadata {
+  totalCandidates: number;
+  professions: CandidateBrowseProfessionMetadata[];
+  countries: CandidateBrowseCountItem[];
+  statuses: CandidateBrowseCountItem[];
+}
+
 export interface CandidateDashboardStats {
   totalCandidates: number;
   totalProfessions: number;
@@ -703,6 +726,10 @@ class ApiClient {
 
   async getCandidateDashboardStats(): Promise<CandidateDashboardStats> {
     return this.request<CandidateDashboardStats>('/candidates/dashboard-stats');
+  }
+
+  async getCandidateBrowseMetadata(): Promise<CandidateBrowseMetadata> {
+    return this.request<CandidateBrowseMetadata>('/candidates/browse-metadata');
   }
 
   /**

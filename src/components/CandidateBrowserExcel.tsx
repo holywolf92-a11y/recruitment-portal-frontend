@@ -33,8 +33,7 @@ import { API_BASE_URL } from '../lib/apiClient';
 import { getFrontendBaseUrl } from '../lib/publicUrl';
 import { toast } from 'sonner';
 import { Toaster } from './ui/sonner';
-import { apiClient, Candidate, CandidateFilters } from '../lib/apiClient';
-import { useCandidates } from '../lib/candidateContext';
+import { apiClient, Candidate, CandidateBrowseMetadata, CandidateFilters } from '../lib/apiClient';
 import { SendToEmployerModal } from './SendToEmployerModal';
 
 interface FolderNode {
@@ -42,9 +41,12 @@ interface FolderNode {
   name: string;
   type: 'profession' | 'smart-folder' | 'subfolder';
   icon: any;
+  count: number;
   children?: FolderNode[];
-  filter?: (candidates: Candidate[]) => Candidate[];
+  filters?: Partial<CandidateFilters>;
 }
+
+const PAGE_SIZE_OPTIONS = [20, 50, 100, 200];
 
 // Helper function to calculate age from date_of_birth
 function calculateAge(dateOfBirth?: string): number | null {
@@ -166,133 +168,101 @@ async function copyToClipboard(text: string): Promise<void> {
   }
 }
 
-// Build folder structure dynamically from actual candidate data
-function buildFolderStructure(candidates: Candidate[]): FolderNode[] {
-  // Get unique positions
-  const positions = Array.from(new Set(
-    candidates
-      .map(c => c.position)
-      .filter(Boolean) as string[]
-  )).sort();
-
-  if (positions.length === 0) {
+// Build folder structure from lightweight metadata instead of full candidate rows
+function buildFolderStructure(metadata: CandidateBrowseMetadata | null): FolderNode[] {
+  if (!metadata?.professions.length) {
     return [];
   }
 
-  return positions.map(position => {
-    const positionLower = position.toLowerCase();
-    
-    // Get unique countries for this position
-    const countries = Array.from(new Set(
-      candidates
-        .filter(c => c.position?.toLowerCase() === positionLower && c.country_of_interest)
-        .map(c => c.country_of_interest!)
-    )).sort();
-
-    // Get unique statuses for this position
-    const statuses = Array.from(new Set(
-      candidates
-        .filter(c => c.position?.toLowerCase() === positionLower && c.status)
-        .map(c => c.status!)
-    )).sort();
+  return metadata.professions.map((profession) => {
+    const positionLower = profession.name.toLowerCase();
+    const positionSlug = positionLower.replace(/\s+/g, '-');
 
     return {
-      id: `profession-${positionLower.replace(/\s+/g, '-')}`,
-      name: position,
+      id: `profession-${positionSlug}`,
+      name: profession.name,
       type: 'profession' as const,
       icon: Users,
+      count: profession.count,
       children: [
-        // "All" folder
         {
-          id: `${positionLower.replace(/\s+/g, '-')}-all`,
+          id: `${positionSlug}-all`,
           name: 'All',
           type: 'smart-folder' as const,
           icon: Users,
-          filter: (candidates) => candidates.filter(c => 
-            c.position?.toLowerCase() === positionLower
-          )
+          count: profession.count,
+          filters: { position: profession.name },
         },
-        // "By Country" folder
         {
-          id: `${positionLower.replace(/\s+/g, '-')}-by-country`,
+          id: `${positionSlug}-by-country`,
           name: 'By Country',
           type: 'smart-folder' as const,
           icon: MapPin,
-          children: countries.map(country => ({
-            id: `${positionLower.replace(/\s+/g, '-')}-${country.toLowerCase().replace(/\s+/g, '-')}`,
-            name: country,
+          count: profession.countries.reduce((sum, country) => sum + country.count, 0),
+          children: profession.countries.map((country) => ({
+            id: `${positionSlug}-${country.name.toLowerCase().replace(/\s+/g, '-')}`,
+            name: country.name,
             type: 'subfolder' as const,
             icon: MapPin,
-            filter: (candidates) => candidates.filter(c => 
-              c.position?.toLowerCase() === positionLower && 
-              c.country_of_interest === country
-            )
-          }))
+            count: country.count,
+            filters: { position: profession.name, country_of_interest: country.name },
+          })),
         },
-        // "By Status" folder
         {
-          id: `${positionLower.replace(/\s+/g, '-')}-by-status`,
+          id: `${positionSlug}-by-status`,
           name: 'By Status',
           type: 'smart-folder' as const,
           icon: CheckCircle,
-          children: statuses.map(status => ({
-            id: `${positionLower.replace(/\s+/g, '-')}-${status.toLowerCase().replace(/\s+/g, '-')}`,
-            name: status,
+          count: profession.statuses.reduce((sum, status) => sum + status.count, 0),
+          children: profession.statuses.map((status) => ({
+            id: `${positionSlug}-${status.name.toLowerCase().replace(/\s+/g, '-')}`,
+            name: status.name,
             type: 'subfolder' as const,
             icon: CheckCircle,
-            filter: (candidates) => candidates.filter(c => 
-              c.position?.toLowerCase() === positionLower && 
-              c.status === status
-            )
-          }))
+            count: status.count,
+            filters: { position: profession.name, status: status.name },
+          })),
         },
-        // "By Documents" folder
         {
-          id: `${positionLower.replace(/\s+/g, '-')}-by-documents`,
+          id: `${positionSlug}-by-documents`,
           name: 'By Documents',
           type: 'smart-folder' as const,
           icon: FileText,
+          count: profession.documents.complete + profession.documents.missing,
           children: [
             {
-              id: `${positionLower.replace(/\s+/g, '-')}-complete`,
+              id: `${positionSlug}-complete`,
               name: 'Complete',
               type: 'subfolder' as const,
               icon: FileText,
-              filter: (candidates) => candidates.filter(c => 
-                c.position?.toLowerCase() === positionLower && 
-                c.cv_received && c.passport_received
-              )
+              count: profession.documents.complete,
+              filters: { position: profession.name, documents: 'complete' },
             },
             {
-              id: `${positionLower.replace(/\s+/g, '-')}-missing`,
+              id: `${positionSlug}-missing`,
               name: 'Missing',
               type: 'subfolder' as const,
               icon: FileText,
-              filter: (candidates) => candidates.filter(c => 
-                c.position?.toLowerCase() === positionLower && 
-                (!c.cv_received || !c.passport_received)
-              )
-            }
-          ]
-        }
-      ]
+              count: profession.documents.missing,
+              filters: { position: profession.name, documents: 'missing' },
+            },
+          ],
+        },
+      ],
     };
   });
 }
 
 export function CandidateBrowserExcel() {
-  // Server-side filtering state
-  const [filters, setFilters] = useState<CandidateFilters>({
-    limit: 50,
-    offset: 0,
-  });
   const [searchQuery, setSearchQuery] = useState('');
   const [appliedFrom, setAppliedFrom] = useState<string>('');
   const [appliedTo, setAppliedTo] = useState<string>('');
   const [sortBy, setSortBy] = useState<string>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [totalCandidates, setTotalCandidates] = useState(0);
+  const [browseMetadata, setBrowseMetadata] = useState<CandidateBrowseMetadata | null>(null);
   const [dailyStats, setDailyStats] = useState<{
     total_candidates: number;
     total: number;
@@ -305,18 +275,8 @@ export function CandidateBrowserExcel() {
   const [loadingStats, setLoadingStats] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<string>('all');
   
-  
-  // Use shared candidate context (but we'll override with server-side fetching)
-  const { 
-    candidates: contextCandidates, 
-    loading: contextLoading, 
-    error: contextError, 
-    fetchCandidates: contextFetchCandidates,
-  } = useCandidates();
-  
   // Local state for server-fetched candidates
   const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [allCandidatesForNavigation, setAllCandidatesForNavigation] = useState<Candidate[]>([]); // Keep all candidates for folder structure
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasLoadedOnceRef = useRef(false);
@@ -348,53 +308,17 @@ export function CandidateBrowserExcel() {
     setError(null);
     try {
       const activeFilters: CandidateFilters = {
-        ...filters,
         search: debouncedSearchQuery.trim() || undefined,
         applied_from: appliedFrom || undefined,
         applied_to: appliedTo || undefined,
         sort_by: sortBy,
         sort_order: sortOrder,
-        limit: 50,
-        offset: (currentPage - 1) * 50,
+        limit: pageSize,
+        offset: (currentPage - 1) * pageSize,
       };
 
-      if (professionMode) {
-        activeFilters.position = professionMode;
-      }
-      
-      // Apply folder filters (position, country, status, documents)
-      if (selectedFolder && !professionMode) {
-        if (selectedFolder.type === 'profession' && selectedFolder.name !== 'all') {
-          activeFilters.position = selectedFolder.name;
-        } else if (selectedFolder.type === 'subfolder') {
-          // Extract position from folder path
-          const parent = folderStructure.find(f => 
-            f.children?.some(c => c.id === selectedFolder.id || c.children?.some(sc => sc.id === selectedFolder.id))
-          );
-          if (parent) activeFilters.position = parent.name;
-          
-          // Check if it's a country subfolder
-          if (selectedFolder.name && selectedFolder.name !== 'All') {
-            const isCountry = folderStructure.some(f => 
-              f.children?.find(c => c.name === 'By Country' && c.children?.some(sc => sc.id === selectedFolder.id))
-            );
-            if (isCountry) activeFilters.country_of_interest = selectedFolder.name;
-            
-            // Check if it's a status subfolder
-            const isStatus = folderStructure.some(f => 
-              f.children?.find(c => c.name === 'By Status' && c.children?.some(sc => sc.id === selectedFolder.id))
-            );
-            if (isStatus) activeFilters.status = selectedFolder.name;
-            
-            // Check if it's a documents subfolder
-            const isDocs = folderStructure.some(f => 
-              f.children?.find(c => c.name === 'By Documents' && c.children?.some(sc => sc.id === selectedFolder.id))
-            );
-            if (isDocs) {
-              activeFilters.documents = selectedFolder.name === 'Complete' ? 'complete' : 'missing';
-            }
-          }
-        }
+      if (selectedFolder?.filters) {
+        Object.assign(activeFilters, selectedFolder.filters);
       }
 
       if (!activeFilters.country_of_interest && selectedCountry !== 'all') {
@@ -414,7 +338,7 @@ export function CandidateBrowserExcel() {
         setLoading(false);
       }
     }
-  }, [filters, debouncedSearchQuery, appliedFrom, appliedTo, sortBy, sortOrder, currentPage, selectedFolder, selectedCountry]);
+  }, [debouncedSearchQuery, appliedFrom, appliedTo, sortBy, sortOrder, currentPage, pageSize, selectedFolder, selectedCountry]);
 
   // Fetch daily stats — uses debouncedSearchQuery so it stays in sync with the
   // candidate list and does NOT fire on every keystroke.
@@ -426,13 +350,9 @@ export function CandidateBrowserExcel() {
         applied_from: appliedFrom || undefined,
         applied_to: appliedTo || undefined,
       };
-      
-      // Apply folder filters
-      if (selectedFolder) {
-        const parent = folderStructure.find(f => 
-          f.children?.some(c => c.id === selectedFolder.id || c.children?.some(sc => sc.id === selectedFolder.id))
-        );
-        if (parent) statsFilters.position = parent.name;
+
+      if (selectedFolder?.filters) {
+        Object.assign(statsFilters, selectedFolder.filters);
       }
 
       if (selectedCountry !== 'all') {
@@ -453,37 +373,29 @@ export function CandidateBrowserExcel() {
     fetchCandidatesWithFilters();
   }, [fetchCandidatesWithFilters]);
 
-  // Fetch all candidates once on mount for folder structure (no filters)
   useEffect(() => {
-    const fetchAllCandidates = async () => {
+    const fetchBrowseMetadata = async () => {
       try {
-        const result = await apiClient.getCandidates({ limit: 5000 });
-        setAllCandidatesForNavigation(result.candidates || []);
+        const metadata = await apiClient.getCandidateBrowseMetadata();
+        setBrowseMetadata(metadata);
       } catch (e) {
-        console.error('Failed to load candidates for navigation:', e);
+        console.error('Failed to load candidate browse metadata:', e);
       }
     };
-    fetchAllCandidates();
+    fetchBrowseMetadata();
   }, []);
 
   useEffect(() => {
     fetchDailyStats();
   }, [fetchDailyStats]);
 
-  // Build folder structure from all candidates (for navigation only)
   const folderStructure = useMemo(() => {
-    // Use all candidates for folder structure, not filtered ones
-    return buildFolderStructure(allCandidatesForNavigation);
-  }, [allCandidatesForNavigation]);
+    return buildFolderStructure(browseMetadata);
+  }, [browseMetadata]);
 
   const countryOptions = useMemo(() => {
-    const unique = new Set<string>();
-    allCandidatesForNavigation.forEach(candidate => {
-      const country = (candidate.country_of_interest || candidate.country || '').trim();
-      if (country) unique.add(country);
-    });
-    return Array.from(unique).sort((a, b) => a.localeCompare(b));
-  }, [allCandidatesForNavigation]);
+    return (browseMetadata?.countries || []).map((country) => country.name);
+  }, [browseMetadata]);
 
   // Set default selected folder when structure is built
   useEffect(() => {
@@ -512,6 +424,12 @@ export function CandidateBrowserExcel() {
     }
   };
 
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
   const selectFolder = (folder: FolderNode) => {
     setSelectedFolder(folder);
     setSelectedCandidates(new Set());
@@ -527,8 +445,7 @@ export function CandidateBrowserExcel() {
 
     const paddingLeft = level * 20 + 12;
 
-    // Calculate candidate count for this folder
-    const candidateCount = folder.filter ? folder.filter(candidates).length : 0;
+    const candidateCount = folder.count;
 
     return (
       <div key={folder.id}>
@@ -580,7 +497,7 @@ export function CandidateBrowserExcel() {
             {folder.name}
           </span>
 
-          {folder.filter && (
+          {folder.count > 0 && (
             <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
               isSelected ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
             }`}>
@@ -598,26 +515,10 @@ export function CandidateBrowserExcel() {
     );
   };
 
-  // Filter candidates based on selected folder
-  const displayedCandidates = useMemo(() => {
-    if (activeMenu === 'dashboard') {
-      return candidates;
-    }
-    if (!selectedFolder || !selectedFolder.filter) {
-      return candidates;
-    }
-    return selectedFolder.filter(candidates);
-  }, [activeMenu, candidates, selectedFolder]);
-
-  const filteredCandidates = useMemo(() => {
-    if (selectedCountry === 'all') {
-      return displayedCandidates;
-    }
-    return displayedCandidates.filter(candidate => {
-      const country = (candidate.country_of_interest || candidate.country || '').trim();
-      return country === selectedCountry;
-    });
-  }, [displayedCandidates, selectedCountry]);
+  const filteredCandidates = useMemo(() => candidates, [candidates]);
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(totalCandidates / pageSize)), [totalCandidates, pageSize]);
+  const pageStart = totalCandidates === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const pageEnd = totalCandidates === 0 ? 0 : Math.min(totalCandidates, currentPage * pageSize);
   
   const [quickDateFilter, setQuickDateFilter] = useState<'today' | 'yesterday' | '7days' | '30days' | null>('30days');
 
@@ -803,11 +704,11 @@ export function CandidateBrowserExcel() {
           <div className="text-xs text-gray-600 space-y-1">
             <div className="flex items-center justify-between">
               <span>Total Candidates:</span>
-              <span className="font-semibold text-gray-900">{dailyStats?.total_candidates ?? allCandidatesForNavigation.length}</span>
+              <span className="font-semibold text-gray-900">{browseMetadata?.totalCandidates ?? dailyStats?.total_candidates ?? 0}</span>
             </div>
             <div className="flex items-center justify-between">
               <span>Showing:</span>
-              <span className="font-semibold text-blue-600">{filteredCandidates.length}</span>
+              <span className="font-semibold text-blue-600">{pageStart}-{pageEnd}</span>
             </div>
           </div>
         </div>
@@ -845,7 +746,7 @@ export function CandidateBrowserExcel() {
               ← Back to Dashboard
             </button>
             <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mt-2">{professionMode || 'Candidate Browser'}</h2>
-            <p className="text-sm text-gray-600">Showing {filteredCandidates.length} candidates</p>
+            <p className="text-sm text-gray-600">Showing {pageStart}-{pageEnd} of {totalCandidates} candidates</p>
           </div>
         </section>
       ) : (
@@ -1027,7 +928,22 @@ export function CandidateBrowserExcel() {
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Rows per page</label>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white"
+              >
+                {PAGE_SIZE_OPTIONS.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </div>
             <button
               onClick={fetchCandidatesWithFilters}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
@@ -1062,7 +978,7 @@ export function CandidateBrowserExcel() {
             <div>
               <h3 className="font-semibold text-gray-900">{selectedFolder?.name || 'Select a folder'}</h3>
               <p className="text-sm text-gray-600">
-                Showing {filteredCandidates.length} of {totalCandidates} candidates
+                Showing {pageStart}-{pageEnd} of {totalCandidates} candidates
                 {debouncedSearchQuery && ` (filtered by "${debouncedSearchQuery}")`}
               </p>
 
@@ -1440,20 +1356,43 @@ export function CandidateBrowserExcel() {
           
           {/* Pagination */}
           {totalCandidates > 0 && (
-            <div className="border-t border-gray-200 p-4 bg-gray-50 flex items-center justify-between">
+            <div className="border-t border-gray-200 p-4 bg-gray-50 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="text-sm text-gray-600">
-                Page {currentPage} of {Math.ceil(totalCandidates / 50)} ({totalCandidates} total)
+                Showing {pageStart}-{pageEnd} of {totalCandidates} candidates. Page {currentPage} of {totalPages}.
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600 whitespace-nowrap">Rows per page</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                      setCurrentPage(1);
+                      scrollContentToTop();
+                    }}
+                    className="px-3 py-1 text-sm border border-gray-300 rounded bg-white"
+                  >
+                    {PAGE_SIZE_OPTIONS.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setCurrentPage(1)}
+                  onClick={() => {
+                    setCurrentPage(1);
+                    scrollContentToTop();
+                  }}
                   disabled={currentPage === 1}
                   className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   First
                 </button>
                 <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  onClick={() => {
+                    setCurrentPage((p) => Math.max(1, p - 1));
+                    scrollContentToTop();
+                  }}
                   disabled={currentPage === 1}
                   className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -1463,19 +1402,26 @@ export function CandidateBrowserExcel() {
                   {currentPage}
                 </span>
                 <button
-                  onClick={() => setCurrentPage(p => Math.min(Math.ceil(totalCandidates / 50), p + 1))}
-                  disabled={currentPage >= Math.ceil(totalCandidates / 50)}
+                  onClick={() => {
+                    setCurrentPage((p) => Math.min(totalPages, p + 1));
+                    scrollContentToTop();
+                  }}
+                  disabled={currentPage >= totalPages}
                   className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>
                 <button
-                  onClick={() => setCurrentPage(Math.ceil(totalCandidates / 50))}
-                  disabled={currentPage >= Math.ceil(totalCandidates / 50)}
+                  onClick={() => {
+                    setCurrentPage(totalPages);
+                    scrollContentToTop();
+                  }}
+                  disabled={currentPage >= totalPages}
                   className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Last
                 </button>
+                </div>
               </div>
             </div>
           )}

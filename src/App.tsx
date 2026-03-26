@@ -401,13 +401,13 @@ const AppContent = () => {
     let isMounted = true;
     (async () => {
       try {
-        const data = await apiClient.getCandidates();
+        const data = await apiClient.getCandidateBrowseMetadata();
         if (!isMounted) return;
-        const positions = Array.from(new Set(data.map((c) => c.position).filter(Boolean) as string[])).sort();
+        const positions = data.professions.map((profession) => profession.name);
         setProfessions(['all', ...positions]);
-        const counts: Record<string, number> = { all: data.length };
-        positions.forEach((p) => {
-          counts[p] = data.filter((c) => c.position === p).length;
+        const counts: Record<string, number> = { all: data.totalCandidates };
+        data.professions.forEach((profession) => {
+          counts[profession.name] = profession.count;
         });
         setProfessionCounts(counts);
       } catch (e) {
