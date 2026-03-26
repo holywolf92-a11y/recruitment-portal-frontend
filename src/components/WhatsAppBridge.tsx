@@ -12,6 +12,8 @@ type BridgeSession = {
   lastEventAt: string | null;
   lastError: string | null;
   hasQrCode: boolean;
+  pairingCode: string | null;
+  pairingCodeGeneratedAt: string | null;
 };
 
 type BridgeStatusResponse = {
@@ -25,6 +27,13 @@ type BridgeQrResponse = {
   accountId: string;
   qrCode: string;
   qrImageDataUrl: string;
+};
+
+type BridgePairingCodeResponse = {
+  ok: boolean;
+  accountId: string;
+  pairingCode: string;
+  generatedAt: string;
 };
 
 function formatDateTime(value: string | null) {
@@ -67,8 +76,11 @@ export function WhatsAppBridge() {
   const [qrImageDataUrl, setQrImageDataUrl] = useState<string | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(false);
   const [loadingQr, setLoadingQr] = useState(false);
+  const [loadingPairing, setLoadingPairing] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [qrError, setQrError] = useState<string | null>(null);
+  const [pairingError, setPairingError] = useState<string | null>(null);
+  const [pairingPhoneNumber, setPairingPhoneNumber] = useState('');
 
   const authHeader = useMemo(() => {
     const token = session?.access_token;
@@ -138,6 +150,46 @@ export function WhatsAppBridge() {
     }
   }
 
+  async function requestPairingCode(accountId: string) {
+    if (!authHeader) return;
+
+    if (!pairingPhoneNumber.trim()) {
+      setPairingError('Enter the phone number in international format, without spaces or symbols if possible.');
+      return;
+    }
+
+    setLoadingPairing(true);
+    setPairingError(null);
+
+    try {
+      const data = await fetchJson<BridgePairingCodeResponse>(`${API_BASE_URL}/whatsapp-bridge/sessions/${encodeURIComponent(accountId)}/pairing-code`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeader,
+        },
+        body: JSON.stringify({ phoneNumber: pairingPhoneNumber }),
+      });
+
+      setSessions((current) => current.map((entry) => (
+        entry.accountId === accountId
+          ? {
+              ...entry,
+              pairingCode: data.pairingCode,
+              pairingCodeGeneratedAt: data.generatedAt,
+              hasQrCode: false,
+            }
+          : entry
+      )));
+      setQrImageDataUrl(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setPairingError(message);
+    } finally {
+      setLoadingPairing(false);
+    }
+  }
+
   useEffect(() => {
     if (!authHeader) return;
     void loadStatus();
@@ -153,6 +205,7 @@ export function WhatsAppBridge() {
     if (!selectedSession) {
       setQrImageDataUrl(null);
       setQrError(null);
+      setPairingError(null);
       return;
     }
 
@@ -292,9 +345,24 @@ export function WhatsAppBridge() {
               </div>
             ) : qrImageDataUrl ? (
               <div className="space-y-4">
-                <img src={qrImageDataUrl} alt="WhatsApp Bridge QR" className="mx-auto w-full max-w-[320px] rounded-2xl border border-slate-200 bg-white p-3 shadow-sm" />
+                <img
+                  src={qrImageDataUrl}
+                  alt="WhatsApp Bridge QR"
+                  className="mx-auto aspect-square w-full max-w-[220px] rounded-2xl border border-slate-200 bg-white p-2 shadow-sm object-contain sm:max-w-[260px] md:max-w-[300px]"
+                />
+                <div className="flex justify-center">
+                  <a
+                    href={qrImageDataUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-slate-400 hover:text-slate-900"
+                  >
+                    <QrCode className="h-3.5 w-3.5" />
+                    Open QR only
+                  </a>
+                </div>
                 <p className="text-center text-xs leading-5 text-slate-500">
-                  Open WhatsApp on the pilot phone, use Linked Devices, and scan this code.
+                  Open WhatsApp on the pilot phone, use Linked Devices, and scan this code quickly. If WhatsApp says try again later, reload the QR and rescan within a few seconds.
                 </p>
               </div>
             ) : (
@@ -309,6 +377,57 @@ export function WhatsAppBridge() {
                 </p>
               </div>
             )}
+          </div>
+
+          <div className="mt-4 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+            <div className="flex flex-col gap-3">
+              <div>
+                <h4 className="text-sm font-semibold text-slate-900">Link With Phone Number</h4>
+                <p className="mt-1 text-xs leading-5 text-slate-500">
+                  Use this if QR linking is unreliable. Enter the WhatsApp number of the primary phone in international format.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="tel"
+                  placeholder="923001234567"
+                  value={pairingPhoneNumber}
+                  onChange={(event) => setPairingPhoneNumber(event.target.value)}
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  disabled={!selectedSession || loadingPairing || selectedSession.status === 'connected'}
+                />
+                <button
+                  type="button"
+                  onClick={() => selectedSession && void requestPairingCode(selectedSession.accountId)}
+                  className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={!selectedSession || loadingPairing || selectedSession.status === 'connected'}
+                >
+                  {loadingPairing ? 'Generating...' : 'Generate code'}
+                </button>
+              </div>
+
+              {selectedSession?.pairingCode ? (
+                <div className="rounded-2xl border border-emerald-200 bg-white px-4 py-4">
+                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Pairing code</div>
+                  <div className="mt-2 text-3xl font-semibold tracking-[0.28em] text-slate-900 sm:text-4xl">
+                    {selectedSession.pairingCode}
+                  </div>
+                  <p className="mt-2 text-xs leading-5 text-slate-500">
+                    On the phone, open Linked Devices, choose Link with phone number, and enter this code.
+                    {selectedSession.pairingCodeGeneratedAt ? ` Generated ${formatDateTime(selectedSession.pairingCodeGeneratedAt)}.` : ''}
+                  </p>
+                </div>
+              ) : null}
+
+              {pairingError ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  Pairing code is not currently available: {pairingError}
+                </div>
+              ) : null}
+            </div>
           </div>
 
           {selectedSession?.lastError ? (
