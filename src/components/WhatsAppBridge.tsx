@@ -61,6 +61,22 @@ function statusClasses(status: BridgeSession['status']) {
   }
 }
 
+function connectionState(status: BridgeSession['status']) {
+  if (status === 'connected') {
+    return {
+      label: 'Online',
+      classes: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+      dot: 'bg-emerald-500',
+    };
+  }
+
+  return {
+    label: 'Offline',
+    classes: 'bg-slate-100 text-slate-700 ring-slate-200',
+    dot: 'bg-slate-400',
+  };
+}
+
 function statusLabel(status: BridgeSession['status']) {
   return status.replace('_', ' ');
 }
@@ -271,7 +287,7 @@ export function WhatsAppBridge() {
             </div>
             <h2 className="mt-3 text-2xl font-semibold text-slate-900">Bridge Session Monitor</h2>
             <p className="mt-2 max-w-2xl text-sm text-slate-600">
-              Scan QR here to connect the pilot forwarding account, then let the existing Meta WhatsApp pipeline keep processing forwarded CVs.
+              Connect and monitor multiple WhatsApp bridge accounts here, while the existing Meta WhatsApp pipeline continues processing inbound CVs.
             </p>
           </div>
 
@@ -311,6 +327,7 @@ export function WhatsAppBridge() {
                 <tr>
                   <th className="px-5 py-3 font-semibold">Account</th>
                   <th className="px-5 py-3 font-semibold">Owner</th>
+                  <th className="px-5 py-3 font-semibold">Live</th>
                   <th className="px-5 py-3 font-semibold">Status</th>
                   <th className="px-5 py-3 font-semibold">Last Event</th>
                   <th className="px-5 py-3 font-semibold">QR</th>
@@ -328,6 +345,12 @@ export function WhatsAppBridge() {
                       <div className="text-xs text-slate-500">{entry.accountId}</div>
                     </td>
                     <td className="px-5 py-4 text-slate-600">{entry.owner || 'Unassigned'}</td>
+                    <td className="px-5 py-4">
+                      <span className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${connectionState(entry.status).classes}`}>
+                        <span className={`h-2 w-2 rounded-full ${connectionState(entry.status).dot}`} />
+                        {connectionState(entry.status).label}
+                      </span>
+                    </td>
                     <td className="px-5 py-4">
                       <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${statusClasses(entry.status)}`}>
                         {entry.status.replace('_', ' ')}
@@ -349,7 +372,7 @@ export function WhatsAppBridge() {
 
                 {!loadingStatus && sessions.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-500">
+                    <td colSpan={6} className="px-5 py-10 text-center text-sm text-slate-500">
                       No bridge sessions configured.
                     </td>
                   </tr>
@@ -372,9 +395,15 @@ export function WhatsAppBridge() {
                 </p>
               </div>
               {selectedSession ? (
-                <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${statusClasses(selectedSession.status)}`}>
-                  {statusLabel(selectedSession.status)}
-                </span>
+                <div className="flex flex-col items-end gap-2">
+                  <span className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${connectionState(selectedSession.status).classes}`}>
+                    <span className={`h-2 w-2 rounded-full ${connectionState(selectedSession.status).dot}`} />
+                    {connectionState(selectedSession.status).label}
+                  </span>
+                  <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${statusClasses(selectedSession.status)}`}>
+                    {statusLabel(selectedSession.status)}
+                  </span>
+                </div>
               ) : null}
             </div>
 
