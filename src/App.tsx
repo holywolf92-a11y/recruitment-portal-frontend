@@ -14,6 +14,7 @@ import { CommunicationTemplates } from './components/CommunicationTemplates';
 import { UserManagement } from './components/UserManagement';
 import { Login } from './components/Login';
 import { InboxUI } from './components/InboxUI';
+import { WhatsAppBridge } from './components/WhatsAppBridge';
 import { WhatsAppInbox } from './components/WhatsAppInbox';
 import { CandidateBrowserExcel } from './components/CandidateBrowserExcel';
 import { PublicCandidateProfile } from './components/PublicCandidateProfile';
@@ -96,6 +97,7 @@ const NAV_SECTIONS: NavSectionConfig[] = [
     items: [
       { tab: 'templates', label: 'Templates', icon: FileText },
       { tab: 'whatsapp-inbox', label: 'WhatsApp Inbox', icon: MessageSquare },
+      { tab: 'whatsapp-bridge', label: 'WhatsApp Bridge', icon: Phone },
       { tab: 'application-link', label: 'Application Link', icon: Link2 },
     ],
   },
@@ -171,6 +173,7 @@ const AppContent = () => {
     'cv-inbox': '/admin/cv-inbox',
     'inbox-ui': '/admin/inbox',
     'whatsapp-inbox': '/admin/whatsapp',
+    'whatsapp-bridge': '/admin/whatsapp-bridge',
     'candidate-excel-browser': '/admin/excel-browser',
     candidates: '/admin/candidates',
     employers: '/admin/employers',
@@ -461,6 +464,8 @@ const AppContent = () => {
         return <InboxUI apiBaseUrl={(import.meta as any).env?.VITE_API_BASE_URL || '/api'} />;
       case 'whatsapp-inbox':
         return <WhatsAppInbox />;
+      case 'whatsapp-bridge':
+        return <WhatsAppBridge />;
       case 'candidate-excel-browser':
         return <CandidateBrowserExcel onOpenCandidate={(candidateId) => {
           setCandidateToOpen(candidateId);
