@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { API_BASE_URL } from '../lib/apiClient';
 import { useAuth } from '../lib/authContext';
-import { Loader2, QrCode, RefreshCw, ShieldAlert, Smartphone } from 'lucide-react';
+import { Loader2, Play, QrCode, RefreshCw, ShieldAlert, Smartphone } from 'lucide-react';
 
 type BridgeSession = {
   accountId: string;
   displayName: string;
   owner: string | null;
   rolloutWave: string | null;
-  status: 'needs_qr' | 'connecting' | 'connected' | 'degraded' | 'paused';
+  status: 'idle' | 'needs_qr' | 'connecting' | 'connected' | 'degraded' | 'paused';
   lastEventAt: string | null;
   lastError: string | null;
   hasQrCode: boolean;
@@ -54,6 +54,7 @@ function statusClasses(status: BridgeSession['status']) {
     case 'connecting':
       return 'bg-sky-50 text-sky-700 ring-sky-200';
     case 'paused':
+    case 'idle':
       return 'bg-slate-100 text-slate-700 ring-slate-200';
     case 'degraded':
     default:
@@ -93,6 +94,8 @@ function statusGuidance(session: BridgeSession | null) {
       return 'WhatsApp is still authenticating this session. Wait a few seconds before requesting a new code.';
     case 'paused':
       return 'This account is paused. You can still inspect it, but it will not process incoming bridge traffic.';
+    case 'idle':
+      return 'This account has not been started yet. Click Connect to initialise it and get a QR or phone-number code.';
     case 'degraded':
       return 'This account needs attention. Use one login method below to relink it, then refresh status.';
     case 'needs_qr':
@@ -120,6 +123,7 @@ export function WhatsAppBridge() {
   const [loadingStatus, setLoadingStatus] = useState(false);
   const [loadingQr, setLoadingQr] = useState(false);
   const [loadingPairing, setLoadingPairing] = useState(false);
+  const [loadingConnect, setLoadingConnect] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [qrError, setQrError] = useState<string | null>(null);
   const [pairingError, setPairingError] = useState<string | null>(null);
@@ -198,6 +202,28 @@ export function WhatsAppBridge() {
       setQrImageDataUrl(null);
     } finally {
       setLoadingQr(false);
+    }
+  }
+
+  async function connectAccount(accountId: string) {
+    if (!authHeader) return;
+    setLoadingConnect(true);
+
+    try {
+      await fetchJson<{ ok: boolean }>(`${API_BASE_URL}/whatsapp-bridge/sessions/${encodeURIComponent(accountId)}/connect`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeader,
+        },
+      });
+      // Refresh status after a short delay to let the client spin up
+      setTimeout(() => void loadStatus(), 3000);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setStatusError(message);
+    } finally {
+      setLoadingConnect(false);
     }
   }
 
@@ -416,24 +442,38 @@ export function WhatsAppBridge() {
             <p className="mt-4 text-sm leading-6 text-slate-600">{statusGuidance(selectedSession)}</p>
 
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-              <button
-                type="button"
-                onClick={() => setAuthMethod('qr')}
-                className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-medium transition sm:w-auto ${authMethod === 'qr' ? 'bg-slate-900 text-white shadow-sm' : 'border border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:text-slate-900'}`}
-                disabled={!selectedSession}
-              >
-                <QrCode className="h-4 w-4" />
-                Use QR Scan
-              </button>
-              <button
-                type="button"
-                onClick={() => setAuthMethod('pairing')}
-                className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-medium transition sm:w-auto ${authMethod === 'pairing' ? 'bg-slate-900 text-white shadow-sm' : 'border border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:text-slate-900'}`}
-                disabled={!selectedSession}
-              >
-                <Smartphone className="h-4 w-4" />
-                Use Phone Number
-              </button>
+              {selectedSession?.status === 'idle' ? (
+                <button
+                  type="button"
+                  onClick={() => selectedSession && void connectAccount(selectedSession.accountId)}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-60 sm:w-auto"
+                  disabled={loadingConnect}
+                >
+                  {loadingConnect ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                  Connect
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setAuthMethod('qr')}
+                    className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-medium transition sm:w-auto ${authMethod === 'qr' ? 'bg-slate-900 text-white shadow-sm' : 'border border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:text-slate-900'}`}
+                    disabled={!selectedSession}
+                  >
+                    <QrCode className="h-4 w-4" />
+                    Use QR Scan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAuthMethod('pairing')}
+                    className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-medium transition sm:w-auto ${authMethod === 'pairing' ? 'bg-slate-900 text-white shadow-sm' : 'border border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:text-slate-900'}`}
+                    disabled={!selectedSession}
+                  >
+                    <Smartphone className="h-4 w-4" />
+                    Use Phone Number
+                  </button>
+                </>
+              )}
               <button
                 type="button"
                 onClick={() => selectedSession && void loadStatus()}
@@ -529,7 +569,9 @@ export function WhatsAppBridge() {
                         ? 'This session is already connected.'
                         : selectedSession?.status === 'connecting'
                           ? 'This session is authenticating. Wait a moment before requesting a new login method.'
-                          : 'No QR is ready yet for this session. Refresh status or switch to phone-number login.'}
+                          : selectedSession?.status === 'idle'
+                            ? 'This account has not been started. Click Connect above to initialise it.'
+                            : 'No QR is ready yet for this session. Refresh status or switch to phone-number login.'}
                     </p>
                   </div>
                 )}
