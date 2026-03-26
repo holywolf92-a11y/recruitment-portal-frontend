@@ -313,7 +313,7 @@ export function CandidateBrowserExcel() {
         offset: (currentPage - 1) * pageSize,
       };
 
-      if (selectedFolder?.filters) {
+      if (activeMenu === 'browser' && selectedFolder?.filters) {
         Object.assign(activeFilters, selectedFolder.filters);
       }
 
@@ -334,7 +334,7 @@ export function CandidateBrowserExcel() {
         setLoading(false);
       }
     }
-  }, [debouncedSearchQuery, appliedFrom, appliedTo, sortBy, sortOrder, currentPage, pageSize, selectedFolder, selectedCountry]);
+  }, [debouncedSearchQuery, appliedFrom, appliedTo, sortBy, sortOrder, currentPage, pageSize, selectedFolder, selectedCountry, activeMenu]);
 
   // Fetch data when filters change
   useEffect(() => {
@@ -360,16 +360,16 @@ export function CandidateBrowserExcel() {
     return (browseMetadata?.countries || []).map((country) => country.name);
   }, [browseMetadata]);
 
-  // Set default selected folder when structure is built
+  // Set default selected folder only when entering browser mode
   useEffect(() => {
-    if (folderStructure.length > 0 && !selectedFolder) {
+    if (activeMenu === 'browser' && folderStructure.length > 0 && !selectedFolder) {
       const firstFolder = folderStructure[0].children?.[0];
       if (firstFolder) {
         setSelectedFolder(firstFolder);
         setExpandedFolders(new Set([folderStructure[0].id]));
       }
     }
-  }, [folderStructure, selectedFolder]);
+  }, [folderStructure, selectedFolder, activeMenu]);
 
   const toggleFolder = (folderId: string) => {
     const newExpanded = new Set(expandedFolders);
