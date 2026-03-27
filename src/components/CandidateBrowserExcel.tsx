@@ -277,11 +277,14 @@ export function CandidateBrowserExcel() {
   const [error, setError] = useState<string | null>(null);
   const hasLoadedOnceRef = useRef(false);
   const contentScrollRef = useRef<HTMLDivElement | null>(null);
+  const tableWrapRef = useRef<HTMLDivElement | null>(null);
+  const mirrorRef = useRef<HTMLDivElement | null>(null);
+  const mirrorInnerRef = useRef<HTMLDivElement | null>(null);
 
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [selectedFolder, setSelectedFolder] = useState<FolderNode | null>(null);
   const [selectedCandidates, setSelectedCandidates] = useState<Set<string>>(new Set());
-  const [viewMode, setViewMode] = useState<'basic' | 'detailed'>('basic');
+  const [viewMode, setViewMode] = useState<'basic' | 'detailed'>('detailed');
   const [professionMode, setProfessionMode] = useState<string | null>(null);
   const [activeMenu, setActiveMenu] = useState<'dashboard' | 'browser'>('dashboard');
   const [showSendModal, setShowSendModal] = useState(false);
@@ -416,6 +419,33 @@ export function CandidateBrowserExcel() {
       setCurrentPage(totalPages);
     }
   }, [currentPage, totalPages]);
+
+  // Sync the top mirror scrollbar with the table wrapper
+  useEffect(() => {
+    const wrap = tableWrapRef.current;
+    const mirror = mirrorRef.current;
+    if (!wrap || !mirror) return;
+    const syncWrap = () => { mirror.scrollLeft = wrap.scrollLeft; };
+    const syncMirror = () => { wrap.scrollLeft = mirror.scrollLeft; };
+    wrap.addEventListener('scroll', syncWrap, { passive: true });
+    mirror.addEventListener('scroll', syncMirror, { passive: true });
+    return () => {
+      wrap.removeEventListener('scroll', syncWrap);
+      mirror.removeEventListener('scroll', syncMirror);
+    };
+  }, []);
+
+  // Keep mirror inner width matching the table's actual scroll width
+  useEffect(() => {
+    const wrap = tableWrapRef.current;
+    const inner = mirrorInnerRef.current;
+    if (!wrap || !inner) return;
+    const update = () => { inner.style.width = wrap.scrollWidth + 'px'; };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(wrap);
+    return () => ro.disconnect();
+  }, [filteredCandidates.length, viewMode]);
 
   const selectFolder = (folder: FolderNode) => {
     setSelectedFolder(folder);
@@ -898,24 +928,7 @@ export function CandidateBrowserExcel() {
               )}
             </div>
             <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2">
-              <div className="flex gap-1 bg-gray-200 rounded-lg p-1 w-full sm:w-auto">
-                <button
-                  onClick={() => setViewMode('basic')}
-                  className={`flex-1 sm:flex-none px-3 py-1 text-xs rounded transition-colors ${
-                    viewMode === 'basic' ? 'bg-white text-gray-900 shadow' : 'text-gray-600'
-                  }`}
-                >
-                  Basic View
-                </button>
-                <button
-                  onClick={() => setViewMode('detailed')}
-                  className={`flex-1 sm:flex-none px-3 py-1 text-xs rounded transition-colors ${
-                    viewMode === 'detailed' ? 'bg-white text-gray-900 shadow' : 'text-gray-600'
-                  }`}
-                >
-                  Detailed View
-                </button>
-              </div>
+              <span className="px-3 py-1 text-xs rounded bg-blue-100 text-blue-700 font-medium border border-blue-200">Detailed View</span>
               <div className="relative">
                 <button
                   onClick={() => handleExport('xlsx')}
@@ -936,8 +949,18 @@ export function CandidateBrowserExcel() {
           </div>
         </div>
 
+        {/* Mirror scrollbar — always visible at the top so you can scroll left/right without reaching the bottom */}
+        <div
+          ref={mirrorRef}
+          className="overflow-x-scroll overflow-y-hidden flex-shrink-0 bg-gray-100 border-b border-gray-300"
+          style={{ height: '14px' }}
+          title="Drag to scroll table left / right"
+        >
+          <div ref={mirrorInnerRef} style={{ height: '1px', minWidth: '1100px' }} />
+        </div>
+
         {/* Excel-like Table */}
-        <div className="flex-1 min-h-0 overflow-auto">
+        <div ref={tableWrapRef} className="flex-1 min-h-0 overflow-auto">
           {filteredCandidates.length > 0 ? (
             <table className="w-full min-w-[1100px] border-collapse">
               <thead className="bg-gray-100 sticky top-0 z-10">
