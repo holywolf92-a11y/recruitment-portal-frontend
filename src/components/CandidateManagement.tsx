@@ -97,6 +97,11 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
   const [countries, setCountries] = useState<string[]>([]);
   const [statuses, setStatuses] = useState<string[]>([]);
 
+  // Sync profession filter when the sidebar prop changes without unmounting.
+  useEffect(() => {
+    setFilters(f => ({ ...f, position: initialProfessionFilter || 'all' }));
+  }, [initialProfessionFilter]);
+
   // In-flight request cancellation: abort the previous XHR when deps change.
   const abortRef = useRef<AbortController | null>(null);
 
