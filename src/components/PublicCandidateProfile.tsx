@@ -419,8 +419,8 @@ export function PublicCandidateProfile() {
                     </p>
                     <div className="p-3 bg-white rounded border border-yellow-300">
                       <p className="text-sm font-semibold text-gray-900">📧 Contact via Recruitment Agency:</p>
-                      <p className="text-sm text-gray-700 mt-1">Email: recruitment@falisha.com</p>
-                      <p className="text-sm text-gray-700">Phone: +1 (555) 123-4567</p>
+                      <p className="text-sm text-gray-700 mt-1">Email: support@falishajobs.com</p>
+                      <p className="text-sm text-gray-700">Phone: +923303333335</p>
                     </div>
                   </div>
                 </div>
