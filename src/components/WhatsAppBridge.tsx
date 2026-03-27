@@ -394,9 +394,22 @@ export function WhatsAppBridge() {
                     </span>
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between text-xs text-slate-600">
-                    <span>{statusLabel(entry.status)}</span>
-                    <span>{entry.hasQrCode ? 'QR ready' : 'No QR'}</span>
+                  <div className="mt-4 flex items-center justify-between text-xs">
+                    <span className="inline-flex items-center gap-1.5 font-semibold" style={{
+                      color: entry.status === 'connected' ? '#16a34a'
+                           : entry.status === 'needs_qr' || entry.status === 'connecting' ? '#d97706'
+                           : entry.status === 'degraded' ? '#dc2626'
+                           : '#64748b'
+                    }}>
+                      <span className="h-2 w-2 rounded-full flex-shrink-0" style={{
+                        backgroundColor: entry.status === 'connected' ? '#16a34a'
+                                        : entry.status === 'needs_qr' || entry.status === 'connecting' ? '#d97706'
+                                        : entry.status === 'degraded' ? '#dc2626'
+                                        : '#94a3b8'
+                      }} />
+                      {statusLabel(entry.status)}
+                    </span>
+                    <span className="text-slate-500">{entry.hasQrCode ? 'QR ready' : 'No QR'}</span>
                   </div>
 
                   {entry.status === 'idle' ? (
