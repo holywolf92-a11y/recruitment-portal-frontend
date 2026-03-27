@@ -34,11 +34,11 @@ console.log('[API Client] Hostname:', typeof window !== 'undefined' ? window.loc
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
   const res = await fetch(url, {
+    ...options,
     headers: {
       'Content-Type': 'application/json',
       ...(options.headers || {}),
     },
-    ...options,
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -649,11 +649,11 @@ class ApiClient {
     let response: Response;
     try {
       response = await fetch(url, {
+        ...options,
         headers: {
           'Content-Type': 'application/json',
           ...options.headers,
         },
-        ...options,
         signal: options.signal || controller?.signal,
       });
     } catch (err: any) {

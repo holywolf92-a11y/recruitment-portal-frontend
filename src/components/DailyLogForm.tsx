@@ -151,7 +151,10 @@ export const DailyLogForm = ({ onSuccess, candidateId }: DailyLogFormProps) => {
       }, 1000);
     } catch (err: any) {
       console.error('Failed to create log:', err);
-      setError(err.response?.data?.error || 'Failed to create log. Please try again.');
+      // apiClient uses fetch (not axios) — extract message from Error object
+      const msg = err?.message || '';
+      const serverMsg = msg.replace(/^API Error:\s*\d+\s*/, '').trim();
+      setError(serverMsg || 'Failed to create log. Please try again.');
     } finally {
       setLoading(false);
     }
