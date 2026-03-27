@@ -5,7 +5,6 @@ import { useAuth } from '../lib/authContext';
 import { DailyLogForm } from './DailyLogForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-
 interface TodayStats {
   logsCreated: number;
   candidatesHandled: number;
@@ -105,9 +104,9 @@ export const EmployeeDashboard = () => {
       <div className="p-4 sm:p-6 space-y-4">
         <div className="animate-pulse space-y-4">
           <div className="h-32 bg-gray-200 rounded-lg"></div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="flex gap-3">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-24 bg-gray-200 rounded-lg"></div>
+              <div key={i} className="flex-1 h-16 bg-gray-200 rounded-lg"></div>
             ))}
           </div>
         </div>
@@ -140,76 +139,54 @@ export const EmployeeDashboard = () => {
             </button>
           </div>
         </div>
-      )}      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {/* Today's Logs */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600">Today's Logs</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-blue-600">{stats.logsCreated}</span>
-              <span className="text-xs text-gray-500">logs created</span>
-            </div>
-            <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
-              <Calendar className="w-3 h-3" />
-              {new Date().toLocaleDateString()}
-            </p>
-          </CardContent>
-        </Card>
+      )}      {/* KPI Strip — horizontal, responsive, compact */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-lg px-4 py-3 shadow-sm">
+          <div className="p-2 rounded-md bg-blue-50">
+            <Calendar className="w-4 h-4 text-blue-600" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-gray-500 truncate">Today's Logs</p>
+            <p className="text-xl font-bold text-blue-600 leading-tight">{stats.logsCreated}</p>
+          </div>
+        </div>
 
-        {/* Candidates Handled */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600">Candidates Handled</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-green-600">{stats.candidatesHandled}</span>
-              <span className="text-xs text-gray-500">unique candidates</span>
-            </div>
-            <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
-              <Users className="w-3 h-3" />
-              Today
-            </p>
-          </CardContent>
-        </Card>
+        <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-lg px-4 py-3 shadow-sm">
+          <div className="p-2 rounded-md bg-green-50">
+            <Users className="w-4 h-4 text-green-600" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-gray-500 truncate">Candidates</p>
+            <p className="text-xl font-bold text-green-600 leading-tight">{stats.candidatesHandled}</p>
+          </div>
+        </div>
 
-        {/* Total Time Spent */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600">Time Spent</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-purple-600">{Math.round(stats.totalTimeSpent / 60)}</span>
-              <span className="text-xs text-gray-500">hours</span>
-            </div>
-            <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {stats.totalTimeSpent} mins
+        <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-lg px-4 py-3 shadow-sm">
+          <div className="p-2 rounded-md bg-purple-50">
+            <Clock className="w-4 h-4 text-purple-600" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-gray-500 truncate">Time Spent</p>
+            <p className="text-xl font-bold text-purple-600 leading-tight">
+              {Math.round(stats.totalTimeSpent / 60)}<span className="text-sm font-normal text-gray-400">h</span>
+              <span className="text-sm font-normal text-gray-400 ml-1">{stats.totalTimeSpent % 60}m</span>
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        {/* Pending Logs */}
-        <Card className={stats.pendingLogs > 0 ? 'border-orange-200 bg-orange-50' : ''}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600">Pending</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-2">
-              <span className={`text-3xl font-bold ${stats.pendingLogs > 0 ? 'text-orange-600' : 'text-green-600'}`}>
-                {stats.pendingLogs}
-              </span>
-              <span className="text-xs text-gray-500">logs pending</span>
-            </div>
-            {stats.pendingLogs === 0 && (
-              <p className="text-xs text-green-600 mt-2">✓ All caught up!</p>
-            )}
-          </CardContent>
-        </Card>
+        <div className={`flex items-center gap-3 rounded-lg px-4 py-3 shadow-sm border ${
+          stats.pendingLogs > 0 ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-200'
+        }`}>
+          <div className={`p-2 rounded-md ${stats.pendingLogs > 0 ? 'bg-orange-100' : 'bg-green-50'}`}>
+            <FileText className={`w-4 h-4 ${stats.pendingLogs > 0 ? 'text-orange-500' : 'text-green-600'}`} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-gray-500 truncate">Pending</p>
+            <p className={`text-xl font-bold leading-tight ${
+              stats.pendingLogs > 0 ? 'text-orange-600' : 'text-green-600'
+            }`}>{stats.pendingLogs === 0 ? '✓ Clear' : stats.pendingLogs}</p>
+          </div>
+        </div>
       </div>
 
       {/* Recent Activity */}
