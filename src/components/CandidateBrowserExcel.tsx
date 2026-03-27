@@ -278,8 +278,9 @@ export function CandidateBrowserExcel() {
   const hasLoadedOnceRef = useRef(false);
   const contentScrollRef = useRef<HTMLDivElement | null>(null);
   const tableWrapRef = useRef<HTMLDivElement | null>(null);
-  const mirrorRef = useRef<HTMLDivElement | null>(null);
-  const mirrorInnerRef = useRef<HTMLDivElement | null>(null);
+  const floatBarRef = useRef<HTMLDivElement | null>(null);
+  const floatBarInnerRef = useRef<HTMLDivElement | null>(null);
+  const [floatBarVisible, setFloatBarVisible] = useState(false);
 
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [selectedFolder, setSelectedFolder] = useState<FolderNode | null>(null);
@@ -420,32 +421,56 @@ export function CandidateBrowserExcel() {
     }
   }, [currentPage, totalPages]);
 
-  // Sync the top mirror scrollbar with the table wrapper
-  useEffect(() => {
+  // ── Floating bottom scrollbar ─────────────────────────────────────────────
+  const updateFloatBarGeometry = useCallback(() => {
     const wrap = tableWrapRef.current;
-    const mirror = mirrorRef.current;
-    if (!wrap || !mirror) return;
-    const syncWrap = () => { mirror.scrollLeft = wrap.scrollLeft; };
-    const syncMirror = () => { wrap.scrollLeft = mirror.scrollLeft; };
-    wrap.addEventListener('scroll', syncWrap, { passive: true });
-    mirror.addEventListener('scroll', syncMirror, { passive: true });
-    return () => {
-      wrap.removeEventListener('scroll', syncWrap);
-      mirror.removeEventListener('scroll', syncMirror);
-    };
+    const bar = floatBarRef.current;
+    const inner = floatBarInnerRef.current;
+    if (!wrap || !bar || !inner) return;
+    const rect = wrap.getBoundingClientRect();
+    inner.style.width = wrap.scrollWidth + 'px';
+    bar.style.left = rect.left + 'px';
+    bar.style.width = rect.width + 'px';
   }, []);
 
-  // Keep mirror inner width matching the table's actual scroll width
+  // Re-measure on resize, sidebar toggle, or data change
+  useEffect(() => {
+    updateFloatBarGeometry();
+    window.addEventListener('resize', updateFloatBarGeometry, { passive: true });
+    const ro = new ResizeObserver(updateFloatBarGeometry);
+    if (tableWrapRef.current) ro.observe(tableWrapRef.current);
+    return () => {
+      window.removeEventListener('resize', updateFloatBarGeometry);
+      ro.disconnect();
+    };
+  }, [updateFloatBarGeometry, filteredCandidates.length, viewMode, sidebarOpen]);
+
+  // Show bar only while table is visible in viewport
   useEffect(() => {
     const wrap = tableWrapRef.current;
-    const inner = mirrorInnerRef.current;
-    if (!wrap || !inner) return;
-    const update = () => { inner.style.width = wrap.scrollWidth + 'px'; };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(wrap);
-    return () => ro.disconnect();
-  }, [filteredCandidates.length, viewMode]);
+    if (!wrap) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setFloatBarVisible(entry.isIntersecting),
+      { threshold: 0.01 }
+    );
+    io.observe(wrap);
+    return () => io.disconnect();
+  }, []);
+
+  // Two-way scroll sync
+  useEffect(() => {
+    const wrap = tableWrapRef.current;
+    const bar = floatBarRef.current;
+    if (!wrap || !bar) return;
+    const onWrap = () => { bar.scrollLeft = wrap.scrollLeft; };
+    const onBar  = () => { wrap.scrollLeft = bar.scrollLeft; };
+    wrap.addEventListener('scroll', onWrap, { passive: true });
+    bar.addEventListener('scroll', onBar,  { passive: true });
+    return () => {
+      wrap.removeEventListener('scroll', onWrap);
+      bar.removeEventListener('scroll', onBar);
+    };
+  }, []);
 
   const selectFolder = (folder: FolderNode) => {
     setSelectedFolder(folder);
@@ -949,16 +974,6 @@ export function CandidateBrowserExcel() {
           </div>
         </div>
 
-        {/* Mirror scrollbar — always visible at the top so you can scroll left/right without reaching the bottom */}
-        <div
-          ref={mirrorRef}
-          className="overflow-x-scroll overflow-y-hidden flex-shrink-0 bg-gray-100 border-b border-gray-300"
-          style={{ height: '14px' }}
-          title="Drag to scroll table left / right"
-        >
-          <div ref={mirrorInnerRef} style={{ height: '1px', minWidth: '1100px' }} />
-        </div>
-
         {/* Excel-like Table */}
         <div ref={tableWrapRef} className="flex-1 min-h-0 overflow-auto">
           {filteredCandidates.length > 0 ? (
@@ -1353,6 +1368,27 @@ export function CandidateBrowserExcel() {
         </div>
         </div>
         </div>
+      {/* Floating horizontal scrollbar — fixed at viewport bottom, visible whenever table is on screen */}
+      {floatBarVisible && (
+        <div
+          ref={floatBarRef}
+          style={{
+            position: 'fixed',
+            bottom: 14,
+            zIndex: 60,
+            height: 18,
+            borderRadius: 9,
+            overflowX: 'scroll',
+            overflowY: 'hidden',
+            background: 'rgba(209, 213, 219, 0.92)',
+            backdropFilter: 'blur(6px)',
+            boxShadow: '0 4px 14px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.07)',
+          }}
+        >
+          <div ref={floatBarInnerRef} style={{ height: '1px', minWidth: '1100px' }} />
+        </div>
+      )}
+
       <Toaster position="top-right" richColors closeButton />
 
           {/* Send to Employer Modal */}
