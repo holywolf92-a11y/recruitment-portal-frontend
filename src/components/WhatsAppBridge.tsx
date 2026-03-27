@@ -282,6 +282,22 @@ export function WhatsAppBridge() {
     }
   }
 
+  async function cancelSession(accountId: string) {
+    if (!authHeader) return;
+    stopQrWait();
+    setQrImageDataUrl(null);
+    setQrError(null);
+    try {
+      await fetchJson<{ ok: boolean }>(`${API_BASE_URL}/whatsapp-bridge/sessions/${encodeURIComponent(accountId)}/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader },
+      });
+      setTimeout(() => void loadStatus(), 1500);
+    } catch {
+      // best-effort — still clear local state
+    }
+  }
+
   async function requestPairingCode(accountId: string) {
     if (!authHeader) return;
 
@@ -674,7 +690,7 @@ export function WhatsAppBridge() {
                       )}
                       <button
                         type="button"
-                        onClick={() => { stopQrWait(); setQrError(null); }}
+                        onClick={() => { selectedSession && void cancelSession(selectedSession.accountId); setQrError(null); }}
                         className="text-xs text-slate-400 underline hover:text-slate-600"
                       >
                         Cancel
