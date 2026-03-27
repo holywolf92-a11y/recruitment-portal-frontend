@@ -242,6 +242,10 @@ const AppContent = () => {
 
   const navigateTab = (tab: string, opts?: AdminNavigationOptions) => {
     setActiveTab(tab);
+    if (tab === 'candidates') {
+      setSelectedProfession(opts?.profession || 'all');
+      if (opts?.candidateId !== undefined) setCandidateToOpen(opts.candidateId ?? null);
+    }
     if (typeof window === 'undefined') return;
 
     const nextUrl = buildAdminUrl(tab, opts);
