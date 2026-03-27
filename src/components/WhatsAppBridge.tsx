@@ -663,6 +663,13 @@ export function WhatsAppBridge() {
                             <Smartphone className="h-3.5 w-3.5" />
                             Switch to phone code
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => { selectedSession && void cancelSession(selectedSession.accountId); setQrError(null); setQrImageDataUrl(null); }}
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-medium text-red-600 transition hover:border-red-400 hover:text-red-800 sm:w-auto"
+                          >
+                            Cancel &amp; go idle
+                          </button>
                         </div>
                       </div>
                     </div>
