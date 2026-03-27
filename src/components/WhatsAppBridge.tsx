@@ -124,6 +124,7 @@ export function WhatsAppBridge() {
   const [loadingQr, setLoadingQr] = useState(false);
   const [loadingPairing, setLoadingPairing] = useState(false);
   const [loadingConnect, setLoadingConnect] = useState(false);
+  const [loadingRestart, setLoadingRestart] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [qrError, setQrError] = useState<string | null>(null);
   const [qrWaiting, setQrWaiting] = useState(false); // true = waiting for bridge to generate QR
@@ -257,6 +258,27 @@ export function WhatsAppBridge() {
       setStatusError(message);
     } finally {
       setLoadingConnect(false);
+    }
+  }
+
+  async function forceRestart(accountId: string) {
+    if (!authHeader) return;
+    setLoadingRestart(true);
+    stopQrWait();
+    setQrImageDataUrl(null);
+    setQrError(null);
+    try {
+      await fetchJson<{ ok: boolean }>(`${API_BASE_URL}/whatsapp-bridge/sessions/${encodeURIComponent(accountId)}/restart`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader },
+      });
+      // Give bridge ~5s to reinit, then auto-load QR
+      setTimeout(() => { void loadStatus(); void loadQr(accountId); }, 5000);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setStatusError(message);
+    } finally {
+      setLoadingRestart(false);
     }
   }
 
@@ -633,17 +655,31 @@ export function WhatsAppBridge() {
                     </p>
                   </div>
                 ) : qrWaiting ? (
-                  <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 text-center text-slate-500">
+                  <div className="flex min-h-[220px] flex-col items-center justify-center gap-4 text-center text-slate-500">
                     <Loader2 className="h-10 w-10 animate-spin text-emerald-600" />
                     <p className="text-sm font-medium text-slate-700">Waiting for bridge to generate QR…</p>
                     <p className="text-xs text-slate-400">This usually takes 5–10 seconds. Will appear automatically.</p>
-                    <button
-                      type="button"
-                      onClick={() => { stopQrWait(); setQrError(null); }}
-                      className="text-xs text-slate-400 underline hover:text-slate-600"
-                    >
-                      Cancel
-                    </button>
+                    <div className="flex flex-col gap-2">
+                      {selectedSession && (
+                        <button
+                          type="button"
+                          onClick={() => selectedSession && void forceRestart(selectedSession.accountId)}
+                          disabled={loadingRestart}
+                          className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold shadow transition-all hover:scale-105 hover:shadow-md active:scale-95 disabled:opacity-60"
+                          style={{ backgroundColor: '#dc2626', color: '#ffffff' }}
+                        >
+                          {loadingRestart ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                          {loadingRestart ? 'Restarting…' : 'Force Restart'}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => { stopQrWait(); setQrError(null); }}
+                        className="text-xs text-slate-400 underline hover:text-slate-600"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 text-center text-slate-500">
