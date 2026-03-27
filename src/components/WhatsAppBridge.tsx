@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { API_BASE_URL } from '../lib/apiClient';
 import { useAuth } from '../lib/authContext';
 import { Loader2, Play, QrCode, RefreshCw, ShieldAlert, Smartphone } from 'lucide-react';
@@ -126,8 +126,10 @@ export function WhatsAppBridge() {
   const [loadingConnect, setLoadingConnect] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
   const [qrError, setQrError] = useState<string | null>(null);
+  const [qrWaiting, setQrWaiting] = useState(false); // true = waiting for bridge to generate QR
   const [pairingError, setPairingError] = useState<string | null>(null);
   const [pairingPhoneNumber, setPairingPhoneNumber] = useState('');
+  const qrWaitIntervalRef = useRef<ReturnType<typeof window.setInterval> | null>(null);
 
   const authHeader = useMemo(() => {
     const token = session?.access_token;
@@ -182,10 +184,20 @@ export function WhatsAppBridge() {
     }
   }
 
+  function stopQrWait() {
+    if (qrWaitIntervalRef.current !== null) {
+      window.clearInterval(qrWaitIntervalRef.current);
+      qrWaitIntervalRef.current = null;
+    }
+    setQrWaiting(false);
+  }
+
   async function loadQr(accountId: string) {
     if (!authHeader) return;
     setLoadingQr(true);
     setQrError(null);
+    setQrWaiting(false);
+    stopQrWait();
 
     try {
       const data = await fetchJson<BridgeQrResponse>(`${API_BASE_URL}/whatsapp-bridge/sessions/${encodeURIComponent(accountId)}/qr`, {
@@ -198,8 +210,29 @@ export function WhatsAppBridge() {
       setQrImageDataUrl(data.qrImageDataUrl || null);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      setQrError(message);
       setQrImageDataUrl(null);
+      // If QR not ready yet, auto-poll every 3s until bridge generates it
+      if (message.includes('qr_not_available') || message.includes('404')) {
+        setQrWaiting(true);
+        setQrError(null);
+        qrWaitIntervalRef.current = window.setInterval(async () => {
+          if (!authHeader) return;
+          try {
+            const retryData = await fetchJson<BridgeQrResponse>(`${API_BASE_URL}/whatsapp-bridge/sessions/${encodeURIComponent(accountId)}/qr`, {
+              method: 'GET',
+              headers: { 'Content-Type': 'application/json', ...authHeader },
+            });
+            if (retryData.qrImageDataUrl) {
+              stopQrWait();
+              setQrImageDataUrl(retryData.qrImageDataUrl);
+            }
+          } catch {
+            // still not ready — keep waiting
+          }
+        }, 3000);
+      } else {
+        setQrError(message);
+      }
     } finally {
       setLoadingQr(false);
     }
@@ -282,6 +315,7 @@ export function WhatsAppBridge() {
     if (!selectedSession) {
       setQrImageDataUrl(null);
       setQrError(null);
+      stopQrWait();
       setPairingError(null);
       return;
     }
@@ -289,9 +323,12 @@ export function WhatsAppBridge() {
     if (!selectedSession.hasQrCode) {
       setQrImageDataUrl(null);
       setQrError(null);
+      // Don't stop qrWait here — we may be actively polling for it
       return;
     }
 
+    // QR is ready — stop any wait loop and load it
+    stopQrWait();
     void loadQr(selectedSession.accountId);
   }, [selectedSession?.accountId, selectedSession?.hasQrCode]);
 
@@ -594,6 +631,19 @@ export function WhatsAppBridge() {
                     <p className="text-xs leading-5 text-slate-500">
                       If WhatsApp says “try again later”, reload the QR and scan the fresh one immediately.
                     </p>
+                  </div>
+                ) : qrWaiting ? (
+                  <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 text-center text-slate-500">
+                    <Loader2 className="h-10 w-10 animate-spin text-emerald-600" />
+                    <p className="text-sm font-medium text-slate-700">Waiting for bridge to generate QR…</p>
+                    <p className="text-xs text-slate-400">This usually takes 5–10 seconds. Will appear automatically.</p>
+                    <button
+                      type="button"
+                      onClick={() => { stopQrWait(); setQrError(null); }}
+                      className="text-xs text-slate-400 underline hover:text-slate-600"
+                    >
+                      Cancel
+                    </button>
                   </div>
                 ) : (
                   <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 text-center text-slate-500">
