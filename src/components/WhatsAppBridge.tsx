@@ -528,7 +528,7 @@ export function WhatsAppBridge() {
                   {authMethod === 'qr' ? 'Open a QR for scanning' : 'Generate a phone-number code'}
                 </h4>
               </div>
-              {authMethod === 'qr' && selectedSession?.hasQrCode ? (
+              {authMethod === 'qr' && selectedSession && selectedSession.status !== 'idle' && selectedSession.status !== 'connected' ? (
                 <button
                   type="button"
                   onClick={() => void loadQr(selectedSession.accountId)}
@@ -536,7 +536,7 @@ export function WhatsAppBridge() {
                   disabled={loadingQr}
                 >
                   <RefreshCw className={`h-3.5 w-3.5 ${loadingQr ? 'animate-spin' : ''}`} />
-                  Reload
+                  {selectedSession.hasQrCode ? 'Reload QR' : 'Request QR'}
                 </button>
               ) : null}
             </div>
@@ -601,12 +601,22 @@ export function WhatsAppBridge() {
                     <p className="text-sm font-medium text-slate-700">
                       {selectedSession?.status === 'connected'
                         ? 'This session is already connected.'
-                        : selectedSession?.status === 'connecting'
-                          ? 'This session is authenticating. Wait a moment before requesting a new login method.'
-                          : selectedSession?.status === 'idle'
-                            ? 'This account has not been started. Click Connect above to initialise it.'
-                            : 'No QR is ready yet for this session. Refresh status or switch to phone-number login.'}
+                        : selectedSession?.status === 'idle'
+                          ? 'This account has not been started. Click Connect above to initialise it.'
+                          : 'Click "Request QR" above to fetch the QR code for this session.'}
                     </p>
+                    {selectedSession && selectedSession.status !== 'idle' && selectedSession.status !== 'connected' ? (
+                      <button
+                        type="button"
+                        onClick={() => void loadQr(selectedSession.accountId)}
+                        className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold shadow-md transition-all duration-150 hover:scale-105 hover:shadow-lg active:scale-95 disabled:opacity-60"
+                        style={{ backgroundColor: '#16a34a', color: '#ffffff' }}
+                        disabled={loadingQr}
+                      >
+                        {loadingQr ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}
+                        {loadingQr ? 'Loading...' : 'Request QR'}
+                      </button>
+                    ) : null}
                   </div>
                 )}
               </div>
