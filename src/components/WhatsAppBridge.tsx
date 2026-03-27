@@ -401,7 +401,7 @@ export function WhatsAppBridge() {
 
                   {entry.status === 'idle' ? (
                     <div className="mt-3">
-                      <span className="inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-3 py-2 text-xs font-semibold text-white shadow-sm">
+                      <span className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold shadow-sm" style={{ backgroundColor: '#16a34a', color: '#ffffff' }}>
                         <Play className="h-3.5 w-3.5" />
                         Connect below
                       </span>
@@ -466,7 +466,8 @@ export function WhatsAppBridge() {
                 <button
                   type="button"
                   onClick={() => selectedSession && void connectAccount(selectedSession.accountId)}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#16a34a] px-5 py-3 text-sm font-bold text-white shadow-md transition-all duration-150 hover:bg-[#15803d] hover:scale-105 hover:shadow-lg active:scale-95 disabled:opacity-60 sm:w-auto"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold shadow-md transition-all duration-150 hover:scale-105 hover:shadow-lg active:scale-95 disabled:opacity-60 sm:w-auto"
+                  style={{ backgroundColor: '#16a34a', color: '#ffffff' }}
                   disabled={loadingConnect}
                 >
                   {loadingConnect ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
