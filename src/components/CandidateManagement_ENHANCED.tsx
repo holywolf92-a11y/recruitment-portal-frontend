@@ -889,7 +889,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
 
       {/* Search and Filters */}
       <div className="bg-white rounded-lg p-4 sm:p-6 border border-gray-200 shadow-sm">
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4">
           {/* Country Filter */}
           <select
             value={filters.country}
@@ -920,12 +920,27 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
             ))}
           </select>
 
+          {/* Profession Filter */}
+          <select
+            value={filters.position}
+            onChange={(e) => {
+              setCurrentPage(1);
+              setFilters(prev => ({ ...prev, position: e.target.value }));
+            }}
+            className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          >
+            <option value="all">All Professions</option>
+            {positions.map(pos => (
+              <option key={pos} value={pos}>{pos}</option>
+            ))}
+          </select>
+
           {/* Search Bar */}
           <div className="sm:col-span-2 xl:col-span-2 relative">
             <Search className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
             <input
               type="search"
-              placeholder="Search candidates by name, email, phone..."
+              placeholder="Search by name, email, phone or profession..."
               value={searchInput}
               onChange={(e) => {
                 setCurrentPage(1);
