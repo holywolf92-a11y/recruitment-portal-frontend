@@ -178,6 +178,13 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
   const [detailsInitialTab, setDetailsInitialTab] = useState<'details' | 'documents' | 'missing-data'>('details');
   const [deletingCandidateId, setDeletingCandidateId] = useState<string | null>(null);
   
+  // Sync profession filter when parent changes the prop (sidebar click)
+  useEffect(() => {
+    const next = initialProfessionFilter || 'all';
+    setFilters(f => f.position === next ? f : { ...f, position: next });
+    setCurrentPage(1);
+  }, [initialProfessionFilter]);
+
   // Track if we've already processed this candidateIdToOpen to prevent reopening
   const processedCandidateIdRef = useRef<string | null>(null);
   
