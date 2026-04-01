@@ -47,18 +47,35 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
     setLoading(true);
     setError(null);
     try {
-      // Single efficient call â€” replaces 200+ individual API requests
-      const result = await api.getCvInboxItems({ limit: 200, since: sinceDate() });
+      // Run items fetch and accurate stats in parallel
+      const since = sinceDate();
+      const [result, statsResp] = await Promise.all([
+        api.getCvInboxItems({ limit: 200, since }),
+        api.getCvInboxStats(since).catch(() => null),
+      ]);
       const items = result.items;
       setCvs(items);
 
-      // Compute stats from loaded items + accurate total from backend
-      const statsTotal = result.total;
-      const extracted = items.filter(i => i.status === 'extracted').length;
-      const processing = items.filter(i => i.status === 'processing').length;
-      const queued = items.filter(i => i.status === 'queued').length;
-      const errors = items.filter(i => i.status === 'error').length;
-      setStats({ total: statsTotal, extracted, processing, queued, errors });
+      // Use /stats endpoint for accurate KPI counts (not limited by the 200-row page)
+      if (statsResp) {
+        const processing = items.filter(i => i.status === 'processing').length;
+        const queued = items.filter(i => i.status === 'queued').length;
+        const errors = items.filter(i => i.status === 'error').length;
+        setStats({
+          total: statsResp.total,
+          extracted: statsResp.extracted,
+          processing,
+          queued,
+          errors,
+        });
+      } else {
+        // Fallback: compute from loaded items only
+        const extracted = items.filter(i => i.status === 'extracted').length;
+        const processing = items.filter(i => i.status === 'processing').length;
+        const queued = items.filter(i => i.status === 'queued').length;
+        const errors = items.filter(i => i.status === 'error').length;
+        setStats({ total: result.total, extracted, processing, queued, errors });
+      }
 
     } catch (e: any) {
       // Fallback to legacy N+1 approach if new endpoint not yet deployed
