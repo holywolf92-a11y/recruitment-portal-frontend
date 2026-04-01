@@ -90,7 +90,55 @@ export interface ParsingJob {
   candidate_id?: string;
 }
 
+export interface CVInboxItem {
+  id: string;
+  messageId: string;
+  fileName: string;
+  mimeType?: string | null;
+  candidateId?: string | null;
+  jobId?: string | null;
+  jobStatus?: string | null;
+  jobError?: string | null;
+  status: 'queued' | 'processing' | 'extracted' | 'error';
+  source: string;
+  receivedAt: string;
+  senderName?: string | null;
+  senderContact?: string | null;
+}
+
+export interface CVInboxItemsResult {
+  items: CVInboxItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface CVInboxStats {
+  total: number;
+  extracted: number;
+  pending: number;
+}
+
 export const api = {
+  async getCvInboxItems(params?: {
+    limit?: number;
+    offset?: number;
+    since?: string;
+    source?: string;
+  }) {
+    const query = new URLSearchParams();
+    if (params?.limit != null) query.set('limit', String(params.limit));
+    if (params?.offset != null) query.set('offset', String(params.offset));
+    if (params?.since) query.set('since', params.since);
+    if (params?.source) query.set('source', params.source);
+    return request<CVInboxItemsResult>(`/cv-inbox/items?${query.toString()}`);
+  },
+
+  async getCvInboxStats(since?: string) {
+    const query = since ? `?since=${encodeURIComponent(since)}` : '';
+    return request<CVInboxStats>(`/cv-inbox/stats${query}`);
+  },
+
   async listInboxMessages(params?: { limit?: number; offset?: number; source?: string; status?: string }) {
     const query = new URLSearchParams();
     if (params?.limit != null) query.set('limit', String(params.limit));

@@ -463,7 +463,7 @@ const AppContent = () => {
       case 'employee-dashboard':
         return <EmployeeDashboard />;
       case 'cv-inbox':
-        return <CVInbox />;
+        return <CVInbox onNavigateToCandidate={(id) => navigateTab('candidates', { candidateId: id })} />;
       case 'inbox-ui':
         return <InboxUI apiBaseUrl={(import.meta as any).env?.VITE_API_BASE_URL || '/api'} />;
       case 'whatsapp-inbox':
