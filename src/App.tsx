@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
 import { Dashboard } from './components/Dashboard';
 import { CandidateManagement } from './components/CandidateManagement_ENHANCED';
 import { EmployerManagement } from './components/EmployerManagement';
@@ -22,10 +22,13 @@ import { EmployeesModule } from './components/EmployeesModule';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { ReviewPage } from './components/ReviewPage';
 import { ReviewsDashboard } from './components/ReviewsDashboard';
+import { CandidateOnboardingPage } from './components/CandidateOnboardingPage';
+import { CandidatePortalDashboard } from './components/CandidatePortalDashboard';
+import { PartnerPortalDashboard } from './components/PartnerPortalDashboard';
 import { useAuth, AuthProvider } from './lib/authContext';
 import { CandidateProvider } from './lib/candidateContext';
-import { hasPermission } from './lib/authData';
-import { apiClient } from './lib/apiClient';
+import { getRoleLabel, hasRolePermission, normalizeUserRole, type Permission, type UserRole } from './lib/authData';
+import { apiClient, type PortalProfileResponse } from './lib/apiClient';
 import { APP_CONFIG } from './lib/constants';
 import { Toaster } from './components/ui/sonner';
 import { ArrowLeft, Briefcase, Building2, ChevronDown, ClipboardList, FileText, FolderTree, Inbox, LayoutDashboard, Link2, LogOut, Mail, Menu, MessageSquare, Phone, Settings as SettingsIcon, Shield, Users, X, type LucideIcon } from 'lucide-react';
@@ -41,9 +44,9 @@ type NavItemConfig = {
   label: string;
   icon: LucideIcon;
   adminOnly?: boolean;
-  roles?: string[];
+  roles?: UserRole[];
   permission?: {
-    resource: string;
+    resource: keyof Permission;
     action: string;
   };
   badge?: 'candidate-count';
@@ -55,13 +58,21 @@ type NavSectionConfig = {
   items: NavItemConfig[];
 };
 
+type AppSessionUser = {
+  name: string;
+  email: string;
+  role: UserRole;
+  roleLabel: string;
+  lastActive: string;
+};
+
 const NAV_SECTIONS: NavSectionConfig[] = [
   {
     id: 'overview',
     label: 'Overview',
     items: [
       { tab: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { tab: 'employee-dashboard', label: 'My Workspace', icon: ClipboardList, roles: ['Employee'] },
+      { tab: 'employee-dashboard', label: 'My Workspace', icon: ClipboardList, roles: ['worker'] },
     ],
   },
   {
@@ -152,7 +163,25 @@ function FalishaHeaderMark() {
 
 const AppContent = () => {
   const { session, signOut, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const sessionRole = normalizeUserRole(session?.user.user_metadata?.role);
+  const user: AppSessionUser = session ? {
+    name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+    email: session.user.email || '',
+    role: sessionRole,
+    roleLabel: getRoleLabel(sessionRole),
+    lastActive: 'Today',
+  } : {
+    name: 'Guest',
+    email: '',
+    role: 'candidate',
+    roleLabel: 'Candidate',
+    lastActive: 'Today',
+  };
+  const isInternalPortal = user.role === 'admin' || user.role === 'worker';
+  const defaultInternalTab = user.role === 'worker' ? 'employee-dashboard' : 'dashboard';
+  const portalBasePath = user.role === 'admin' ? '/admin' : '/worker';
+
+  const [activeTab, setActiveTab] = useState(defaultInternalTab);
   const [selectedProfession, setSelectedProfession] = useState<string>('all');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [candidateToOpen, setCandidateToOpen] = useState<string | null>(null);
@@ -166,30 +195,36 @@ const AppContent = () => {
 
     return window.innerWidth < NAVIGATION_DRAWER_BREAKPOINT;
   });
+  const [professions, setProfessions] = useState<string[]>(['all']);
+  const [professionCounts, setProfessionCounts] = useState<Record<string, number>>({ all: 0 });
+  const [portalProfile, setPortalProfile] = useState<PortalProfileResponse | null>(null);
+  const [portalProfileLoading, setPortalProfileLoading] = useState(false);
+  const [portalProfileError, setPortalProfileError] = useState<string | null>(null);
+  const candidatePortalPath = portalProfile?.linkedCandidateId ? `/candidate/${portalProfile.linkedCandidateId}` : '/candidate/new';
 
-  const TAB_PATHS: Record<string, string> = {
-    dashboard: '/admin/dashboard',
-    'employee-dashboard': '/admin/employee-dashboard',
-    'cv-inbox': '/admin/cv-inbox',
-    'inbox-ui': '/admin/inbox',
-    'whatsapp-inbox': '/admin/whatsapp',
-    'whatsapp-bridge': '/admin/whatsapp-bridge',
-    'candidate-excel-browser': '/admin/excel-browser',
-    candidates: '/admin/candidates',
-    employers: '/admin/employers',
-    jobs: '/admin/jobs',
-    employees: '/admin/employees',
-    templates: '/admin/templates',
-    'application-link': '/admin/application-link',
-    reports: '/admin/reports',
-    settings: '/admin/settings',
-    'admin-panel': '/admin/admin',
-    users: '/admin/users',
-    reviews: '/admin/reviews',
+  const tabPaths: Record<string, string> = {
+    dashboard: `${portalBasePath}/dashboard`,
+    'employee-dashboard': `${portalBasePath}/employee-dashboard`,
+    'cv-inbox': `${portalBasePath}/cv-inbox`,
+    'inbox-ui': `${portalBasePath}/inbox`,
+    'whatsapp-inbox': `${portalBasePath}/whatsapp`,
+    'whatsapp-bridge': `${portalBasePath}/whatsapp-bridge`,
+    'candidate-excel-browser': `${portalBasePath}/excel-browser`,
+    candidates: `${portalBasePath}/candidates`,
+    employers: `${portalBasePath}/employers`,
+    jobs: `${portalBasePath}/jobs`,
+    employees: `${portalBasePath}/employees`,
+    templates: `${portalBasePath}/templates`,
+    'application-link': `${portalBasePath}/application-link`,
+    reports: `${portalBasePath}/reports`,
+    settings: `${portalBasePath}/settings`,
+    'admin-panel': `${portalBasePath}/admin`,
+    users: `${portalBasePath}/users`,
+    reviews: `${portalBasePath}/reviews`,
   };
 
-  function buildAdminUrl(tab: string, opts?: AdminNavigationOptions) {
-    const base = TAB_PATHS[tab] || '/admin/dashboard';
+  const buildPortalUrl = (tab: string, opts?: AdminNavigationOptions) => {
+    const base = tabPaths[tab] || tabPaths[defaultInternalTab];
     const url = new URL(base, window.location.origin);
     if (tab === 'candidates') {
       const profession = (opts?.profession ?? 'all').toString();
@@ -204,25 +239,22 @@ const AppContent = () => {
       }
     }
     return `${url.pathname}${url.search}`;
-  }
+  };
 
-  function parseAdminLocation() {
+  const parsePortalLocation = () => {
     const { pathname, search } = window.location;
     const normalizedPathname = pathname.replace(/\/+$/, '') || '/';
 
-    // Treat "/" and "/admin" as dashboard.
-    if (normalizedPathname === '/' || normalizedPathname === '/admin') {
-      return { tab: 'dashboard', profession: 'all', candidateId: null, candidateTab: 'details' as const };
+    if (normalizedPathname === '/' || normalizedPathname === portalBasePath) {
+      return { tab: defaultInternalTab, profession: 'all', candidateId: null, candidateTab: 'details' as const };
     }
 
-    // Public routes are handled before auth in App(); ignore here.
-    if (!normalizedPathname.startsWith('/admin/')) {
-      return { tab: 'dashboard', profession: 'all', candidateId: null, candidateTab: 'details' as const };
+    if (!normalizedPathname.startsWith(`${portalBasePath}/`)) {
+      return { tab: defaultInternalTab, profession: 'all', candidateId: null, candidateTab: 'details' as const };
     }
 
-    const adminPath = normalizedPathname;
-    const match = Object.entries(TAB_PATHS).find(([, path]) => path === adminPath);
-    const tab = match?.[0] || 'dashboard';
+    const match = Object.entries(tabPaths).find(([, path]) => path === normalizedPathname);
+    const tab = match?.[0] || defaultInternalTab;
 
     let profession: string | null = null;
     let candidateId: string | null = null;
@@ -238,39 +270,46 @@ const AppContent = () => {
     }
 
     return { tab, profession: profession || 'all', candidateId, candidateTab };
-  }
+  };
 
   const navigateTab = (tab: string, opts?: AdminNavigationOptions) => {
     setActiveTab(tab);
     if (tab === 'candidates') {
       setSelectedProfession(opts?.profession || 'all');
-      if (opts?.candidateId !== undefined) setCandidateToOpen(opts.candidateId ?? null);
+      if (opts?.candidateId !== undefined) {
+        setCandidateToOpen(opts.candidateId ?? null);
+      }
+      if (opts?.candidateTab) {
+        setCandidateTabToOpen(opts.candidateTab);
+      }
     }
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {
+      return;
+    }
 
-    const nextUrl = buildAdminUrl(tab, opts);
+    const nextUrl = buildPortalUrl(tab, opts);
     if (window.location.pathname + window.location.search !== nextUrl) {
       window.history.pushState({}, '', nextUrl);
     }
   };
 
-  const onNavClick = (e: React.MouseEvent<HTMLAnchorElement>, tab: string, opts?: AdminNavigationOptions) => {
-    // Let browser handle: new tab/window, middle-click, right-click, downloads, etc.
-    if (e.defaultPrevented) return;
-    if (e.button !== 0) return;
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  const onNavClick = (event: MouseEvent<HTMLAnchorElement>, tab: string, opts?: AdminNavigationOptions) => {
+    if (event.defaultPrevented) return;
+    if (event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
 
-    e.preventDefault();
+    event.preventDefault();
     navigateTab(tab, opts);
-    setSidebarOpen(false); // close drawer on mobile after navigation
+    setSidebarOpen(false);
   };
 
-  // Keep tab-based navigation in sync with /admin/* (supports refresh + back/forward)
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (!isInternalPortal || typeof window === 'undefined') {
+      return;
+    }
 
     const syncFromPath = () => {
-      const parsed = parseAdminLocation();
+      const parsed = parsePortalLocation();
       setActiveTab(parsed.tab);
       if (parsed.tab === 'candidates') {
         setSelectedProfession(parsed.profession);
@@ -285,8 +324,7 @@ const AppContent = () => {
     syncFromPath();
     window.addEventListener('popstate', syncFromPath);
     return () => window.removeEventListener('popstate', syncFromPath);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [defaultInternalTab, isInternalPortal, portalBasePath]);
 
   useEffect(() => {
     const activeSectionId = SECTION_BY_TAB[activeTab];
@@ -306,33 +344,46 @@ const AppContent = () => {
     });
   }, [activeTab]);
 
-  // Mock user data - in production, this would come from user metadata in Supabase
-  const user = session ? {
-    name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-    email: session.user.email || '',
-    role: (session.user.user_metadata?.role || 'viewer').charAt(0).toUpperCase() + (session.user.user_metadata?.role || 'viewer').slice(1),
-    lastActive: 'Today'
-  } : {
-    name: 'Guest',
-    email: '',
-    role: 'Viewer',
-    lastActive: 'Today'
-  };
-
-  console.log('[App] User:', { email: user.email, role: user.role, rawRole: session?.user?.user_metadata?.role });
-
-  // Track if we've already redirected to avoid infinite loops
-  const hasRedirected = useRef(false);
-
-  // Route employees to their dashboard on login
   useEffect(() => {
-    console.log('[App] Checking redirect:', { sessionExists: !!session, userRole: user.role, activeTab, hasRedirected: hasRedirected.current });
-    if (session && user.role === 'Employee' && activeTab === 'dashboard' && !hasRedirected.current) {
-      console.log('[App] Redirecting to employee-dashboard');
-      hasRedirected.current = true;
-      setActiveTab('employee-dashboard');
+    if (!session || typeof window === 'undefined') {
+      return;
     }
-  }, [session, user.role, activeTab]);
+
+    const normalizedPathname = window.location.pathname.replace(/\/+$/, '') || '/';
+
+    if (user.role === 'candidate') {
+      if (portalProfileLoading) {
+        return;
+      }
+
+      if (normalizedPathname !== candidatePortalPath) {
+        window.history.replaceState({}, '', candidatePortalPath);
+      }
+      return;
+    }
+
+    if (user.role === 'partner') {
+      if (!normalizedPathname.startsWith('/partner')) {
+        window.history.replaceState({}, '', '/partner');
+      }
+      return;
+    }
+
+    const shouldRedirect =
+      normalizedPathname === '/' ||
+      normalizedPathname === '/login' ||
+      normalizedPathname === '/admin' ||
+      normalizedPathname === '/worker' ||
+      !normalizedPathname.startsWith(`${portalBasePath}/`);
+
+    if (shouldRedirect) {
+      const nextUrl = buildPortalUrl(defaultInternalTab);
+      if (window.location.pathname + window.location.search !== nextUrl) {
+        window.history.replaceState({}, '', nextUrl);
+      }
+      setActiveTab(defaultInternalTab);
+    }
+  }, [candidatePortalPath, defaultInternalTab, portalBasePath, portalProfileLoading, session, user.role]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -397,16 +448,18 @@ const AppContent = () => {
     };
   }, [isMobileNavigation, sidebarOpen]);
 
-  // Build profession filters from live candidates
-  const [professions, setProfessions] = useState<string[]>(['all']);
-  const [professionCounts, setProfessionCounts] = useState<Record<string, number>>({ all: 0 });
-
   useEffect(() => {
+    if (!isInternalPortal) {
+      return;
+    }
+
     let isMounted = true;
     (async () => {
       try {
         const data = await apiClient.getCandidateBrowseMetadata();
-        if (!isMounted) return;
+        if (!isMounted) {
+          return;
+        }
         const positions = data.professions.map((profession) => profession.name);
         setProfessions(['all', ...positions]);
         const counts: Record<string, number> = { all: data.totalCandidates };
@@ -414,14 +467,53 @@ const AppContent = () => {
           counts[profession.name] = profession.count;
         });
         setProfessionCounts(counts);
-      } catch (e) {
-        // ignore for now; UI will still render with default filters
+      } catch {
+        // Ignore candidate metadata failures here. The shell can still render.
       }
     })();
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isInternalPortal]);
+
+  const loadPortalProfile = async (accessToken: string) => {
+    setPortalProfileLoading(true);
+    setPortalProfileError(null);
+
+    try {
+      const response = await apiClient.getPortalProfile(accessToken);
+      setPortalProfile(response);
+      return response;
+    } catch (error: any) {
+      setPortalProfileError(error?.message || 'Failed to load portal profile');
+      setPortalProfile(null);
+      return null;
+    } finally {
+      setPortalProfileLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!session || (user.role !== 'candidate' && user.role !== 'partner')) {
+      setPortalProfile(null);
+      setPortalProfileError(null);
+      setPortalProfileLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    loadPortalProfile(session.access_token).then((response) => {
+      if (!isMounted || !response) {
+        return;
+      }
+      setPortalProfile(response);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [session, user.role]);
 
   const toggleSection = (sectionId: string) => {
     setOpenSections((current) => ({
@@ -431,7 +523,7 @@ const AppContent = () => {
   };
 
   const shouldRenderNavItem = (item: NavItemConfig) => {
-    if (item.adminOnly && user.role !== 'Admin') {
+    if (item.adminOnly && user.role !== 'admin') {
       return false;
     }
 
@@ -439,7 +531,7 @@ const AppContent = () => {
       return false;
     }
 
-    if (item.permission && !hasPermission(user, item.permission.resource, item.permission.action)) {
+    if (item.permission && !hasRolePermission(user.role, item.permission.resource, item.permission.action)) {
       return false;
     }
 
@@ -454,7 +546,7 @@ const AppContent = () => {
     return null;
   };
 
-  const isBrowserView = activeTab === 'candidate-excel-browser'; // Excel Browser only (Browser (Excel) removed)
+  const isBrowserView = activeTab === 'candidate-excel-browser';
 
   const renderContent = () => {
     switch (activeTab) {
@@ -465,7 +557,7 @@ const AppContent = () => {
       case 'cv-inbox':
         return <CVInbox onNavigateToCandidate={(id) => navigateTab('candidates', { candidateId: id })} />;
       case 'inbox-ui':
-        return <InboxUI apiBaseUrl={(import.meta as any).env?.VITE_API_BASE_URL || '/api'} />;
+        return <InboxUI apiBaseUrl={(import.meta as { env?: Record<string, string> }).env?.VITE_API_BASE_URL || '/api'} />;
       case 'whatsapp-inbox':
         return <WhatsAppInbox />;
       case 'whatsapp-bridge':
@@ -482,7 +574,7 @@ const AppContent = () => {
               setCandidateToOpen(null);
               setCandidateTabToOpen('details');
               if (typeof window !== 'undefined') {
-                const nextUrl = buildAdminUrl('candidates', { profession: selectedProfession });
+                const nextUrl = buildPortalUrl('candidates', { profession: selectedProfession });
                 window.history.replaceState({}, '', nextUrl);
               }
             }}
@@ -513,10 +605,9 @@ const AppContent = () => {
     }
   };
 
-  // Show loading spinner while checking auth
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
@@ -525,7 +616,6 @@ const AppContent = () => {
     );
   }
 
-  // Show login if not authenticated
   if (!session) {
     if (typeof window !== 'undefined' && window.location.pathname === '/admin/reviews') {
       window.history.replaceState({}, '', '/review/qr');
@@ -535,14 +625,39 @@ const AppContent = () => {
     return <Login />;
   }
 
+  if (user.role === 'candidate') {
+    return (
+      <CandidatePortalDashboard
+        accessToken={session.access_token}
+        user={user}
+        portalProfile={portalProfile}
+        onSignOut={signOut}
+        loading={portalProfileLoading}
+        error={portalProfileError}
+        onRefreshPortalProfile={() => loadPortalProfile(session.access_token)}
+      />
+    );
+  }
+
+  if (user.role === 'partner') {
+    return (
+      <PartnerPortalDashboard
+        accessToken={session.access_token}
+        user={user}
+        portalProfile={portalProfile}
+        onSignOut={signOut}
+        loading={portalProfileLoading}
+        error={portalProfileError}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
       <header className="sticky top-0 z-40 shrink-0 border-b border-slate-200 bg-white/92 shadow-[0_1px_0_rgba(15,23,42,0.04)] backdrop-blur supports-[backdrop-filter]:bg-white/84">
         <div className="px-3 md:px-5 py-2.5">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 md:gap-3 min-w-0 flex-1">
-              {/* Hamburger — mobile only */}
               {!isBrowserView && isMobileNavigation && (
                 <button
                   onClick={() => setSidebarOpen(true)}
@@ -552,7 +667,6 @@ const AppContent = () => {
                   <Menu className="h-5 w-5 text-slate-600" />
                 </button>
               )}
-              {/* Logo */}
               <div className="flex h-9 w-9 md:h-10 md:w-10 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-200/80 flex-shrink-0">
                 <FalishaHeaderMark />
               </div>
@@ -560,7 +674,7 @@ const AppContent = () => {
                 <div className="flex min-w-0 items-center gap-2.5">
                   <h1 className="truncate text-sm font-semibold text-slate-900 sm:text-base">{APP_CONFIG.company.name}</h1>
                   <span className="hidden lg:inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600">
-                    Operations
+                    {user.role === 'admin' ? 'Admin Portal' : 'Worker Portal'}
                   </span>
                 </div>
                 <div className="mt-0.5 flex min-w-0 items-center gap-2 text-[11px] sm:text-xs text-slate-500">
@@ -586,27 +700,16 @@ const AppContent = () => {
                 <div className="hidden md:block text-right">
                   <p className="text-sm font-medium text-slate-900 leading-tight">{user.name}</p>
                   <p className="flex items-center justify-end gap-1 text-[11px] text-slate-500 leading-tight">
-                    <span className={`w-2 h-2 rounded-full ${
-                      user.role === 'Admin' ? 'bg-purple-500' :
-                      user.role === 'Manager' ? 'bg-blue-500' :
-                      user.role === 'Recruiter' ? 'bg-green-500' :
-                      'bg-gray-500'
-                    }`} />
-                    {user.role}
+                    <span className={`w-2 h-2 rounded-full ${user.role === 'admin' ? 'bg-slate-900' : 'bg-sky-500'}`} />
+                    {user.roleLabel}
                   </p>
                 </div>
-                <div className={`flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-full text-sm font-semibold text-white ${
-                  user.role === 'Admin' ? 'bg-gradient-to-br from-purple-500 to-purple-600' :
-                  user.role === 'Manager' ? 'bg-gradient-to-br from-blue-500 to-blue-600' :
-                  user.role === 'Recruiter' ? 'bg-gradient-to-br from-green-500 to-green-600' :
-                  'bg-gradient-to-br from-gray-500 to-gray-600'
-                }`}>
+                <div className={`flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-full text-sm font-semibold text-white ${user.role === 'admin' ? 'bg-gradient-to-br from-slate-800 to-slate-950' : 'bg-gradient-to-br from-sky-500 to-blue-700'}`}>
                   {user.name[0]}
                 </div>
                 <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
               </button>
 
-              {/* User Menu Dropdown */}
               {showUserMenu && (
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
                   <div className="px-4 py-3 border-b border-gray-200">
@@ -642,15 +745,10 @@ const AppContent = () => {
       </header>
 
       <div className="admin-shell flex flex-col min-w-0 flex-1 min-h-0">
-        {/* Sidebar - Hidden when in browser view */}
         {!isBrowserView && (
           <>
-            {/* Mobile backdrop */}
             {isMobileNavigation && sidebarOpen && (
-              <div
-                className="admin-sidebar-backdrop"
-                onClick={() => setSidebarOpen(false)}
-              />
+              <div className="admin-sidebar-backdrop" onClick={() => setSidebarOpen(false)} />
             )}
             <aside className={`admin-sidebar border-gray-200 min-h-0${isMobileNavigation ? ' is-mobile' : ' is-desktop'}${sidebarOpen ? ' sidebar-open' : ''}`} aria-label="Primary navigation">
               <div className="admin-sidebar-panel">
@@ -671,7 +769,7 @@ const AppContent = () => {
                 )}
 
                 <div className="admin-sidebar-body">
-                  <nav className="admin-nav" aria-label="Admin navigation">
+                  <nav className="admin-nav" aria-label="Portal navigation">
                     {NAV_SECTIONS.map((section) => {
                       const visibleItems = section.items.filter(shouldRenderNavItem);
                       if (!visibleItems.length) {
@@ -700,8 +798,8 @@ const AppContent = () => {
                                 const badge = getNavItemBadge(item);
                                 const isActive = activeTab === item.tab;
                                 const itemHref = item.tab === 'candidates'
-                                  ? buildAdminUrl(item.tab, { profession: 'all' })
-                                  : buildAdminUrl(item.tab);
+                                  ? buildPortalUrl(item.tab, { profession: 'all' })
+                                  : buildPortalUrl(item.tab);
 
                                 return (
                                   <a
@@ -723,9 +821,7 @@ const AppContent = () => {
                                       <Icon className="admin-nav-icon" strokeWidth={1.9} />
                                     </span>
                                     <span className="admin-nav-label">{item.label}</span>
-                                    {typeof badge === 'number' && (
-                                      <span className="admin-nav-badge">{badge}</span>
-                                    )}
+                                    {typeof badge === 'number' && <span className="admin-nav-badge">{badge}</span>}
                                   </a>
                                 );
                               })}
@@ -738,7 +834,7 @@ const AppContent = () => {
                                     return (
                                       <a
                                         key={profession}
-                                        href={buildAdminUrl('candidates', { profession })}
+                                        href={buildPortalUrl('candidates', { profession })}
                                         onClick={(event) => {
                                           setSelectedProfession(profession);
                                           onNavClick(event, 'candidates', { profession });
@@ -765,20 +861,18 @@ const AppContent = () => {
                 <div className="admin-sidebar-footer">
                   <p className="admin-sidebar-footer-label">Signed in as</p>
                   <p className="admin-sidebar-footer-name">{user.name}</p>
-                  <p className="admin-sidebar-footer-meta">{user.role} • {APP_CONFIG.company.name}</p>
+                  <p className="admin-sidebar-footer-meta">{user.roleLabel} • {APP_CONFIG.company.name}</p>
                 </div>
               </div>
             </aside>
           </>
         )}
 
-        {/* Main Content */}
         <main className="flex-1 min-w-0 min-h-0 overflow-y-auto bg-gradient-to-b from-slate-50 to-white">
-          {/* Back button for Browser view */}
           {isBrowserView && (
             <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-3">
               <button
-                    onClick={() => navigateTab('candidates')}
+                onClick={() => navigateTab('candidates')}
                 className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -786,7 +880,7 @@ const AppContent = () => {
               </button>
             </div>
           )}
-          
+
           <div className={isBrowserView ? '' : 'p-3 sm:p-4 md:p-6'}>
             {renderContent()}
           </div>
@@ -798,33 +892,34 @@ const AppContent = () => {
 };
 
 export default function App() {
-  // Check for public routes BEFORE auth (no login required)
   if (typeof window !== 'undefined') {
     const pathname = window.location.pathname;
-    console.log('[App] Checking route:', pathname);
-    
-    // Privacy Policy
+
     if (pathname === '/privacy') {
-      console.log('[App] Rendering PrivacyPolicy');
       return <PrivacyPolicy />;
     }
-    
-    // Public application form
+
     if (pathname === '/apply') {
-      console.log('[App] Rendering PublicApplicationForm');
       return <PublicApplicationForm />;
     }
 
-    // Review / rating funnel (and QR code page at /review/qr)
+    if (pathname === '/onboarding') {
+      return (
+        <AuthProvider>
+          <>
+            <CandidateOnboardingPage />
+            <Toaster position="top-right" richColors closeButton />
+          </>
+        </AuthProvider>
+      );
+    }
+
     if (pathname === '/review' || pathname.startsWith('/review/')) {
-      console.log('[App] Rendering ReviewPage');
       return <ReviewPage />;
     }
-    
-    // Public candidate profile - match /profile/:id/:slug or /profile/:id
+
     const profileMatch = pathname.match(/^\/profile\/([^\/]+)(?:\/(.+))?$/);
     if (profileMatch) {
-      console.log('[App] Rendering PublicCandidateProfile for ID:', profileMatch[1]);
       return (
         <>
           <PublicCandidateProfile />
@@ -834,7 +929,6 @@ export default function App() {
     }
   }
 
-  // Protected routes require auth
   return (
     <AuthProvider>
       <CandidateProvider>
