@@ -263,6 +263,7 @@ export interface CandidateMerge {
 
 export interface Candidate {
   id: string;
+  user_id?: string | null;
   candidate_code: string;
   name: string;
   father_name?: string;
@@ -335,6 +336,25 @@ export interface Candidate {
   
   created_at: string;
   updated_at: string;
+}
+
+export interface PartnerCandidatePayload {
+  name: string;
+  cnic?: string;
+  passport?: string;
+  email?: string;
+  phone?: string;
+  position?: string;
+  country_of_interest?: string;
+  nationality?: string;
+  address?: string;
+}
+
+export interface PartnerBulkUploadResult {
+  total: number;
+  created: number;
+  errors: Array<{ row: number; name?: string; cnic?: string; error: string }>;
+  candidates: Candidate[];
 }
 
 export interface CreateCandidateData {
@@ -683,6 +703,83 @@ export interface JobOrdersResponse {
   offset?: number;
 }
 
+export interface OnboardingDocumentRequirement {
+  key: string;
+  label: string;
+  document_type: string;
+  received: boolean;
+}
+
+export interface OnboardingPayload {
+  candidate: Candidate;
+  documents: any[];
+  missing_documents: OnboardingDocumentRequirement[];
+  completion: {
+    profile: number;
+    documents: number;
+    overall: number;
+  };
+}
+
+export interface AppUserProfile {
+  id: string;
+  email: string;
+  name: string | null;
+  role: 'admin' | 'worker' | 'candidate' | 'partner';
+  phone: string | null;
+  department: string | null;
+  status: 'Active' | 'Inactive' | 'Suspended' | string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  last_active?: string | null;
+}
+
+export interface PartnerApplicationProfile {
+  id: string;
+  phone_number: string | null;
+  company_name: string | null;
+  city_country: string | null;
+  partner_type: string | null;
+  email: string | null;
+  status: string | null;
+  notes: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface PortalProfileResponse {
+  role: 'admin' | 'worker' | 'candidate' | 'partner';
+  linkedCandidateId: string | null;
+  profile: {
+    user: AppUserProfile | null;
+    linkedCandidate: Candidate | null;
+    partnerApplication: PartnerApplicationProfile | null;
+  };
+}
+
+export interface AdminUsersResponse {
+  users: AppUserProfile[];
+  stats: {
+    total: number;
+    active: number;
+    admins: number;
+    workers: number;
+    candidates: number;
+    partners: number;
+  };
+}
+
+export interface CreateAdminUserPayload {
+  email: string;
+  password: string;
+  role: 'admin' | 'worker' | 'candidate' | 'partner';
+  name?: string;
+  phone?: string;
+  department?: string;
+  status?: 'Active' | 'Inactive' | 'Suspended';
+  candidateId?: string;
+}
+
 class ApiClient {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
@@ -750,6 +847,107 @@ class ApiClient {
       method: 'POST',
       headers: options?.headers || {},
       body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  }
+
+  async patch<T>(endpoint: string, body?: any, options?: { headers?: Record<string, string> }): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
+      headers: options?.headers || {},
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  }
+
+  async getPortalProfile(accessToken: string): Promise<PortalProfileResponse> {
+    return this.get<PortalProfileResponse>('/auth/portal-profile', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+  }
+
+  async bootstrapCandidatePortalProfile(accessToken: string): Promise<{ candidate: Candidate }> {
+    return this.post<{ candidate: Candidate }>('/auth/candidate-profile/bootstrap', undefined, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+  }
+
+  async getPartnerCandidates(accessToken: string): Promise<{ candidates: Candidate[] }> {
+    return this.get<{ candidates: Candidate[] }>('/auth/partner/candidates', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+  }
+
+  async createPartnerCandidate(payload: PartnerCandidatePayload, accessToken: string): Promise<{ candidate: Candidate }> {
+    return this.post<{ candidate: Candidate }>('/auth/partner/candidates', payload, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+  }
+
+  async uploadPartnerBulkCandidates(
+    excelFile: File,
+    zipFile: File | null,
+    accessToken: string,
+  ): Promise<PartnerBulkUploadResult> {
+    const formData = new FormData();
+    formData.append('excel', excelFile);
+    if (zipFile) formData.append('zip', zipFile);
+
+    const url = `${API_BASE_URL}/auth/partner/candidates/bulk`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => '');
+      throw new Error(`Bulk upload failed: ${response.status} ${text}`);
+    }
+
+    return response.json() as Promise<PartnerBulkUploadResult>;
+  }
+
+  async getAdminUsers(accessToken: string): Promise<AdminUsersResponse> {
+    return this.get<AdminUsersResponse>('/auth/users', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+  }
+
+  async updateAdminUser(
+    userId: string,
+    payload: Partial<Pick<AppUserProfile, 'name' | 'email' | 'role' | 'phone' | 'department' | 'status'>>,
+    accessToken: string,
+  ): Promise<{ user: AppUserProfile }> {
+    return this.patch<{ user: AppUserProfile }>(`/auth/users/${userId}`, payload, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+  }
+
+  async createAdminUser(payload: CreateAdminUserPayload, accessToken: string): Promise<{ user: AppUserProfile; message: string }> {
+    return this.post<{ user: AppUserProfile; message: string }>('/auth/users', payload, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+  }
+
+  async deleteAdminUser(userId: string, accessToken: string): Promise<{ message: string; deletedUserId: string }> {
+    return this.request<{ message: string; deletedUserId: string }>(`/auth/users/${userId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
     });
   }
 
@@ -862,6 +1060,112 @@ class ApiClient {
       body: JSON.stringify(data),
     });
     return response.candidate;
+  }
+
+  async getOnboardingProfile(token: string): Promise<OnboardingPayload> {
+    return this.get<OnboardingPayload>('/onboarding', {
+      params: { token },
+    });
+  }
+
+  async updateOnboardingProfile(
+    token: string,
+    data: {
+      name?: string;
+      phone?: string;
+      email?: string;
+      date_of_birth?: string;
+      address?: string;
+      confirm_email_mismatch?: boolean;
+    },
+    accessToken: string
+  ): Promise<OnboardingPayload & { success: boolean }> {
+    const response = await fetch(`${API_BASE_URL}/onboarding/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        token,
+        ...data,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => null);
+      const error = new Error(errorBody?.error || `API Error: ${response.status}`) as Error & {
+        status?: number;
+        body?: any;
+      };
+      error.status = response.status;
+      error.body = errorBody;
+      throw error;
+    }
+
+    return response.json();
+  }
+
+  async uploadOnboardingPhoto(
+    token: string,
+    file: File,
+    accessToken: string,
+    confirmEmailMismatch: boolean = false
+  ): Promise<OnboardingPayload & { success: boolean }> {
+    const formData = new FormData();
+    formData.append('token', token);
+    formData.append('photo', file);
+    formData.append('confirm_email_mismatch', String(confirmEmailMismatch));
+
+    const response = await fetch(`${API_BASE_URL}/onboarding/profile-photo`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => null);
+      const error = new Error(errorBody?.error || `API Error: ${response.status}`) as Error & {
+        status?: number;
+        body?: any;
+      };
+      error.status = response.status;
+      error.body = errorBody;
+      throw error;
+    }
+
+    return response.json();
+  }
+
+  async uploadOnboardingDocument(
+    token: string,
+    file: File,
+    documentType: string
+  ): Promise<{ success: boolean; document: any; request_id: string; onboarding: OnboardingPayload }> {
+    const formData = new FormData();
+    formData.append('token', token);
+    formData.append('file', file);
+    formData.append('document_type', documentType);
+
+    const response = await fetch(`${API_BASE_URL}/onboarding/documents`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => null);
+      const error = new Error(errorBody?.error || `API Error: ${response.status}`) as Error & {
+        status?: number;
+        body?: any;
+      };
+      error.status = response.status;
+      error.body = errorBody;
+      throw error;
+    }
+
+    return response.json();
   }
 
   /**
@@ -1262,6 +1566,12 @@ class ApiClient {
   async listCandidateDocumentsNew(candidateId: string): Promise<any[]> {
     const response = await this.request<{ documents: any[] }>(`/documents/candidates/${candidateId}/documents`);
     return response.documents || [];
+  }
+
+  async updateCandidateDocumentFlags(candidateId: string): Promise<{ success: boolean; message?: string }> {
+    return this.request<{ success: boolean; message?: string }>(`/candidates/${candidateId}/update-document-flags`, {
+      method: 'POST',
+    });
   }
 
   async extractCandidateProfilePhotoAI(
