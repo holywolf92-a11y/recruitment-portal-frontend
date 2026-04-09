@@ -86,8 +86,8 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f7fb] lg:bg-white">
-      <div className="mx-auto min-h-screen max-w-[1520px] lg:grid lg:grid-cols-[43%_57%]">
+    <div className="min-h-screen bg-slate-50 lg:bg-white">
+      <div className="mx-auto min-h-screen max-w-[1520px] lg:grid lg:grid-cols-2">
         <section className="relative flex min-h-screen items-center overflow-hidden bg-white px-5 py-6 sm:px-8 sm:py-8 lg:px-14 xl:px-20">
           <div className="absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_top,rgba(37,99,235,0.08),transparent_55%)] lg:hidden" />
           <div className="relative mx-auto w-full max-w-[410px]">
@@ -278,7 +278,7 @@ export function Login() {
           </div>
         </section>
 
-        <section className="relative overflow-hidden bg-[linear-gradient(180deg,#2494df_0%,#1b7fd7_24%,#2359d3_62%,#19317c_100%)] px-5 py-7 text-white sm:px-8 lg:px-12 lg:py-10 xl:px-16">
+        <section className="relative overflow-hidden bg-gradient-to-b from-sky-500 via-blue-600 to-slate-900 px-5 py-7 text-white sm:px-8 lg:px-12 lg:py-10 xl:px-16">
           <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.18),transparent_22%),radial-gradient(circle_at_88%_84%,rgba(255,255,255,0.12),transparent_16%)]" />
 
           <div className="relative mx-auto flex h-full max-w-[760px] flex-col">
@@ -308,15 +308,15 @@ export function Login() {
               </div>
             </div>
 
-            <div className="mt-8 rounded-[34px] bg-white/95 p-3 text-slate-900 shadow-[0_30px_85px_rgba(6,32,89,0.24)] backdrop-blur sm:mt-10 sm:p-5 xl:mt-12">
-              <div className="overflow-hidden rounded-[28px] bg-[#f8fafc] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+            <div className="mt-8 rounded-[34px] bg-white/95 p-3 text-slate-900 shadow-2xl backdrop-blur sm:mt-10 sm:p-5 xl:mt-12">
+              <div className="overflow-hidden rounded-[28px] bg-slate-50 shadow-inner">
                 <div className="flex items-center gap-3 border-b border-slate-100 bg-white px-4 py-3 sm:px-6">
                   <div className="flex gap-2">
                     <span className="h-3 w-3 rounded-full bg-[#ff6b6b]" />
                     <span className="h-3 w-3 rounded-full bg-[#ffd84d]" />
                     <span className="h-3 w-3 rounded-full bg-[#67d17b]" />
                   </div>
-                  <div className="ml-2 flex-1 rounded-xl bg-slate-50 px-4 py-2 text-xs text-slate-500 shadow-inner">
+                  <div className="ml-2 flex-1 rounded-xl bg-slate-50 px-4 py-2 text-xs text-slate-500 shadow-sm">
                     falishajobs.up.railway.app/partner/dashboard
                   </div>
                 </div>
@@ -333,7 +333,7 @@ export function Login() {
                     </button>
                   </div>
 
-                  <div className="bg-[linear-gradient(180deg,#1f9cf0_0%,#2577ee_100%)] px-4 py-6 sm:px-8 sm:py-7">
+                  <div className="bg-gradient-to-b from-sky-500 to-blue-600 px-4 py-6 sm:px-8 sm:py-7">
                     <div className="flex items-start gap-3 text-white">
                       <div className="mt-1 text-xl">✈️</div>
                       <div>
@@ -342,7 +342,7 @@ export function Login() {
                       </div>
                     </div>
 
-                    <div className="mt-7 grid gap-4 lg:grid-cols-[1.3fr_0.9fr]">
+                    <div className="mt-7 grid gap-4 lg:grid-cols-2">
                       <div className="rounded-[28px] bg-white px-5 py-6 text-slate-900 shadow-[0_18px_40px_rgba(7,59,133,0.12)] sm:px-6">
                         <div className="flex items-center gap-2 text-lg font-bold">
                           <CircleCheckBig className="h-5 w-5 text-[#1da1f2]" />
@@ -378,18 +378,18 @@ export function Login() {
                       </div>
 
                       <div className="grid gap-4">
-                        <div className="rounded-[24px] bg-[#0f5fca]/20 p-4 ring-1 ring-white/20 backdrop-blur-sm">
+                        <div className="rounded-[24px] bg-white/15 p-4 ring-1 ring-white/20 backdrop-blur-sm">
                           <p className="text-sm font-semibold text-white/90">Dashboard preview</p>
                           <div className="mt-4 space-y-3">
-                            <div className="rounded-2xl bg-white/95 px-4 py-3 text-slate-700 shadow-sm">
+                            <div className="rounded-2xl bg-white px-4 py-3 text-slate-700 shadow-sm">
                               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#1d74dc]">Candidate upload</p>
                               <p className="mt-1 text-sm font-medium">12 CVs received today</p>
                             </div>
-                            <div className="rounded-2xl bg-white/95 px-4 py-3 text-slate-700 shadow-sm">
+                            <div className="rounded-2xl bg-white px-4 py-3 text-slate-700 shadow-sm">
                               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#1d74dc]">CV processing</p>
                               <p className="mt-1 text-sm font-medium">8 files parsed by AI</p>
                             </div>
-                            <div className="rounded-2xl bg-white/95 px-4 py-3 text-slate-700 shadow-sm">
+                            <div className="rounded-2xl bg-white px-4 py-3 text-slate-700 shadow-sm">
                               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#1d74dc]">Status tracking</p>
                               <p className="mt-1 text-sm font-medium">3 candidates awaiting review</p>
                             </div>
