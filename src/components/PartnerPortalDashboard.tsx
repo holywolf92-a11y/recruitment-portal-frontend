@@ -4,7 +4,6 @@ import {
   FileText, LayoutDashboard, LogOut, Mail, MapPin, MoreVertical, Phone, Plus, Search, Settings, Upload, Users, UserCircle2, X, XCircle,
 } from 'lucide-react';
 import { apiClient, type Candidate, type PartnerBulkUploadResult, type PortalProfileResponse } from '../lib/apiClient';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -201,6 +200,21 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
     const timeoutId = window.setTimeout(() => setProfileToast(null), 3200);
     return () => window.clearTimeout(timeoutId);
   }, [profileToast]);
+
+  useEffect(() => {
+    if (!showProfileDialog) {
+      return undefined;
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setShowProfileDialog(false);
+      }
+    }
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [showProfileDialog]);
 
   // Load candidates once
   useEffect(() => {
@@ -839,121 +853,134 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
         </div>
       )}
 
-      <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Profile Settings</DialogTitle>
-            <DialogDescription>
-              Update your partner account details, contact information, and company profile.
-            </DialogDescription>
-          </DialogHeader>
+      {showProfileDialog && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 px-4 py-6">
+          <div className="absolute inset-0" onClick={() => setShowProfileDialog(false)} />
+          <div className="relative z-[101] w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Profile Settings</h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  Update your partner account details, contact information, and company profile.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowProfileDialog(false)}
+                className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                aria-label="Close profile settings"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5 sm:col-span-2">
-              <label className="text-sm font-medium text-gray-700">Company / Agency Name</label>
-              <div className="relative">
-                <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <input
-                  value={profileForm.companyName}
-                  onChange={(event) => setProfileForm((current) => ({ ...current, companyName: event.target.value }))}
-                  className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
-                  placeholder="Your company name"
-                />
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5 sm:col-span-2">
+                <label className="text-sm font-medium text-gray-700">Company / Agency Name</label>
+                <div className="relative">
+                  <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    value={profileForm.companyName}
+                    onChange={(event) => setProfileForm((current) => ({ ...current, companyName: event.target.value }))}
+                    className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                    placeholder="Your company name"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-gray-700">Full Name</label>
+                <div className="relative">
+                  <UserCircle2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    value={profileForm.name}
+                    onChange={(event) => setProfileForm((current) => ({ ...current, name: event.target.value }))}
+                    className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                    placeholder="Your full name"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-gray-700">Phone Number</label>
+                <div className="relative">
+                  <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    value={profileForm.phone}
+                    onChange={(event) => setProfileForm((current) => ({ ...current, phone: event.target.value }))}
+                    className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                    placeholder="+92 312 5569101"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5 sm:col-span-2">
+                <label className="text-sm font-medium text-gray-700">Email Address</label>
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="email"
+                    value={profileForm.email}
+                    onChange={(event) => setProfileForm((current) => ({ ...current, email: event.target.value }))}
+                    className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                    placeholder="name@company.com"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-gray-700">City / Country</label>
+                <div className="relative">
+                  <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    value={profileForm.cityCountry}
+                    onChange={(event) => setProfileForm((current) => ({ ...current, cityCountry: event.target.value }))}
+                    className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                    placeholder="Lahore, Pakistan"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-gray-700">Partner Type</label>
+                <div className="relative">
+                  <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    value={profileForm.partnerType}
+                    onChange={(event) => setProfileForm((current) => ({ ...current, partnerType: event.target.value }))}
+                    className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                    placeholder="Recruitment agency"
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">Full Name</label>
-              <div className="relative">
-                <UserCircle2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <input
-                  value={profileForm.name}
-                  onChange={(event) => setProfileForm((current) => ({ ...current, name: event.target.value }))}
-                  className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
-                  placeholder="Your full name"
-                />
+            {profileFeedback && (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {profileFeedback.message}
               </div>
-            </div>
+            )}
 
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">Phone Number</label>
-              <div className="relative">
-                <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <input
-                  value={profileForm.phone}
-                  onChange={(event) => setProfileForm((current) => ({ ...current, phone: event.target.value }))}
-                  className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
-                  placeholder="+92 312 5569101"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5 sm:col-span-2">
-              <label className="text-sm font-medium text-gray-700">Email Address</label>
-              <div className="relative">
-                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="email"
-                  value={profileForm.email}
-                  onChange={(event) => setProfileForm((current) => ({ ...current, email: event.target.value }))}
-                  className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
-                  placeholder="name@company.com"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">City / Country</label>
-              <div className="relative">
-                <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <input
-                  value={profileForm.cityCountry}
-                  onChange={(event) => setProfileForm((current) => ({ ...current, cityCountry: event.target.value }))}
-                  className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
-                  placeholder="Lahore, Pakistan"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">Partner Type</label>
-              <div className="relative">
-                <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <input
-                  value={profileForm.partnerType}
-                  onChange={(event) => setProfileForm((current) => ({ ...current, partnerType: event.target.value }))}
-                  className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
-                  placeholder="Recruitment agency"
-                />
-              </div>
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setShowProfileDialog(false)}
+                className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleProfileSave()}
+                disabled={profileSaving}
+                className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {profileSaving ? 'Saving…' : 'Save Changes'}
+              </button>
             </div>
           </div>
-
-          {profileFeedback && (
-            <div className={`rounded-xl border px-4 py-3 text-sm ${profileFeedback.type === 'success' ? 'border-green-200 bg-green-50 text-green-700' : 'border-red-200 bg-red-50 text-red-700'}`}>
-              {profileFeedback.message}
-            </div>
-          )}
-
-          <DialogFooter>
-            <button
-              type="button"
-              onClick={() => setShowProfileDialog(false)}
-              className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleProfileSave()}
-              disabled={profileSaving}
-              className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {profileSaving ? 'Saving…' : 'Save Changes'}
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
     </div>
   );
 }
