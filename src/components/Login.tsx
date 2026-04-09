@@ -88,8 +88,8 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-white lg:flex">
-      <section className="relative flex min-h-screen w-full items-center overflow-hidden bg-white px-6 py-10 sm:px-8 lg:w-1/2 lg:px-14 xl:px-20">
+    <div className="falisha-auth-shell min-h-screen bg-white">
+      <section className="falisha-auth-form-pane relative flex min-h-screen w-full items-center overflow-hidden bg-white px-6 py-10 sm:px-8 lg:px-14 xl:px-20">
         <div className="absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_top,rgba(37,99,235,0.08),transparent_55%)] lg:hidden" />
         <div className="relative mx-auto w-full max-w-[430px]">
           <div className="mb-10 sm:mb-12">
@@ -111,10 +111,10 @@ export function Login() {
               <button
                 type="button"
                 onClick={() => setPortalType('individual')}
-                className={`flex-1 rounded-xl border-2 px-4 py-3 transition-all duration-200 ${
+                className={`falisha-auth-toggle flex-1 rounded-xl border-2 px-4 py-3 transition-all duration-200 ${
                   !isAgency
-                    ? 'border-slate-300 bg-slate-50 text-slate-900'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                    ? 'falisha-auth-toggle-individual-active border-slate-300 bg-slate-50 text-slate-900'
+                    : 'falisha-auth-toggle-idle border-slate-200 bg-white text-slate-600'
                 }`}
               >
                 <span className="flex items-center justify-center gap-2 font-medium">
@@ -125,10 +125,10 @@ export function Login() {
               <button
                 type="button"
                 onClick={() => setPortalType('agency')}
-                className={`flex-1 rounded-xl border-2 px-4 py-3 transition-all duration-200 ${
+                className={`falisha-auth-toggle flex-1 rounded-xl border-2 px-4 py-3 transition-all duration-200 ${
                   isAgency
-                    ? 'border-cyan-500 bg-cyan-500 text-white'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                    ? 'falisha-auth-toggle-partner-active border-cyan-500 bg-cyan-500 text-white'
+                    : 'falisha-auth-toggle-idle border-slate-200 bg-white text-slate-600'
                 }`}
               >
                 <span className="flex items-center justify-center gap-2 font-medium">
@@ -203,7 +203,7 @@ export function Login() {
                 />
                 Remember me
               </label>
-              <button type="button" className="text-sm font-medium text-cyan-500 transition hover:text-cyan-600">
+              <button type="button" className="falisha-auth-link text-sm font-medium transition">
                 Forgot password?
               </button>
             </div>
@@ -218,7 +218,7 @@ export function Login() {
             <button
               type="submit"
               disabled={isLoading || googleLoading}
-              className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-cyan-500 px-5 text-base font-medium text-white transition hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-60"
+              className="falisha-auth-primary inline-flex h-12 w-full items-center justify-center rounded-xl px-5 text-base font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isLoading ? (
                 <span className="inline-flex items-center gap-2">
@@ -244,7 +244,7 @@ export function Login() {
             type="button"
             onClick={() => void handleGoogleSignIn()}
             disabled={googleLoading || isLoading}
-            className="inline-flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white px-5 text-base font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            className="falisha-auth-google inline-flex h-12 w-full items-center justify-center gap-3 rounded-xl border px-5 text-base font-medium text-slate-700 transition disabled:cursor-not-allowed disabled:opacity-60"
           >
               <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 flex-shrink-0">
                 <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.5 3.9-5.5 3.9-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.2.8 3.9 1.5l2.7-2.6C17 3.2 14.8 2.2 12 2.2 6.8 2.2 2.6 6.4 2.6 11.6S6.8 21 12 21c6.9 0 9.1-4.8 9.1-7.3 0-.5-.1-.9-.1-1.3H12Z" />
@@ -257,17 +257,17 @@ export function Login() {
 
           <p className="mt-6 text-center text-sm text-slate-600">
             Don&apos;t have an account?{' '}
-            <a href="mailto:info@falisha.com?subject=Portal%20signup" className="font-medium text-cyan-500 transition hover:text-cyan-600">
+            <a href="mailto:info@falisha.com?subject=Portal%20signup" className="falisha-auth-link font-medium transition">
                 Sign up for free
             </a>
           </p>
           <p className="mt-4 text-center text-xs leading-6 text-slate-500">
             By signing in, you agree to our{' '}
-            <a href="#" className="text-cyan-500 transition hover:text-cyan-600">
+            <a href="#" className="falisha-auth-link transition">
                 Terms of Service
             </a>{' '}
             and{' '}
-            <a href="#" className="text-cyan-500 transition hover:text-cyan-600">
+            <a href="#" className="falisha-auth-link transition">
                 Privacy Policy
             </a>
           </p>
@@ -288,7 +288,7 @@ export function Login() {
         </div>
       </section>
 
-      <section className="relative hidden overflow-hidden bg-gradient-to-br from-cyan-500 via-blue-500 to-blue-700 px-8 py-12 text-white lg:flex lg:w-1/2 xl:px-12">
+      <section className="falisha-auth-marketing-pane relative overflow-hidden px-8 py-12 text-white xl:px-12">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.18),transparent_22%),radial-gradient(circle_at_88%_84%,rgba(255,255,255,0.12),transparent_16%)]" />
 
         <div className="relative z-10 flex w-full flex-col justify-between">
@@ -427,7 +427,7 @@ export function Login() {
             ))}
           </div>
 
-          <button className="absolute bottom-8 right-8 flex items-center gap-2 rounded-full bg-slate-900 px-4 py-3 text-white shadow-xl transition-colors hover:bg-slate-800">
+          <button className="falisha-auth-chat absolute bottom-8 right-8 flex items-center gap-2 rounded-full px-4 py-3 text-white shadow-xl transition-colors">
             <span className="h-2 w-2 rounded-full bg-red-500" />
             <span className="text-sm font-medium">Chat with our experts</span>
           </button>
