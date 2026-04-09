@@ -3,9 +3,9 @@ import { AlertCircle, ArrowRight, Building2, CircleCheckBig, Eye, EyeOff, Headph
 import { useAuth } from '../lib/authContext';
 
 const heroStats = [
-  { value: '500+', label: 'Successful visas' },
+  { value: '500+', label: 'Candidates Placed' },
   { value: '20+', label: 'Countries' },
-  { value: '98%', label: 'Success rate' },
+  { value: '98%', label: 'Success Rate' },
   { value: '24/7', label: 'Support' },
 ];
 
@@ -15,6 +15,12 @@ const timelineSteps = [
   { step: '3', label: 'Relocate', active: false },
 ];
 
+const trustIndicators = [
+  'Trusted by 5000+ candidates',
+  'Verified recruitment system',
+  'AI-powered CV processing',
+];
+
 export function Login() {
   const { signIn, signInWithGoogle } = useAuth();
   const [portalType, setPortalType] = useState<'individual' | 'agency'>('individual');
@@ -22,6 +28,8 @@ export function Login() {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -31,6 +39,15 @@ export function Login() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
+    const nextEmailError = email.trim() ? '' : 'Email is required';
+    const nextPasswordError = password.trim() ? '' : 'Password is required';
+    setEmailError(nextEmailError);
+    setPasswordError(nextPasswordError);
+
+    if (nextEmailError || nextPasswordError) {
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -67,7 +84,7 @@ export function Login() {
               Welcome back
             </h1>
             <p className="mt-3 text-[1.02rem] leading-7 text-slate-500">
-              Sign in to manage your recruitment applications.
+              Sign in to manage your recruitment operations.
             </p>
 
             <div className="mt-10">
@@ -95,15 +112,15 @@ export function Login() {
                   }`}
                 >
                   <Building2 className="h-4 w-4" />
-                  Agency
+                  Partner
                 </button>
               </div>
               <p className="mt-3 text-sm leading-6 text-slate-500">
-                Agency is for partner accounts. Admin and worker users can still sign in here and will be routed to their own dashboards automatically.
+                Individual is for candidates. Partner is for agency and partner accounts. Admin and worker users still sign in here and are routed internally.
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+            <form onSubmit={handleSubmit} noValidate className="mt-8 space-y-5">
               <div>
                 <label className="mb-2 block text-[0.96rem] font-semibold text-slate-700">
                   Email <span className="text-[#ff5a5a]">*</span>
@@ -113,13 +130,16 @@ export function Login() {
                   <input
                     type="email"
                     value={email}
-                    onChange={(event) => setEmail(event.target.value)}
+                    onChange={(event) => {
+                      setEmail(event.target.value);
+                      if (emailError) setEmailError('');
+                    }}
                     className="w-full rounded-[16px] border border-slate-200 bg-white py-4 pl-12 pr-4 text-[1rem] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#1da1f2] focus:ring-4 focus:ring-sky-100"
                     placeholder="your.email@example.com"
-                    required
                     autoComplete="email"
                   />
                 </div>
+                {emailError && <p className="mt-2 text-sm text-red-600">{emailError}</p>}
               </div>
 
               <div>
@@ -131,10 +151,12 @@ export function Login() {
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
-                    onChange={(event) => setPassword(event.target.value)}
+                    onChange={(event) => {
+                      setPassword(event.target.value);
+                      if (passwordError) setPasswordError('');
+                    }}
                     className="w-full rounded-[16px] border border-slate-200 bg-white py-4 pl-12 pr-14 text-[1rem] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#1da1f2] focus:ring-4 focus:ring-sky-100"
                     placeholder="Enter your password"
-                    required
                     autoComplete="current-password"
                   />
                   <button
@@ -146,6 +168,7 @@ export function Login() {
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
+                {passwordError && <p className="mt-2 text-sm text-red-600">{passwordError}</p>}
               </div>
 
               <div className="flex flex-col gap-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
@@ -243,10 +266,18 @@ export function Login() {
           <div className="relative mx-auto flex h-full max-w-[720px] flex-col">
             <div className="flex items-start justify-between gap-6">
               <div>
-                <p className="text-[2rem] font-bold tracking-[-0.04em] sm:text-[2.5rem]">Partner With Falisha</p>
-                <p className="mt-3 max-w-[380px] text-[1.05rem] leading-8 text-blue-100">
-                  Join our network of trusted recruitment partners across Europe and the Gulf.
+                <p className="text-[2rem] font-bold tracking-[-0.04em] sm:text-[2.5rem]">Partner with Falisha Manpower</p>
+                <p className="mt-3 max-w-[440px] text-[1.05rem] leading-8 text-blue-100">
+                  Upload candidates, manage recruitment, and grow your business globally.
                 </p>
+                <div className="mt-6 space-y-2">
+                  {trustIndicators.map((item) => (
+                    <div key={item} className="flex items-center gap-2 text-sm font-medium text-blue-50">
+                      <CircleCheckBig className="h-4 w-4 text-emerald-300" />
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
               <div className="rounded-[20px] bg-white px-5 py-4 text-slate-900 shadow-[0_20px_50px_rgba(9,24,68,0.18)]">
                 <div className="flex items-center gap-1 text-emerald-500">

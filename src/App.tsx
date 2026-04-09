@@ -181,7 +181,7 @@ const AppContent = () => {
   };
   const isInternalPortal = user.role === 'admin' || user.role === 'worker';
   const defaultInternalTab = user.role === 'worker' ? 'employee-dashboard' : 'dashboard';
-  const portalBasePath = user.role === 'admin' ? '/admin' : '/worker';
+  const portalBasePath = user.role === 'admin' ? '/admin' : '/management';
 
   const [activeTab, setActiveTab] = useState(defaultInternalTab);
   const [selectedProfession, setSelectedProfession] = useState<string>('all');
@@ -204,7 +204,8 @@ const AppContent = () => {
   const [portalProfileError, setPortalProfileError] = useState<string | null>(null);
   // Clear server role on sign-out
   useEffect(() => { if (!session) setServerRole(null); }, [session]);
-  const candidatePortalPath = portalProfile?.linkedCandidateId ? `/candidate/${portalProfile.linkedCandidateId}` : '/candidate/new';
+  const candidatePortalPath = '/profile';
+  const partnerPortalPath = '/partner/dashboard';
 
   const tabPaths: Record<string, string> = {
     dashboard: `${portalBasePath}/dashboard`,
@@ -367,8 +368,8 @@ const AppContent = () => {
     }
 
     if (user.role === 'partner') {
-      if (!normalizedPathname.startsWith('/partner')) {
-        window.history.replaceState({}, '', '/partner');
+      if (normalizedPathname !== partnerPortalPath) {
+        window.history.replaceState({}, '', partnerPortalPath);
       }
       return;
     }
@@ -378,6 +379,7 @@ const AppContent = () => {
       normalizedPathname === '/login' ||
       normalizedPathname === '/admin' ||
       normalizedPathname === '/worker' ||
+      normalizedPathname === '/management' ||
       !normalizedPathname.startsWith(`${portalBasePath}/`);
 
     if (shouldRedirect) {
@@ -387,7 +389,7 @@ const AppContent = () => {
       }
       setActiveTab(defaultInternalTab);
     }
-  }, [candidatePortalPath, defaultInternalTab, portalBasePath, portalProfileLoading, session, user.role]);
+  }, [candidatePortalPath, defaultInternalTab, partnerPortalPath, portalBasePath, portalProfileLoading, session, user.role]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
