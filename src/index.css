@@ -14,6 +14,7 @@
 .falisha-auth-shell {
   min-height: 100vh;
   background: #ffffff;
+  overflow-x: hidden;
 }
 
 .falisha-auth-form-pane {
@@ -928,8 +929,95 @@
 }
 
 @media (max-width: 639px) {
+  .falisha-auth-form-pane,
+  .falisha-auth-form-pane-signup {
+    min-height: 100dvh;
+    align-items: flex-start;
+    padding: 1.25rem 1rem 2rem;
+  }
+
+  .falisha-auth-form-inner {
+    max-width: none;
+  }
+
+  .falisha-auth-logo {
+    margin-bottom: 1.75rem;
+    font-size: 1.3rem;
+  }
+
+  .falisha-auth-heading-block {
+    margin-bottom: 1.5rem;
+  }
+
+  .falisha-auth-heading {
+    font-size: 1.85rem;
+    line-height: 1.12;
+  }
+
+  .falisha-auth-subheading {
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  .falisha-auth-toggle-row,
+  .falisha-auth-form-options,
+  .falisha-auth-bottom-actions {
+    grid-template-columns: minmax(0, 1fr);
+    flex-direction: column;
+  }
+
+  .falisha-auth-toggle-content,
+  .falisha-auth-checkbox-row {
+    justify-content: flex-start;
+  }
+
+  .falisha-auth-primary,
+  .falisha-auth-google {
+    min-height: 3.25rem;
+    height: auto;
+    padding: 0.9rem 1rem;
+    text-align: center;
+  }
+
+  .falisha-auth-google {
+    line-height: 1.4;
+  }
+
+  .falisha-auth-notice {
+    word-break: break-word;
+  }
+
   .falisha-auth-inline-fields-compact {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .falisha-auth-mobile-support-chip {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .falisha-auth-legal-copy {
+    font-size: 0.78rem;
+  }
+}
+
+@media (max-width: 399px) {
+  .falisha-auth-heading {
+    font-size: 1.65rem;
+  }
+
+  .falisha-auth-toggle,
+  .falisha-auth-input,
+  .falisha-auth-select,
+  .falisha-auth-primary,
+  .falisha-auth-google,
+  .falisha-auth-chat-chip,
+  .falisha-auth-mobile-support-chip {
+    font-size: 16px;
+  }
+
+  .falisha-auth-consult-btn {
+    padding: 0.85rem 1rem;
   }
 }
 
