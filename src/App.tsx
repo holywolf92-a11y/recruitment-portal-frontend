@@ -633,6 +633,19 @@ const AppContent = () => {
     return <Login />;
   }
 
+  // If JWT has no explicit role (e.g. Google OAuth users), wait for server-side role confirmation
+  // before rendering any portal — prevents wrong redirect/render before API returns.
+  if (serverRole === null && (sessionRole === 'candidate' || sessionRole === 'partner')) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your workspace...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (user.role === 'candidate') {
     return (
       <CandidatePortalDashboard
