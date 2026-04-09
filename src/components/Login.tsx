@@ -86,9 +86,9 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 lg:bg-white">
-      <div className="mx-auto min-h-screen max-w-[1520px] lg:grid lg:grid-cols-2">
-        <section className="relative flex min-h-screen items-center overflow-hidden bg-white px-5 py-6 sm:px-8 sm:py-8 lg:px-14 xl:px-20">
+    <div className="falisha-login-page min-h-screen bg-slate-50 lg:bg-white">
+      <div className="falisha-login-shell mx-auto min-h-screen max-w-[1520px]">
+        <section className="falisha-login-left relative flex min-h-screen items-center overflow-hidden bg-white px-5 py-6 sm:px-8 sm:py-8 lg:px-14 xl:px-20">
           <div className="absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_top,rgba(37,99,235,0.08),transparent_55%)] lg:hidden" />
           <div className="relative mx-auto w-full max-w-[410px]">
             <div className="mb-8 sm:mb-10">
@@ -278,7 +278,7 @@ export function Login() {
           </div>
         </section>
 
-        <section className="relative overflow-hidden bg-gradient-to-b from-sky-500 via-blue-600 to-slate-900 px-5 py-7 text-white sm:px-8 lg:px-12 lg:py-10 xl:px-16">
+        <section className="falisha-login-right relative overflow-hidden px-5 py-7 text-white sm:px-8 lg:px-12 lg:py-10 xl:px-16">
           <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.18),transparent_22%),radial-gradient(circle_at_88%_84%,rgba(255,255,255,0.12),transparent_16%)]" />
 
           <div className="relative mx-auto flex h-full max-w-[760px] flex-col">

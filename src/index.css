@@ -11,6 +11,26 @@
   --candidate-shell: #f7efe5;
 }
 
+.falisha-login-shell {
+  display: block;
+}
+
+.falisha-login-left {
+  background: #ffffff;
+}
+
+.falisha-login-right {
+  background: linear-gradient(180deg, #2494df 0%, #1b7fd7 24%, #2359d3 62%, #19317c 100%);
+}
+
+@media (min-width: 1024px) {
+  .falisha-login-shell {
+    display: grid;
+    grid-template-columns: 43% 57%;
+    min-height: 100vh;
+  }
+}
+
 .candidate-portal-shell {
   background:
     radial-gradient(circle at 0% 0%, rgba(217, 119, 6, 0.12), transparent 24%),
