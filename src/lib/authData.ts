@@ -1,5 +1,4 @@
-// User roles and permissions system
-export type UserRole = 'Admin' | 'Recruiter' | 'Viewer' | 'Manager' | 'Employee';
+export type UserRole = 'admin' | 'worker' | 'candidate' | 'partner';
 
 export interface Permission {
   candidates: {
@@ -46,7 +45,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  password: string; // In production, this would be hashed
+  password: string;
   role: UserRole;
   avatar?: string;
   phone?: string;
@@ -54,12 +53,11 @@ export interface User {
   joinedDate: string;
   lastActive: string;
   status: 'Active' | 'Inactive' | 'Suspended';
-  permissions?: Partial<Permission>; // Custom permissions override
+  permissions?: Partial<Permission>;
 }
 
-// Role-based permission templates
 export const rolePermissions: Record<UserRole, Permission> = {
-  Admin: {
+  admin: {
     candidates: { view: true, create: true, edit: true, delete: true, export: true },
     employers: { view: true, create: true, edit: true, delete: true },
     jobs: { view: true, create: true, edit: true, delete: true },
@@ -68,16 +66,7 @@ export const rolePermissions: Record<UserRole, Permission> = {
     users: { view: true, create: true, edit: true, delete: true },
     settings: { view: true, edit: true },
   },
-  Manager: {
-    candidates: { view: true, create: true, edit: true, delete: false, export: true },
-    employers: { view: true, create: true, edit: true, delete: false },
-    jobs: { view: true, create: true, edit: true, delete: false },
-    documents: { view: true, upload: true, delete: false },
-    analytics: { view: true, export: true },
-    users: { view: true, create: false, edit: false, delete: false },
-    settings: { view: true, edit: false },
-  },
-  Recruiter: {
+  worker: {
     candidates: { view: true, create: true, edit: true, delete: false, export: true },
     employers: { view: true, create: true, edit: true, delete: false },
     jobs: { view: true, create: true, edit: true, delete: false },
@@ -86,34 +75,33 @@ export const rolePermissions: Record<UserRole, Permission> = {
     users: { view: false, create: false, edit: false, delete: false },
     settings: { view: false, edit: false },
   },
-  Viewer: {
-    candidates: { view: true, create: false, edit: false, delete: false, export: false },
-    employers: { view: true, create: false, edit: false, delete: false },
-    jobs: { view: true, create: false, edit: false, delete: false },
-    documents: { view: true, upload: false, delete: false },
-    analytics: { view: true, export: false },
-    users: { view: false, create: false, edit: false, delete: false },
-    settings: { view: false, edit: false },
-  },
-  Employee: {
+  candidate: {
     candidates: { view: false, create: false, edit: false, delete: false, export: false },
     employers: { view: false, create: false, edit: false, delete: false },
     jobs: { view: false, create: false, edit: false, delete: false },
-    documents: { view: false, upload: false, delete: false },
+    documents: { view: true, upload: true, delete: false },
     analytics: { view: false, export: false },
+    users: { view: false, create: false, edit: false, delete: false },
+    settings: { view: false, edit: false },
+  },
+  partner: {
+    candidates: { view: true, create: true, edit: true, delete: false, export: true },
+    employers: { view: false, create: false, edit: false, delete: false },
+    jobs: { view: false, create: false, edit: false, delete: false },
+    documents: { view: true, upload: true, delete: false },
+    analytics: { view: true, export: true },
     users: { view: false, create: false, edit: false, delete: false },
     settings: { view: false, edit: false },
   },
 };
 
-// Mock users database
 export const mockUsers: User[] = [
   {
     id: '1',
     name: 'Sarah Admin',
     email: 'admin@falisha.com',
-    password: 'admin123', // In production, use hashed passwords
-    role: 'Admin',
+    password: 'admin123',
+    role: 'admin',
     phone: '+1 (555) 100-0001',
     department: 'Management',
     joinedDate: '2023-01-15',
@@ -122,70 +110,73 @@ export const mockUsers: User[] = [
   },
   {
     id: '2',
-    name: 'John Recruiter',
-    email: 'john@falisha.com',
-    password: 'recruiter123',
-    role: 'Recruiter',
+    name: 'Amina Operations',
+    email: 'worker@falisha.com',
+    password: 'worker123',
+    role: 'worker',
     phone: '+1 (555) 100-0002',
-    department: 'Recruitment',
+    department: 'Operations',
     joinedDate: '2023-03-20',
     lastActive: '15 minutes ago',
     status: 'Active',
   },
   {
     id: '3',
-    name: 'Maria Manager',
-    email: 'maria@falisha.com',
-    password: 'manager123',
-    role: 'Manager',
+    name: 'Muhammad Candidate',
+    email: 'candidate@falisha.com',
+    password: 'candidate123',
+    role: 'candidate',
     phone: '+1 (555) 100-0003',
-    department: 'Operations',
-    joinedDate: '2023-02-10',
+    department: 'Candidates',
+    joinedDate: '2024-02-10',
     lastActive: '1 hour ago',
     status: 'Active',
   },
   {
     id: '4',
-    name: 'David Viewer',
-    email: 'david@falisha.com',
-    password: 'viewer123',
-    role: 'Viewer',
+    name: 'ABC Overseas',
+    email: 'partner@falisha.com',
+    password: 'partner123',
+    role: 'partner',
     phone: '+1 (555) 100-0004',
-    department: 'Support',
-    joinedDate: '2023-06-01',
+    department: 'Partner Network',
+    joinedDate: '2024-06-01',
     lastActive: '3 hours ago',
     status: 'Active',
   },
-  {
-    id: '5',
-    name: 'Lisa Recruiter',
-    email: 'lisa@falisha.com',
-    password: 'recruiter123',
-    role: 'Recruiter',
-    phone: '+1 (555) 100-0005',
-    department: 'Recruitment',
-    joinedDate: '2023-04-15',
-    lastActive: '30 minutes ago',
-    status: 'Active',
-  },
-  {
-    id: '6',
-    name: 'James Inactive',
-    email: 'james@falisha.com',
-    password: 'inactive123',
-    role: 'Recruiter',
-    phone: '+1 (555) 100-0006',
-    department: 'Recruitment',
-    joinedDate: '2023-05-01',
-    lastActive: '2 days ago',
-    status: 'Inactive',
-  },
 ];
 
-// Helper function to get user permissions
+export function normalizeUserRole(role?: string | null): UserRole {
+  const normalized = String(role || '').trim().toLowerCase();
+
+  if (normalized === 'admin' || normalized === 'super_admin') {
+    return 'admin';
+  }
+
+  if (normalized === 'partner') {
+    return 'partner';
+  }
+
+  if (normalized === 'candidate') {
+    return 'candidate';
+  }
+
+  if (['worker', 'employee', 'manager', 'recruiter', 'viewer', 'staff'].includes(normalized)) {
+    return 'worker';
+  }
+
+  return 'candidate';
+}
+
+export function getRoleLabel(role: UserRole): string {
+  if (role === 'admin') return 'Admin';
+  if (role === 'worker') return 'Worker';
+  if (role === 'candidate') return 'Candidate';
+  return 'Partner';
+}
+
 export function getUserPermissions(user: User): Permission {
-  // If user has custom permissions, merge with role permissions
-  const basePermissions = rolePermissions[user.role] ?? rolePermissions.Viewer;
+  const basePermissions = rolePermissions[user.role] ?? rolePermissions.candidate;
   if (user.permissions) {
     return {
       candidates: { ...basePermissions.candidates, ...user.permissions.candidates },
@@ -200,13 +191,14 @@ export function getUserPermissions(user: User): Permission {
   return basePermissions;
 }
 
-// Helper function to check if user has permission
-export function hasPermission(
-  user: User,
-  resource: keyof Permission,
-  action: string
-): boolean {
+export function hasPermission(user: User, resource: keyof Permission, action: string): boolean {
   const permissions = getUserPermissions(user);
-  const resourcePermissions = permissions[resource] as any;
+  const resourcePermissions = permissions[resource] as Record<string, boolean>;
+  return resourcePermissions?.[action] || false;
+}
+
+export function hasRolePermission(role: UserRole, resource: keyof Permission, action: string): boolean {
+  const permissions = rolePermissions[role] ?? rolePermissions.candidate;
+  const resourcePermissions = permissions[resource] as Record<string, boolean>;
   return resourcePermissions?.[action] || false;
 }

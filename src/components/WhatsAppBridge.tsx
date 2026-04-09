@@ -131,6 +131,8 @@ export function WhatsAppBridge() {
   const [pairingError, setPairingError] = useState<string | null>(null);
   const [pairingPhoneNumber, setPairingPhoneNumber] = useState('');
   const qrWaitIntervalRef = useRef<ReturnType<typeof window.setInterval> | null>(null);
+  const STATUS_POLL_INTERVAL_MS = 60000;
+  const QR_WAIT_INTERVAL_MS = 5000;
 
   const authHeader = useMemo(() => {
     const token = session?.access_token;
@@ -217,6 +219,9 @@ export function WhatsAppBridge() {
         setQrWaiting(true);
         setQrError(null);
         qrWaitIntervalRef.current = window.setInterval(async () => {
+          if (typeof document !== 'undefined' && document.hidden) {
+            return;
+          }
           if (!authHeader) return;
           try {
             const retryData = await fetchJson<BridgeQrResponse>(`${API_BASE_URL}/whatsapp-bridge/sessions/${encodeURIComponent(accountId)}/qr`, {
@@ -230,7 +235,7 @@ export function WhatsAppBridge() {
           } catch {
             // still not ready — keep waiting
           }
-        }, 3000);
+        }, QR_WAIT_INTERVAL_MS);
       } else {
         setQrError(message);
       }
@@ -343,10 +348,24 @@ export function WhatsAppBridge() {
     void loadStatus();
 
     const intervalId = window.setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) {
+        return;
+      }
       void loadStatus();
-    }, 15000);
+    }, STATUS_POLL_INTERVAL_MS);
 
-    return () => window.clearInterval(intervalId);
+    const onVisibilityChange = () => {
+      if (!document.hidden) {
+        void loadStatus();
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, [authHeader]);
 
   useEffect(() => {

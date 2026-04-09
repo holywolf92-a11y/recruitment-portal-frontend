@@ -96,6 +96,21 @@ function confidenceScore10(confidence?: Record<string, number>) {
   return Math.round(score * 10) / 10;
 }
 
+function parsePartnerSource(source?: string | null) {
+  const raw = String(source || '');
+  if (!raw.startsWith('Partner|')) {
+    return null;
+  }
+
+  const [, partnerUserId, partnerName, partnerCompany] = raw.split('|');
+  return {
+    partnerUserId: partnerUserId || null,
+    partnerName: partnerName || null,
+    partnerCompany: partnerCompany || null,
+    label: partnerName || partnerCompany || 'Partner',
+  };
+}
+
 // Premium Shimmer Skeleton Component
 function DocumentSkeletonCard({ delay = 0 }: { delay?: number }) {
   return (
@@ -354,7 +369,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
   // Backend-driven processing: show "Processing" only when the backend has documents
   // with verification_status === 'pending_ai' (CV from inbox, split-and-categorize, etc).
   // No loading on click — no flicker.
-  const POLL_INTERVAL_MS = 5000;
+  const POLL_INTERVAL_MS = 15000;
+  const DASHBOARD_STATS_INTERVAL_MS = 60000;
   const candidateIds = useMemo(() => candidates.map((c) => c.id), [candidates]);
   useEffect(() => {
     if (candidateIds.length === 0) return;
@@ -482,8 +498,10 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
 
     void loadDashboardStats();
     const interval = window.setInterval(() => {
-      void loadDashboardStats();
-    }, 15000);
+      if (!document.hidden) {
+        void loadDashboardStats();
+      }
+    }, DASHBOARD_STATS_INTERVAL_MS);
 
     const onVisibilityChange = () => {
       if (!document.hidden) {
@@ -1141,6 +1159,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
               const confidenceScore = confidenceScore10(c.extraction_confidence);
               const score = typeof c.ai_score === 'number' && isFinite(c.ai_score) ? c.ai_score : confidenceScore;
               const statusLabel = (c.status || 'Applied').toString();
+              const partnerAttribution = parsePartnerSource(c.source);
               const selected = selectedIds.has(c.id);
 
               const cvOk = !!c.cv_received;
@@ -1242,6 +1261,11 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
                     <div className="mb-4">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <h3 className="text-xl sm:text-2xl font-semibold text-gray-900 break-words">{c.name}</h3>
+                        {partnerAttribution?.label && (
+                          <span className="px-3 py-1 bg-cyan-100 text-cyan-700 rounded-full text-xs font-medium">
+                            Agent: {partnerAttribution.label}
+                          </span>
+                        )}
                         {c.needs_review && (
                           <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium flex items-center gap-1">
                             <AlertTriangle className="w-3 h-3" />

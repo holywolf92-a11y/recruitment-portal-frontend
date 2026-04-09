@@ -8,12 +8,23 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
+function formatOAuthErrorMessage(error: any) {
+  const message = String(error?.message || error?.error_description || error?.msg || 'Authentication failed.');
+
+  if (/unsupported provider/i.test(message)) {
+    return 'Google sign-in is not enabled for this production Supabase project yet.';
+  }
+
+  return message;
+}
+
 export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
 
 interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: (redirectTo?: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -88,10 +99,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (error) throw error;
   };
 
+  const signInWithGoogle = async (redirectTo?: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: redirectTo
+          ? {
+              redirectTo,
+            }
+          : undefined,
+      });
+
+      if (error) {
+        throw error;
+      }
+    } catch (error: any) {
+      throw new Error(formatOAuthErrorMessage(error));
+    }
+  };
+
   const value: AuthContextType = {
     session,
     loading,
     signIn,
+    signInWithGoogle,
     signOut,
   };
 

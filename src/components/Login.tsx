@@ -1,347 +1,205 @@
 import { useState } from 'react';
-import { Lock, Mail, Eye, EyeOff, AlertCircle, Users, Shield, UserCheck, LogIn, BarChart3, CheckCircle } from 'lucide-react';
+import { AlertCircle, ArrowRight, Briefcase, Building2, Eye, EyeOff, Lock, Mail, ShieldCheck, Sparkles, Users } from 'lucide-react';
 import { useAuth } from '../lib/authContext';
 
+const PORTAL_ROWS = [
+  {
+    icon: Building2,
+    title: 'Internal operations',
+    description: 'Admins and workers land in operational dashboards with role-aware navigation and controls.',
+  },
+  {
+    icon: Users,
+    title: 'External portals',
+    description: 'Candidates and partners are redirected into dedicated self-service workspaces after authentication.',
+  },
+  {
+    icon: Briefcase,
+    title: 'Single auth layer',
+    description: 'Email-password and Google sign-in both resolve into the same role routing already active in production.',
+  },
+];
+
 export function Login() {
-  const { signIn, loading } = useAuth();
+  const { signIn, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [loginType, setLoginType] = useState<'admin' | 'employee'>('admin');
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('[Login] Form submitted with:', { email, password, loginType });
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError('');
     setIsLoading(true);
 
     try {
-      console.log('[Login] Calling signIn...');
       await signIn(email, password);
-      console.log('[Login] signIn successful');
     } catch (err: any) {
-      console.error('[Login] signIn error:', err);
-      setError(err.message || 'Login failed');
+      setError(err?.message || 'Sign in failed');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Demo accounts for Admin and Employees
-  const adminAccounts = [
-    { role: 'Admin', email: 'admin@falisha.com', password: 'admin123', color: 'from-purple-500 to-purple-600' },
-  ];
+  const handleGoogleSignIn = async () => {
+    setError('');
+    setGoogleLoading(true);
 
-  const employeeAccounts = [
-    { role: 'Employee', email: 'employee1@falisha.com', password: 'employee123', name: 'Ahmed Khan', color: 'from-blue-500 to-blue-600' },
-    { role: 'Employee', email: 'employee2@falisha.com', password: 'employee123', name: 'Fatima Ali', color: 'from-green-500 to-green-600' },
-    { role: 'Employee', email: 'employee3@falisha.com', password: 'employee123', name: 'Mohammad Hassan', color: 'from-orange-500 to-orange-600' },
-  ];
-
-  const demoAccounts = loginType === 'admin' ? adminAccounts : employeeAccounts;
-
-  const quickLogin = (demoEmail: string, demoPassword: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPassword);
+    try {
+      await signInWithGoogle(window.location.origin);
+    } catch (err: any) {
+      setError(err?.message || 'Google sign in failed');
+      setGoogleLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.12),_transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(14,165,233,0.12),_transparent_28%),linear-gradient(180deg,_#f8fbff_0%,_#eef4ff_46%,_#f8fafc_100%)] flex items-center justify-center p-3 sm:p-4 lg:p-8">
-      <div className="w-full max-w-7xl grid grid-cols-1 xl:grid-cols-[minmax(0,1.02fr)_minmax(320px,0.98fr)] gap-4 lg:gap-6 xl:gap-8 items-start">
-        {/* Left Side - Login Form */}
-        <div className="bg-white/96 backdrop-blur rounded-[28px] border border-white/70 shadow-[0_24px_80px_rgba(15,23,42,0.12)] p-5 sm:p-6 lg:p-10 xl:p-12 order-2 xl:order-1">
-          {/* Logo and Title */}
-          <div className="text-center mb-6 sm:mb-8">
-            <div className="w-16 h-16 sm:w-18 sm:h-18 bg-gradient-to-br from-slate-900 via-blue-700 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200/70">
-              <Shield className="w-8 h-8 sm:w-9 sm:h-9 text-white" />
-            </div>
-            <h1 className="text-2xl sm:text-3xl text-gray-900 mb-2 font-semibold tracking-tight">Falisha Manpower</h1>
-            <p className="text-sm sm:text-base text-gray-600">Secure recruitment workspace for operations, compliance, and client delivery.</p>
-          </div>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.16),_transparent_26%),radial-gradient(circle_at_85%_12%,_rgba(249,115,22,0.10),_transparent_18%),linear-gradient(180deg,_#f5f7fb_0%,_#eef6ff_48%,_#f7fafc_100%)] px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-5xl">
+        <div className="rounded-[34px] border border-white/70 bg-white/82 p-3 shadow-[0_30px_120px_rgba(15,23,42,0.10)] backdrop-blur-xl sm:p-4 lg:p-5">
+          <section className="rounded-[28px] bg-[#fdfdfb] p-6 ring-1 ring-slate-200/80 sm:p-7 lg:p-8">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-800">
+                    <ShieldCheck className="h-4 w-4" />
+                    Secure Sign In
+                  </div>
+                  <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950 sm:text-[2.2rem]">Access your Falisha workspace</h1>
+                </div>
+                <div className="hidden rounded-2xl bg-slate-950 px-4 py-3 text-right text-white sm:block">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-sky-300">Live Routing</p>
+                  <p className="mt-1 text-sm text-slate-200">Admin, worker, partner, candidate</p>
+                </div>
+              </div>
 
-          {/* Login Type Toggle */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 sm:mb-8">
-            <button
-              onClick={() => setLoginType('admin')}
-              className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
-                loginType === 'admin'
-                  ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <Shield className="w-4 h-4 inline mr-2" />
-              Admin Login
-            </button>
-            <button
-              onClick={() => setLoginType('employee')}
-              className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
-                loginType === 'employee'
-                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <Users className="w-4 h-4 inline mr-2" />
-              Employee Login
-            </button>
-          </div>
+              <p className="mt-4 max-w-xl text-sm leading-6 text-slate-600">
+                Use email and password or continue with Google. After authentication, Falisha resolves your role and sends you into the right portal without a second handoff screen.
+              </p>
 
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
-            {/* Email Input */}
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Fastest Path</p>
+                  <p className="mt-2 text-sm text-slate-900">Google sign-in is active and returns straight into the production app shell.</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Need Manual Access</p>
+                  <p className="mt-2 text-sm text-slate-900">Email-password sign-in remains available for managed portal accounts and role-specific operations.</p>
+                </div>
+              </div>
+
+              <div className="mt-6 space-y-3">
+                <button
+                  type="button"
+                  onClick={() => void handleGoogleSignIn()}
+                  disabled={googleLoading || isLoading}
+                  className="inline-flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-300 bg-white px-5 py-3.5 text-sm font-medium text-slate-900 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5">
+                    <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.5 3.9-5.5 3.9-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.2.8 3.9 1.5l2.7-2.6C17 3.2 14.8 2.2 12 2.2 6.8 2.2 2.6 6.4 2.6 11.6S6.8 21 12 21c6.9 0 9.1-4.8 9.1-7.3 0-.5-.1-.9-.1-1.3H12Z" />
+                    <path fill="#4285F4" d="M3.6 7.1l3.2 2.4C7.7 7.6 9.7 6 12 6c1.9 0 3.2.8 3.9 1.5l2.7-2.6C17 3.2 14.8 2.2 12 2.2c-3.6 0-6.7 2-8.4 4.9Z" />
+                    <path fill="#FBBC05" d="M12 21c2.7 0 5-.9 6.7-2.5l-3.1-2.6c-.8.6-1.9 1.1-3.6 1.1-3.8 0-5.2-2.5-5.5-3.8l-3.3 2.5C4.9 18.8 8.2 21 12 21Z" />
+                    <path fill="#34A853" d="M3.2 15.7l3.3-2.5c-.2-.6-.4-1.1-.4-1.7s.1-1.2.4-1.7L3.2 7.3c-.7 1.3-1.1 2.8-1.1 4.3s.4 3 1.1 4.1Z" />
+                  </svg>
+                  {googleLoading ? 'Redirecting to Google...' : 'Continue with Google'}
+                </button>
+
+                <div className="flex items-center gap-3">
+                  <div className="h-px flex-1 bg-slate-200" />
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Or use email</span>
+                  <div className="h-px flex-1 bg-slate-200" />
+                </div>
+              </div>
+
+              <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Work email</label>
               <div className="relative">
-                <Mail className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter your email"
+                  onChange={(event) => setEmail(event.target.value)}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 pl-12 pr-4 py-3.5 text-slate-900 outline-none transition focus:border-sky-500 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                  placeholder="name@falisha.com"
                   required
                 />
               </div>
             </div>
 
-            {/* Password Input */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
+              <div className="mb-2 flex items-center justify-between">
+                <label className="block text-sm font-medium text-slate-700">Password</label>
+                <span className="text-xs text-slate-400">Role is resolved after sign in</span>
+              </div>
               <div className="relative">
-                <Lock className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                <Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(event) => setPassword(event.target.value)}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 pl-12 pr-12 py-3.5 text-slate-900 outline-none transition focus:border-sky-500 focus:bg-white focus:ring-4 focus:ring-sky-100"
                   placeholder="Enter your password"
                   required
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  onClick={() => setShowPassword((current) => !current)}
+                  disabled={isLoading || googleLoading}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
             </div>
 
-            {/* Error Message */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" />
                 <div>
-                  <p className="text-sm font-medium text-red-900">Login Failed</p>
-                  <p className="text-sm text-red-700 mt-1">{error}</p>
+                  <p className="font-medium text-red-900">Authentication failed</p>
+                  <p className="mt-1">{error}</p>
                 </div>
               </div>
             )}
 
-            {/* Remember Me and Forgot Password */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" />
-                <span className="text-sm text-gray-600">Remember me</span>
-              </label>
-              <a href="#" className="text-sm text-blue-600 hover:text-blue-700">
-                Forgot password?
-              </a>
-            </div>
-
-            {/* Login Button */}
             <button
               type="submit"
-              disabled={isLoading}
-              className={`w-full text-white py-3 rounded-lg transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium ${
-                loginType === 'admin'
-                  ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800'
-                  : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
-              }`}
+              disabled={isLoading || googleLoading}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isLoading ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Logging in...
+                  <span className="h-5 w-5 rounded-full border-2 border-white/70 border-t-transparent animate-spin" />
+                  Signing in...
                 </>
               ) : (
                 <>
-                  <LogIn className="w-5 h-5" />
-                  Sign In
+                  Continue
+                  <ArrowRight className="h-4 w-4" />
                 </>
               )}
             </button>
-          </form>
+              </form>
 
-          {/* Divider */}
-          <div className="relative my-6 sm:my-8">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500">Or continue with</span>
-            </div>
-          </div>
-
-          {/* Social Login (Optional) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button className="px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 text-sm">
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-              </svg>
-              Google
-            </button>
-            <button className="px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 text-sm">
-              <svg className="w-5 h-5" fill="#1877F2" viewBox="0 0 24 24">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-              </svg>
-              Facebook
-            </button>
-          </div>
-        </div>
-
-        {/* Right Side - Demo Accounts & Info */}
-        <div className="space-y-4 sm:space-y-6 order-1 xl:order-2">
-          {/* Welcome Card */}
-          <div className={`rounded-[28px] shadow-[0_24px_80px_rgba(15,23,42,0.14)] p-5 sm:p-6 lg:p-8 text-white ${
-            loginType === 'admin'
-              ? 'bg-gradient-to-br from-purple-600 to-purple-700'
-              : 'bg-gradient-to-br from-blue-600 to-blue-700'
-          }`}>
-            <h2 className="text-xl sm:text-2xl mb-3 sm:mb-4 font-semibold">
-              {loginType === 'admin' ? 'Admin Portal' : 'Employee Portal'}
-            </h2>
-            <p className="text-blue-100 text-sm sm:text-base mb-5 sm:mb-6 leading-relaxed">
-              {loginType === 'admin'
-                ? 'Access your recruitment dashboard to manage candidates, track applications, and streamline your hiring process with AI-powered insights.'
-                : 'Log your daily work activities, track completed tasks, and contribute to the team\'s progress. Monitor your productivity and achievements.'}
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-              {loginType === 'admin' ? (
-                <>
-                  <div className="bg-white/18 rounded-xl p-4 text-center backdrop-blur-sm border border-white/10">
-                    <Users className="w-8 h-8 mx-auto mb-2" />
-                    <div className="text-2xl mb-1">150+</div>
-                    <div className="text-xs text-blue-100">Candidates</div>
-                  </div>
-                  <div className="bg-white/18 rounded-xl p-4 text-center backdrop-blur-sm border border-white/10">
-                    <Shield className="w-8 h-8 mx-auto mb-2" />
-                    <div className="text-2xl mb-1">98%</div>
-                    <div className="text-xs text-blue-100">Success Rate</div>
-                  </div>
-                  <div className="bg-white/18 rounded-xl p-4 text-center backdrop-blur-sm border border-white/10">
-                    <UserCheck className="w-8 h-8 mx-auto mb-2" />
-                    <div className="text-2xl mb-1">45</div>
-                    <div className="text-xs text-blue-100">Deployed</div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="bg-white/18 rounded-xl p-4 text-center backdrop-blur-sm border border-white/10">
-                    <BarChart3 className="w-8 h-8 mx-auto mb-2" />
-                    <div className="text-2xl mb-1">120+</div>
-                    <div className="text-xs text-blue-100">Task Types</div>
-                  </div>
-                  <div className="bg-white/18 rounded-xl p-4 text-center backdrop-blur-sm border border-white/10">
-                    <CheckCircle className="w-8 h-8 mx-auto mb-2" />
-                    <div className="text-2xl mb-1">89%</div>
-                    <div className="text-xs text-blue-100">Completion Rate</div>
-                  </div>
-                  <div className="bg-white/18 rounded-xl p-4 text-center backdrop-blur-sm border border-white/10">
-                    <Users className="w-8 h-8 mx-auto mb-2" />
-                    <div className="text-2xl mb-1">25</div>
-                    <div className="text-xs text-blue-100">Team Members</div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Demo Accounts Card */}
-          <div className="bg-white/96 backdrop-blur rounded-[28px] border border-white/70 shadow-[0_24px_80px_rgba(15,23,42,0.12)] p-5 sm:p-6 lg:p-8">
-            <h3 className="text-lg sm:text-xl mb-2 text-gray-900 font-semibold">
-              {loginType === 'admin' ? 'Admin Accounts' : 'Demo Employees'}
-            </h3>
-            <p className="text-sm text-gray-600 mb-6">
-              Click any account below to quick login and explore {loginType === 'admin' ? 'admin' : 'employee'} features
-            </p>
-            <div className="space-y-3">
-              {demoAccounts.map((account) => (
-                <button
-                  key={account.email}
-                  onClick={() => quickLogin(account.email, account.password)}
-                  className="w-full group"
-                >
-                  <div className={`bg-gradient-to-r ${account.color} rounded-xl p-4 hover:shadow-lg transition-all`}>
-                    <div className="flex items-center justify-between gap-3 text-white">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center shrink-0">
-                          {loginType === 'admin' ? (
-                            <Shield className="w-5 h-5" />
-                          ) : (
-                            <UserCheck className="w-5 h-5" />
-                          )}
-                        </div>
-                        <div className="text-left min-w-0">
-                          <div className="font-semibold">{account.role}</div>
-                          <div className="text-xs text-white/90 truncate max-w-[180px] sm:max-w-none">
-                            {(account as any).name || account.email}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="hidden sm:block text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                        Login →
-                      </div>
+              <div className="mt-6 rounded-[24px] border border-slate-200 bg-slate-50 p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Need access?</p>
+                <p className="mt-3 text-sm leading-6 text-slate-600">Candidate onboarding still uses the secure link sent by email. If you need a new portal account or role changes, contact Falisha operations.</p>
+              </div>
+              <div className="mt-6 grid gap-3 lg:grid-cols-3">
+                {PORTAL_ROWS.map(({ icon: Icon, title, description }) => (
+                  <div key={title} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-200/60">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-sky-300">
+                      <Icon className="h-5 w-5" />
                     </div>
+                    <p className="mt-4 text-sm font-semibold text-slate-950">{title}</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
                   </div>
-                </button>
-              ))}
-            </div>
-            
-            {/* Permissions Info */}
-            <div className={`mt-6 border rounded-lg p-4 ${
-              loginType === 'admin'
-                ? 'bg-purple-50 border-purple-200'
-                : 'bg-blue-50 border-blue-200'
-            }`}>
-              <p className={`text-sm font-semibold mb-2 ${
-                loginType === 'admin'
-                  ? 'text-purple-900'
-                  : 'text-blue-900'
-              }`}>
-                Role Permissions:
-              </p>
-              <ul className={`text-xs space-y-1 ${
-                loginType === 'admin'
-                  ? 'text-purple-800'
-                  : 'text-blue-800'
-              }`}>
-                {loginType === 'admin' ? (
-                  <>
-                    <li><strong>Admin:</strong> Full access to all features and settings</li>
-                    <li><strong>Manager:</strong> Manage candidates, view analytics, no user management</li>
-                    <li><strong>Recruiter:</strong> Add/edit candidates, upload documents, basic analytics</li>
-                    <li><strong>Viewer:</strong> Read-only access to candidates and jobs</li>
-                  </>
-                ) : (
-                  <>
-                    <li><strong>Employee:</strong> Log daily work activities</li>
-                    <li><strong>View Progress:</strong> Monitor team's task completion</li>
-                    <li><strong>Track Metrics:</strong> See personal and team performance</li>
-                    <li><strong>Submit Reports:</strong> Daily work summaries and activity logs</li>
-                  </>
-                )}
-              </ul>
-            </div>
-          </div>
+                ))}
+              </div>
+          </section>
         </div>
       </div>
     </div>

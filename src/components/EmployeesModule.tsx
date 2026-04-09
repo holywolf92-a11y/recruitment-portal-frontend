@@ -7,10 +7,10 @@ interface EmployeesModuleProps {
   userRole?: string;
 }
 
-export const EmployeesModule = ({ userRole = 'employee' }: EmployeesModuleProps) => {
+export const EmployeesModule = ({ userRole = 'worker' }: EmployeesModuleProps) => {
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  const isManagerOrAdmin = ['manager', 'admin'].includes(userRole.toLowerCase());
+  const isManagerOrAdmin = ['worker', 'admin'].includes(userRole.toLowerCase());
 
   return (
     <div className="min-h-screen bg-gray-50">
