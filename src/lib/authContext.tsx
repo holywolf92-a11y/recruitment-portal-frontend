@@ -24,6 +24,12 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signUp: (
+    email: string,
+    password: string,
+    metadata?: Record<string, unknown>,
+    emailRedirectTo?: string,
+  ) => Promise<{ requiresEmailConfirmation: boolean }>;
   signInWithGoogle: (redirectTo?: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -94,6 +100,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const signUp = async (
+    email: string,
+    password: string,
+    metadata?: Record<string, unknown>,
+    emailRedirectTo?: string,
+  ) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          ...(metadata ? { data: metadata } : {}),
+          ...(emailRedirectTo ? { emailRedirectTo } : {}),
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      return {
+        requiresEmailConfirmation: !data.session,
+      };
+    } catch (err) {
+      console.error('[AuthContext] signUp exception:', err);
+      throw err;
+    }
+  };
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
@@ -122,6 +157,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     session,
     loading,
     signIn,
+    signUp,
     signInWithGoogle,
     signOut,
   };

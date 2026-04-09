@@ -24,6 +24,11 @@
   width: 100%;
   padding: 2.75rem 1.5rem;
   background: #ffffff;
+  overflow-y: auto;
+}
+
+.falisha-auth-form-pane-signup {
+  align-items: flex-start;
 }
 
 .falisha-auth-form-inner {
@@ -83,6 +88,7 @@
   background: #ffffff;
   color: #4b5563;
   transition: all 180ms ease;
+  cursor: pointer;
 }
 
 .falisha-auth-toggle-content {
@@ -101,9 +107,10 @@
 }
 
 .falisha-auth-toggle-individual-active {
-  border-color: #d1d5db;
-  background: #f9fafb;
-  color: #111827;
+  border-color: #06b6d4;
+  background: #06b6d4;
+  color: #ffffff;
+  box-shadow: 0 16px 30px rgba(6, 182, 212, 0.22);
 }
 
 .falisha-auth-toggle-partner-active {
@@ -158,6 +165,11 @@
   font-size: 1rem;
   color: #111827;
   transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.falisha-auth-select {
+  appearance: none;
+  cursor: pointer;
 }
 
 .falisha-auth-input::placeholder {
@@ -219,6 +231,7 @@
   font-size: 1rem;
   font-weight: 600;
   transition: all 180ms ease;
+  cursor: pointer;
 }
 
 .falisha-auth-primary {
@@ -249,6 +262,13 @@
 
 .falisha-auth-link:hover {
   color: #0891b2;
+}
+
+.falisha-auth-inline-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
 }
 
 .falisha-auth-small-link {
@@ -294,6 +314,38 @@
   color: #6b7280;
 }
 
+.falisha-auth-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  border-radius: 1rem;
+  padding: 0.95rem 1rem;
+  font-size: 0.92rem;
+}
+
+.falisha-auth-notice-success {
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.falisha-auth-notice-error {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.falisha-auth-inline-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.falisha-auth-inline-fields-compact {
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+}
+
 .falisha-auth-legal-copy {
   margin: 1rem 0 0;
   text-align: center;
@@ -319,8 +371,10 @@
   gap: 0.75rem;
   border-radius: 999px;
   background: #ffffff;
+  border: 0;
   padding: 0.5rem 0.75rem;
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  cursor: pointer;
 }
 
 .falisha-auth-mobile-support-icon {
@@ -694,6 +748,7 @@
   border-radius: 1rem;
   min-height: 4rem;
   transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+  cursor: pointer;
 }
 
 .falisha-auth-watch-btn {
@@ -800,6 +855,7 @@
 }
 
 .falisha-auth-chat-chip {
+  border: 0;
   border-radius: 999px;
   background: #ffffff;
   padding: 0.9rem 1.1rem;
@@ -807,6 +863,7 @@
   font-weight: 600;
   color: #1f2937;
   box-shadow: 0 16px 36px rgba(14, 36, 97, 0.2);
+  cursor: pointer;
 }
 
 .falisha-auth-chat-circle {
@@ -815,10 +872,12 @@
   justify-content: center;
   width: 3.4rem;
   height: 3.4rem;
+  border: 0;
   border-radius: 999px;
   background: #020617;
   color: #ffffff;
   box-shadow: 0 16px 36px rgba(14, 36, 97, 0.26);
+  cursor: pointer;
 }
 
 .falisha-auth-chat-circle:hover {
@@ -839,6 +898,11 @@
     padding: 3rem 2rem;
   }
 
+  .falisha-auth-form-pane-signup {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+
   .falisha-auth-marketing-pane {
     display: block;
   }
@@ -853,8 +917,19 @@
     padding: 3rem 4rem;
   }
 
+  .falisha-auth-form-pane-signup {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+
   .falisha-auth-marketing-inner {
     padding: 2rem 3rem 1.25rem;
+  }
+}
+
+@media (max-width: 639px) {
+  .falisha-auth-inline-fields-compact {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
