@@ -164,11 +164,13 @@ function FalishaHeaderMark() {
 const AppContent = () => {
   const { session, signOut, loading } = useAuth();
   const sessionRole = normalizeUserRole(session?.user.user_metadata?.role);
+  const [serverRole, setServerRole] = useState<UserRole | null>(null);
+  const effectiveRole: UserRole = serverRole ?? sessionRole;
   const user: AppSessionUser = session ? {
     name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
     email: session.user.email || '',
-    role: sessionRole,
-    roleLabel: getRoleLabel(sessionRole),
+    role: effectiveRole,
+    roleLabel: getRoleLabel(effectiveRole),
     lastActive: 'Today',
   } : {
     name: 'Guest',
@@ -200,6 +202,8 @@ const AppContent = () => {
   const [portalProfile, setPortalProfile] = useState<PortalProfileResponse | null>(null);
   const [portalProfileLoading, setPortalProfileLoading] = useState(false);
   const [portalProfileError, setPortalProfileError] = useState<string | null>(null);
+  // Clear server role on sign-out
+  useEffect(() => { if (!session) setServerRole(null); }, [session]);
   const candidatePortalPath = portalProfile?.linkedCandidateId ? `/candidate/${portalProfile.linkedCandidateId}` : '/candidate/new';
 
   const tabPaths: Record<string, string> = {
@@ -482,6 +486,10 @@ const AppContent = () => {
 
     try {
       const response = await apiClient.getPortalProfile(accessToken);
+      // Use server-authoritative role (backend reads from users table, not just JWT)
+      if (response.role) {
+        setServerRole(normalizeUserRole(response.role));
+      }
       setPortalProfile(response);
       return response;
     } catch (error: any) {
