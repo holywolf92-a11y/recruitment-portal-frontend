@@ -635,7 +635,9 @@ const AppContent = () => {
 
   // If JWT has no explicit role (e.g. Google OAuth users), wait for server-side role confirmation
   // before rendering any portal — prevents wrong redirect/render before API returns.
-  if (serverRole === null && (sessionRole === 'candidate' || sessionRole === 'partner')) {
+  // Only block if portal profile is still actively loading (portalProfileLoading).
+  // If loading finished with an error or null, fall through to avoid infinite spinner.
+  if (serverRole === null && portalProfileLoading && (sessionRole === 'candidate' || sessionRole === 'partner')) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center">
         <div className="text-center">
