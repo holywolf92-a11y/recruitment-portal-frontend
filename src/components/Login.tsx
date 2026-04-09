@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertCircle, ArrowRight, Building2, CircleCheckBig, Eye, EyeOff, Headphones, Lock, Mail, Plane, ShieldCheck, UserRound } from 'lucide-react';
+import { AlertCircle, ArrowRight, Building2, CircleCheckBig, Eye, EyeOff, Headphones, Lock, Mail, MessageCircle, Plane, ShieldCheck, UserRound } from 'lucide-react';
 import { useAuth } from '../lib/authContext';
 
 const heroStats = [
@@ -209,13 +209,31 @@ export function Login() {
 
             <p className="mt-7 text-center text-[0.98rem] text-slate-500">
               Don&apos;t have an account?{' '}
-              <a href="mailto:info@falisha.com" className="font-semibold text-[#1da1f2] transition hover:text-sky-700">
-                Contact Falisha
+              <a href="mailto:info@falisha.com?subject=Portal%20signup" className="font-semibold text-[#1da1f2] transition hover:text-sky-700">
+                Sign up for free
               </a>
             </p>
             <p className="mt-4 text-center text-xs leading-6 text-slate-400">
-              By signing in, you agree to our Terms of Service and Privacy Policy.
+              By signing in, you agree to our{' '}
+              <a href="#" className="text-[#1d74dc] underline decoration-transparent underline-offset-2 transition hover:decoration-current">
+                Terms of Service
+              </a>{' '}
+              and{' '}
+              <a href="#" className="text-[#1d74dc] underline decoration-transparent underline-offset-2 transition hover:decoration-current">
+                Privacy Policy
+              </a>
             </p>
+          </div>
+          <div className="mt-6 lg:hidden">
+            <div className="inline-flex items-center gap-3 rounded-full bg-white px-4 py-3 shadow-[0_12px_32px_rgba(15,23,42,0.12)]">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1da1f2] text-white">
+                <MessageCircle className="h-5 w-5" />
+              </span>
+              <span>
+                <span className="block text-sm font-semibold text-slate-800">Chat with our experts</span>
+                <span className="block text-xs text-slate-500">Get help with onboarding</span>
+              </span>
+            </div>
           </div>
         </section>
 
@@ -336,6 +354,14 @@ export function Login() {
                 </div>
               ))}
             </div>
+          </div>
+          <div className="pointer-events-none absolute bottom-5 right-5 hidden items-center gap-3 lg:flex">
+            <div className="pointer-events-auto inline-flex items-center gap-3 rounded-full bg-white px-5 py-3 text-slate-800 shadow-[0_18px_40px_rgba(9,24,68,0.24)]">
+              <span className="text-sm font-semibold">Chat with our experts</span>
+            </div>
+            <button className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#08111f] text-white shadow-[0_18px_40px_rgba(9,24,68,0.28)] transition hover:bg-[#111d31]">
+              <MessageCircle className="h-6 w-6" />
+            </button>
           </div>
         </section>
       </div>
