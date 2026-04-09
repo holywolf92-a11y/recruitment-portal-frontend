@@ -757,6 +757,15 @@ export interface PortalProfileResponse {
   };
 }
 
+export interface UpdatePortalProfilePayload {
+  name?: string;
+  email?: string;
+  phone?: string;
+  company_name?: string;
+  city_country?: string;
+  partner_type?: string;
+}
+
 export interface AdminUsersResponse {
   users: AppUserProfile[];
   stats: {
@@ -860,6 +869,14 @@ class ApiClient {
 
   async getPortalProfile(accessToken: string): Promise<PortalProfileResponse> {
     return this.get<PortalProfileResponse>('/auth/portal-profile', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+  }
+
+  async updatePortalProfile(accessToken: string, payload: UpdatePortalProfilePayload): Promise<PortalProfileResponse> {
+    return this.patch<PortalProfileResponse>('/auth/portal-profile', payload, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },

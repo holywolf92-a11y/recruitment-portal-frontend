@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  BarChart3, CheckCircle2, ChevronDown, Clock, CloudUpload, FileSpreadsheet,
-  FileText, LayoutDashboard, LogOut, MoreVertical, Plus, Search, Upload, Users, X, XCircle,
+  BarChart3, Building2, CheckCircle2, ChevronDown, Clock, CloudUpload, FileSpreadsheet,
+  FileText, LayoutDashboard, LogOut, Mail, MapPin, MoreVertical, Phone, Plus, Search, Settings, Upload, Users, UserCircle2, X, XCircle,
 } from 'lucide-react';
 import { apiClient, type Candidate, type PartnerBulkUploadResult, type PortalProfileResponse } from '../lib/apiClient';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,16 @@ type PartnerPortalDashboardProps = {
   loading: boolean;
   error?: string | null;
   onSignOut: () => void;
+  onRefreshPortalProfile: () => Promise<unknown>;
+};
+
+type PartnerProfileForm = {
+  name: string;
+  email: string;
+  phone: string;
+  companyName: string;
+  cityCountry: string;
+  partnerType: string;
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -111,15 +122,30 @@ function DropZone({ label, hint, acceptText, accept, file, onSelect, required }:
 
 // ─── Main component ─────────────────────────────────────────────────────────
 
-export function PartnerPortalDashboard({ accessToken, user, portalProfile, loading, onSignOut }: PartnerPortalDashboardProps) {
+export function PartnerPortalDashboard({ accessToken, user, portalProfile, loading, onSignOut, onRefreshPortalProfile }: PartnerPortalDashboardProps) {
   const account = portalProfile?.profile.user;
   const partnerApplication = portalProfile?.profile.partnerApplication;
   const partnerDisplayName = account?.name || user.name;
+  const partnerAccountLabel = partnerApplication?.company_name || partnerDisplayName;
+  const accountMenuRef = useRef<HTMLDivElement | null>(null);
 
   // ── shared state
   const [view, setView] = useState<View>('dashboard');
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [candidatesLoading, setCandidatesLoading] = useState(false);
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const [showProfileDialog, setShowProfileDialog] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileFeedback, setProfileFeedback] = useState<{ type: 'error'; message: string } | null>(null);
+  const [profileToast, setProfileToast] = useState<string | null>(null);
+  const [profileForm, setProfileForm] = useState<PartnerProfileForm>({
+    name: '',
+    email: '',
+    phone: '',
+    companyName: '',
+    cityCountry: '',
+    partnerType: '',
+  });
 
   // ── candidates view
   const [search, setSearch] = useState('');
@@ -141,6 +167,41 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
   const [bulkError, setBulkError] = useState<string | null>(null);
   const [bulkResult, setBulkResult] = useState<PartnerBulkUploadResult | null>(null);
 
+  useEffect(() => {
+    setProfileForm({
+      name: account?.name || user.name || '',
+      email: account?.email || user.email || '',
+      phone: account?.phone || partnerApplication?.phone_number || '',
+      companyName: partnerApplication?.company_name || '',
+      cityCountry: partnerApplication?.city_country || '',
+      partnerType: partnerApplication?.partner_type || '',
+    });
+  }, [account?.email, account?.name, account?.phone, partnerApplication?.city_country, partnerApplication?.company_name, partnerApplication?.partner_type, partnerApplication?.phone_number, user.email, user.name]);
+
+  useEffect(() => {
+    if (!showAccountMenu) {
+      return undefined;
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      if (accountMenuRef.current && !accountMenuRef.current.contains(event.target as Node)) {
+        setShowAccountMenu(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [showAccountMenu]);
+
+  useEffect(() => {
+    if (!profileToast) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => setProfileToast(null), 3200);
+    return () => window.clearTimeout(timeoutId);
+  }, [profileToast]);
+
   // Load candidates once
   useEffect(() => {
     let live = true;
@@ -151,6 +212,42 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
       .finally(() => { if (live) setCandidatesLoading(false); });
     return () => { live = false; };
   }, [accessToken]);
+
+  async function handleProfileSave() {
+    const trimmedName = profileForm.name.trim();
+    const trimmedEmail = profileForm.email.trim();
+
+    if (!trimmedName) {
+      setProfileFeedback({ type: 'error', message: 'Name is required.' });
+      return;
+    }
+
+    if (!trimmedEmail) {
+      setProfileFeedback({ type: 'error', message: 'Email is required.' });
+      return;
+    }
+
+    setProfileSaving(true);
+    setProfileFeedback(null);
+
+    try {
+      await apiClient.updatePortalProfile(accessToken, {
+        name: trimmedName,
+        email: trimmedEmail,
+        phone: profileForm.phone.trim(),
+        company_name: profileForm.companyName.trim(),
+        city_country: profileForm.cityCountry.trim(),
+        partner_type: profileForm.partnerType.trim(),
+      });
+      await onRefreshPortalProfile();
+      setProfileToast('Profile updated successfully.');
+      setShowProfileDialog(false);
+    } catch (err: any) {
+      setProfileFeedback({ type: 'error', message: err?.message || 'Failed to update profile.' });
+    } finally {
+      setProfileSaving(false);
+    }
+  }
 
   // ── Stats
   const stats = useMemo(() => {
@@ -296,12 +393,50 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
         {/* Header */}
         <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
           <h1 className="text-base font-semibold text-gray-900">{VIEW_TITLE[view]}</h1>
-          <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white">
-              {initials(partnerDisplayName)}
-            </span>
-            <span className="text-sm font-medium text-gray-800">{partnerDisplayName}</span>
-            <ChevronDown className="h-4 w-4 text-gray-400" />
+          <div ref={accountMenuRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setShowAccountMenu((current) => !current)}
+              className="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2 transition hover:border-gray-200 hover:bg-gray-50"
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white">
+                {initials(partnerAccountLabel)}
+              </span>
+              <span className="min-w-0 text-left">
+                <span className="block max-w-[220px] truncate text-sm font-semibold text-gray-900">{partnerAccountLabel}</span>
+                <span className="block text-xs text-gray-500">Partner Account</span>
+              </span>
+              <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${showAccountMenu ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showAccountMenu && (
+              <div className="absolute right-0 z-20 mt-2 w-72 rounded-2xl border border-gray-200 bg-white p-2 shadow-xl">
+                <div className="rounded-xl px-3 py-3">
+                  <p className="truncate text-sm font-semibold text-gray-900">{partnerAccountLabel}</p>
+                  <p className="mt-0.5 text-xs text-gray-500">Partner Account</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAccountMenu(false);
+                    setShowProfileDialog(true);
+                    setProfileFeedback(null);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-xl border border-gray-200 px-3 py-2.5 text-left text-sm font-medium text-gray-800 transition hover:bg-gray-50"
+                >
+                  <Settings className="h-4 w-4" />
+                  Profile Settings
+                </button>
+                <button
+                  type="button"
+                  onClick={onSignOut}
+                  className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-red-600 transition hover:bg-red-50"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Logout
+                </button>
+              </div>
+            )}
           </div>
         </header>
 
@@ -691,6 +826,134 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
           )}
         </main>
       </div>
+
+      {profileToast && (
+        <div className="pointer-events-none fixed right-4 top-4 z-50 w-[min(360px,calc(100vw-2rem))] rounded-2xl border border-green-200 bg-green-50 px-4 py-3 shadow-lg">
+          <div className="flex items-start gap-3 text-green-800">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 flex-none" />
+            <div>
+              <p className="text-sm font-semibold">Saved</p>
+              <p className="text-sm">{profileToast}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Profile Settings</DialogTitle>
+            <DialogDescription>
+              Update your partner account details, contact information, and company profile.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="text-sm font-medium text-gray-700">Company / Agency Name</label>
+              <div className="relative">
+                <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  value={profileForm.companyName}
+                  onChange={(event) => setProfileForm((current) => ({ ...current, companyName: event.target.value }))}
+                  className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                  placeholder="Your company name"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-700">Full Name</label>
+              <div className="relative">
+                <UserCircle2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  value={profileForm.name}
+                  onChange={(event) => setProfileForm((current) => ({ ...current, name: event.target.value }))}
+                  className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                  placeholder="Your full name"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-700">Phone Number</label>
+              <div className="relative">
+                <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  value={profileForm.phone}
+                  onChange={(event) => setProfileForm((current) => ({ ...current, phone: event.target.value }))}
+                  className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                  placeholder="+92 312 5569101"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="text-sm font-medium text-gray-700">Email Address</label>
+              <div className="relative">
+                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="email"
+                  value={profileForm.email}
+                  onChange={(event) => setProfileForm((current) => ({ ...current, email: event.target.value }))}
+                  className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                  placeholder="name@company.com"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-700">City / Country</label>
+              <div className="relative">
+                <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  value={profileForm.cityCountry}
+                  onChange={(event) => setProfileForm((current) => ({ ...current, cityCountry: event.target.value }))}
+                  className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                  placeholder="Lahore, Pakistan"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-700">Partner Type</label>
+              <div className="relative">
+                <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  value={profileForm.partnerType}
+                  onChange={(event) => setProfileForm((current) => ({ ...current, partnerType: event.target.value }))}
+                  className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                  placeholder="Recruitment agency"
+                />
+              </div>
+            </div>
+          </div>
+
+          {profileFeedback && (
+            <div className={`rounded-xl border px-4 py-3 text-sm ${profileFeedback.type === 'success' ? 'border-green-200 bg-green-50 text-green-700' : 'border-red-200 bg-red-50 text-red-700'}`}>
+              {profileFeedback.message}
+            </div>
+          )}
+
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setShowProfileDialog(false)}
+              className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleProfileSave()}
+              disabled={profileSaving}
+              className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {profileSaving ? 'Saving…' : 'Save Changes'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
