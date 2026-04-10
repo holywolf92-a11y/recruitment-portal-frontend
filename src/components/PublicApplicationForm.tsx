@@ -183,32 +183,62 @@ export function PublicApplicationForm() {
   if (activeAudience === 'candidate') {
     return (
       <div
-        className="flex min-h-screen flex-col items-center bg-[#f1f5f9] px-4 py-8 sm:py-12"
-        style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui, sans-serif' }}
+        className="relative flex min-h-screen flex-col items-center overflow-hidden px-4 py-8 sm:py-12"
+        style={{
+          fontFamily: 'Manrope, ui-sans-serif, system-ui, sans-serif',
+          background: 'linear-gradient(135deg, #e8eef7 0%, #dde8f5 40%, #e4edf7 70%, #edf2fb 100%)',
+        }}
       >
-        {/* ── Small centered logo ── */}
-        <div className="mb-6 flex flex-col items-center">
-          <img src="/logo.png" alt="Falisha" className="h-16 w-16 object-contain drop-shadow-sm" />
-          <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+        {/* Soft background mesh blobs */}
+        <div className="pointer-events-none absolute -left-32 -top-32 h-80 w-80 rounded-full bg-[#b8d4f8]/40 blur-[80px]" />
+        <div className="pointer-events-none absolute -right-20 top-40 h-64 w-64 rounded-full bg-[#a0d4f0]/30 blur-[70px]" />
+        <div className="pointer-events-none absolute bottom-0 left-1/3 h-56 w-56 rounded-full bg-[#c5d9f7]/35 blur-[90px]" />
+
+        {/* ── Logo ── */}
+        <div className="relative z-10 mb-7 flex flex-col items-center">
+          <div className="rounded-2xl bg-white/70 p-2 shadow-[0_4px_24px_rgba(0,52,97,0.15)] backdrop-blur-sm ring-1 ring-white/80">
+            <img src="/logo.png" alt="Falisha" className="h-14 w-14 object-contain" />
+          </div>
+          <p className="mt-2.5 text-[10px] font-bold uppercase tracking-[0.28em] text-[#003461]/50">
             Bridging Talent to Opportunities
           </p>
         </div>
 
-        {/* ── Centered form card ── */}
-        <div className="w-full max-w-md rounded-3xl bg-white shadow-[0_8px_40px_rgba(0,52,97,0.12)]">
+        {/* ── Card ── */}
+        <div className="relative z-10 w-full max-w-md overflow-hidden rounded-3xl bg-white/80 shadow-[0_20px_60px_rgba(0,52,97,0.18)] backdrop-blur-xl ring-1 ring-white/60">
 
-          {/* Card top stripe */}
-          <div className="rounded-t-3xl bg-[#003461] px-6 py-5">
-            <h2 className="text-lg font-bold text-white">Apply Now</h2>
-            <p className="mt-0.5 text-xs text-white/60">We'll review your profile within 48 hours</p>
+          {/* Gradient header */}
+          <div
+            className="relative overflow-hidden px-6 py-6"
+            style={{ background: 'linear-gradient(135deg, #002244 0%, #003461 50%, #005299 100%)' }}
+          >
+            {/* Header shimmer orbs */}
+            <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/5" />
+            <div className="pointer-events-none absolute -bottom-4 right-16 h-16 w-16 rounded-full bg-[#60c8f5]/10" />
+            <div className="relative z-10 flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm ring-1 ring-white/20">
+                <User2 className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-[15px] font-extrabold tracking-tight text-white">Apply Now</h2>
+                <p className="text-[11px] text-white/55">Reviewed within 48 hours by our team</p>
+              </div>
+              <div className="ml-auto flex items-center gap-1.5 rounded-full bg-[#a0f2e1]/15 px-2.5 py-1 ring-1 ring-[#a0f2e1]/25">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#a0f2e1]" />
+                <span className="text-[9px] font-bold uppercase tracking-widest text-[#a0f2e1]">Live</span>
+              </div>
+            </div>
           </div>
 
           {/* Form body */}
-          <div className="px-6 pb-7 pt-6">
+          <div className="px-6 pb-7 pt-5">
             {submittedAudience === 'candidate' && (
-              <div className="mb-5 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-sm">
-                <p className="font-bold text-emerald-800">Application submitted!</p>
-                <p className="mt-0.5 text-emerald-700">Your CV will be parsed and a link sent after review.</p>
+              <div className="mb-5 flex items-start gap-3 rounded-2xl border border-emerald-200/60 bg-emerald-50 px-4 py-4 text-sm">
+                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                <div>
+                  <p className="font-bold text-emerald-800">Application submitted!</p>
+                  <p className="mt-0.5 text-emerald-700">Your CV will be parsed and a link sent after review.</p>
+                </div>
               </div>
             )}
 
@@ -217,12 +247,12 @@ export function PublicApplicationForm() {
               <PremiumInput label="Email Address" type="email" value={candidateForm.email} onChange={(v) => setCandidateForm((c) => ({ ...c, email: v }))} placeholder="ahmed@example.com" required />
               <CandidatePhoneField code={candidatePhoneCode} number={candidatePhoneNumber} onCodeChange={setCandidatePhoneCode} onNumberChange={setCandidatePhoneNumber} />
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <PremiumSelect label="Nationality" value={candidateForm.nationality} onChange={(v) => setCandidateForm((c) => ({ ...c, nationality: v }))} options={NATIONALITY_OPTIONS} />
                 <PremiumSelect label="Country of Interest" value={candidateForm.countryOfInterest} onChange={(v) => setCandidateForm((c) => ({ ...c, countryOfInterest: v }))} options={COUNTRY_INTEREST_OPTIONS} />
               </div>
 
-              <PremiumInput label="Preferred Role" value={candidateForm.position} onChange={(v) => setCandidateForm((c) => ({ ...c, position: v }))} placeholder="e.g. Civil Engineer" required />
+              <PremiumInput label="Preferred Role" value={candidateForm.position} onChange={(v) => setCandidateForm((c) => ({ ...c, position: v }))} placeholder="e.g. Civil Engineer, HVAC Tech" required />
 
               <ChoiceChips label="Years of Experience" value={candidateForm.experience} options={EXPERIENCE_OPTIONS} onChange={(v) => setCandidateForm((c) => ({ ...c, experience: v }))} />
 
@@ -232,7 +262,7 @@ export function PublicApplicationForm() {
                 <input type="checkbox" className="mt-0.5 rounded border-slate-300 text-[#003461] focus:ring-[#003461]/20" />
                 <span className="text-xs leading-5 text-slate-500">
                   I agree to the{' '}
-                  <a className="font-semibold text-[#003461] underline" href="/privacy-policy">Privacy Policy</a>
+                  <a className="font-semibold text-[#003461] underline underline-offset-2" href="/privacy-policy">Privacy Policy</a>
                   {' '}and data processing terms.
                 </span>
               </label>
@@ -240,10 +270,12 @@ export function PublicApplicationForm() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#003461] py-3.5 text-sm font-bold text-white shadow-[0_6px_20px_rgba(0,52,97,0.28)] transition hover:bg-[#004b87] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl py-3.5 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,52,97,0.35)] transition-all duration-200 hover:shadow-[0_12px_32px_rgba(0,52,97,0.45)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                style={{ background: 'linear-gradient(135deg, #002244 0%, #003461 50%, #005299 100%)' }}
               >
+                <span className="absolute inset-0 translate-x-[-100%] bg-white/10 transition-transform duration-300 group-hover:translate-x-[100%]" />
                 {submitting ? 'Submitting…' : 'Submit Application'}
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
               </button>
 
               {error && (
@@ -253,10 +285,10 @@ export function PublicApplicationForm() {
           </div>
         </div>
 
-        <p className="mt-6 text-[11px] text-slate-400">
+        <p className="relative z-10 mt-6 text-[11px] text-[#003461]/40">
           © 2024 Falisha Jobs ·{' '}
-          <a className="hover:text-slate-600" href="/privacy-policy">Privacy</a> ·{' '}
-          <a className="hover:text-slate-600" href="#">Terms</a>
+          <a className="transition hover:text-[#003461]/70" href="/privacy-policy">Privacy</a> ·{' '}
+          <a className="transition hover:text-[#003461]/70" href="#">Terms</a>
         </p>
       </div>
     );
@@ -371,14 +403,14 @@ function TrustBadge({ icon, title, subtitle }: { icon: ReactNode; title: string;
 function PremiumInput({ label, value, onChange, placeholder, type = 'text', required }: { label: string; value: string; onChange: (value: string) => void; placeholder: string; type?: string; required?: boolean }) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{label}</label>
+      <label className="block text-[10px] font-bold uppercase tracking-[0.16em] text-[#003461]/60">{label}</label>
       <input
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         required={required}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 transition placeholder:text-slate-400 focus:border-[#003461] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#003461]/10"
+        className="w-full rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm text-slate-900 shadow-sm transition-all duration-150 placeholder:text-slate-400 focus:border-[#003461]/40 focus:bg-white focus:outline-none focus:ring-3 focus:ring-[#003461]/10"
       />
     </div>
   );
@@ -387,12 +419,12 @@ function PremiumInput({ label, value, onChange, placeholder, type = 'text', requ
 function PremiumSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: string[] }) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{label}</label>
+      <label className="block text-[10px] font-bold uppercase tracking-[0.16em] text-[#003461]/60">{label}</label>
       <div className="relative">
         <select
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 transition focus:border-[#003461] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#003461]/10"
+          className="w-full appearance-none rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm text-slate-900 shadow-sm transition-all duration-150 focus:border-[#003461]/40 focus:bg-white focus:outline-none focus:ring-3 focus:ring-[#003461]/10"
         >
           {options.map((option) => (
             <option key={option} value={option}>{option}</option>
@@ -407,13 +439,13 @@ function PremiumSelect({ label, value, onChange, options }: { label: string; val
 function CandidatePhoneField({ code, number, onCodeChange, onNumberChange }: { code: string; number: string; onCodeChange: (value: string) => void; onNumberChange: (value: string) => void }) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Phone / WhatsApp</label>
+      <label className="block text-[10px] font-bold uppercase tracking-[0.16em] text-[#003461]/60">Phone / WhatsApp</label>
       <div className="flex gap-2">
         <div className="relative w-24 shrink-0">
           <select
             value={code}
             onChange={(event) => onCodeChange(event.target.value)}
-            className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 pr-7 text-sm text-slate-900 transition focus:border-[#003461] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#003461]/10"
+            className="w-full appearance-none rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-3 pr-7 text-sm text-slate-900 shadow-sm transition-all duration-150 focus:border-[#003461]/40 focus:bg-white focus:outline-none focus:ring-3 focus:ring-[#003461]/10"
           >
             {PHONE_CODE_OPTIONS.map((option) => (
               <option key={option} value={option}>{option}</option>
@@ -427,7 +459,7 @@ function CandidatePhoneField({ code, number, onCodeChange, onNumberChange }: { c
           onChange={(event) => onNumberChange(event.target.value)}
           required
           placeholder="300 1234567"
-          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 transition placeholder:text-slate-400 focus:border-[#003461] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#003461]/10"
+          className="w-full rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm text-slate-900 shadow-sm transition-all duration-150 placeholder:text-slate-400 focus:border-[#003461]/40 focus:bg-white focus:outline-none focus:ring-3 focus:ring-[#003461]/10"
         />
       </div>
     </div>
@@ -437,17 +469,21 @@ function CandidatePhoneField({ code, number, onCodeChange, onNumberChange }: { c
 function CandidateUploadField({ fileName, onFileChange }: { fileName: string | null; onFileChange: (file: File | null) => void }) {
   return (
     <div className="space-y-1.5">
-      <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Upload CV (PDF preferred)</span>
-      <label className="relative flex h-28 w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 transition hover:border-[#003461]/40 hover:bg-white">
+      <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-[#003461]/60">Upload CV (PDF preferred)</span>
+      <label
+        className="relative flex h-28 w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#003461]/15 bg-[#003461]/[0.03] transition-all duration-150 hover:border-[#003461]/30 hover:bg-[#003461]/[0.06]"
+      >
         <input
           type="file"
           accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
           onChange={(event) => onFileChange(event.target.files?.[0] || null)}
           className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
         />
-        <Upload className="mb-1.5 h-6 w-6 text-[#003461]/30" />
-        <p className="text-xs font-medium text-slate-500">{fileName || 'Drop file here or click to browse'}</p>
-        <p className="text-[10px] text-slate-400">PDF, DOC, DOCX · Max 5MB</p>
+        <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-[#003461]/10">
+          <Upload className="h-4 w-4 text-[#003461]/50" />
+        </div>
+        <p className="text-xs font-semibold text-slate-600">{fileName || 'Drop file here or click to browse'}</p>
+        <p className="mt-0.5 text-[10px] text-slate-400">PDF, DOC, DOCX · Max 5MB</p>
       </label>
     </div>
   );
@@ -489,8 +525,8 @@ function TextAreaField({ label, value, onChange, placeholder }: { label: string;
 
 function ChoiceChips({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
   return (
-    <div className="space-y-3">
-      <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{label}</span>
+    <div className="space-y-2.5">
+      <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-[#003461]/60">{label}</span>
       <div className="flex flex-wrap gap-2">
         {options.map((option) => {
           const active = value === option;
@@ -499,7 +535,11 @@ function ChoiceChips({ label, value, options, onChange }: { label: string; value
               key={option}
               type="button"
               onClick={() => onChange(option)}
-              className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${active ? 'border-[#003461] bg-[#003461] text-white shadow-[0_4px_14px_rgba(0,52,97,0.25)]' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}
+              className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition-all duration-150 ${
+                active
+                  ? 'border-[#003461] bg-[#003461] text-white shadow-[0_4px_16px_rgba(0,52,97,0.30)]'
+                  : 'border-slate-200/80 bg-white/80 text-slate-600 hover:border-[#003461]/30 hover:bg-white hover:text-[#003461]'
+              }`}
             >
               {option}
             </button>
