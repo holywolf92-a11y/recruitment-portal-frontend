@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { ArrowRight, Briefcase, Building2, ChevronDown, Globe2, Handshake, Mail, MapPin, Phone, Share2, ShieldCheck, Upload, User2, Users } from 'lucide-react';
 import { apiClient } from '../lib/apiClient';
+import type { PublicCandidatePortalResponse, PublicEmployerPortalResponse, PublicPartnerPortalResponse } from '../lib/apiClient';
 
 type IntakeAudience = 'candidate' | 'employer' | 'partner';
 
@@ -111,8 +112,19 @@ export function PublicApplicationForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submittedAudience, setSubmittedAudience] = useState<IntakeAudience | null>(null);
+  const [candidateResult, setCandidateResult] = useState<PublicCandidatePortalResponse | null>(null);
+  const [employerResult, setEmployerResult] = useState<PublicEmployerPortalResponse | null>(null);
+  const [partnerResult, setPartnerResult] = useState<PublicPartnerPortalResponse | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
 
   const activeAudience = directAudience || selectedAudience;
+
+  function copyField(text: string, key: string) {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(key);
+      setTimeout(() => setCopied(null), 2000);
+    }).catch(() => {});
+  }
 
   const handleCandidateSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -132,7 +144,8 @@ export function PublicApplicationForm() {
         payload.append('cv', candidateCv);
       }
 
-      await apiClient.submitCandidatePortal(payload);
+      const result = await apiClient.submitCandidatePortal(payload);
+      setCandidateResult(result);
       setCandidateForm(candidateDefaults);
       setCandidatePhoneCode('+92');
       setCandidatePhoneNumber('');
@@ -152,7 +165,8 @@ export function PublicApplicationForm() {
     setError(null);
 
     try {
-      await apiClient.submitEmployerPortal(employerForm);
+      const result = await apiClient.submitEmployerPortal(employerForm);
+      setEmployerResult(result);
       setEmployerForm(employerDefaults);
       setSubmittedAudience('employer');
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -169,7 +183,8 @@ export function PublicApplicationForm() {
     setError(null);
 
     try {
-      await apiClient.submitPartnerPortal(partnerForm);
+      const result = await apiClient.submitPartnerPortal(partnerForm);
+      setPartnerResult(result);
       setPartnerForm(partnerDefaults);
       setSubmittedAudience('partner');
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -179,6 +194,207 @@ export function PublicApplicationForm() {
       setSubmitting(false);
     }
   };
+
+  // ──────────────────── SUCCESS SCREENS ────────────────────
+
+  if (submittedAudience === 'candidate') {
+    return (
+      <div className="falisha-auth-shell falisha-auth-form-pane" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui, sans-serif' }}>
+        <div className="falisha-auth-form-inner" style={{ textAlign: 'center' }}>
+          <div className="mb-8 flex flex-col items-center">
+            <img src="/logo.png" alt="Falisha" className="h-16 w-16 object-contain" />
+          </div>
+
+          <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'rgba(16,185,129,0.1)', border: '2px solid rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+            <ShieldCheck style={{ width: '36px', height: '36px', color: '#10b981' }} />
+          </div>
+
+          <h1 className="falisha-auth-heading" style={{ marginBottom: '0.5rem' }}>Application Received!</h1>
+          <p className="falisha-auth-subheading" style={{ marginBottom: '1.25rem' }}>
+            Your profile has been saved. We will review and match you with the right opportunity abroad.
+          </p>
+
+          {candidateResult?.whatsappNotified ? (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '12px', padding: '0.55rem 1rem', fontSize: '0.85rem', color: '#16a34a', fontWeight: 600 }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+              Profile link sent to your WhatsApp
+            </div>
+          ) : (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '0.55rem 1rem', fontSize: '0.85rem', color: '#6b7280', fontWeight: 500 }}>
+              Our team will contact you within 48 hours
+            </div>
+          )}
+
+          {candidateResult?.onboardingLink && (
+            <div style={{ marginTop: '1.75rem' }}>
+              <a
+                href={candidateResult.onboardingLink}
+                target="_blank"
+                rel="noreferrer"
+                className="falisha-auth-primary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', width: 'auto', padding: '0 1.5rem', textDecoration: 'none', marginBottom: '0.9rem' }}
+              >
+                View &amp; Complete Your Profile
+                <ArrowRight style={{ width: '16px', height: '16px' }} />
+              </a>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '0.6rem 0.9rem', fontSize: '0.8rem', color: '#6b7280' }}>
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left' }}>{candidateResult.onboardingLink}</span>
+                <button type="button" onClick={() => copyField(candidateResult!.onboardingLink!, 'profile')} style={{ flexShrink: 0, fontSize: '0.78rem', fontWeight: 600, color: '#06b6d4', background: 'none', border: 'none', cursor: 'pointer' }}>
+                  {copied === 'profile' ? '✓ Copied' : 'Copy'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <p style={{ marginTop: '2.5rem', fontSize: '0.82rem', color: '#9ca3af' }}>© 2024 Falisha Jobs</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (submittedAudience === 'employer') {
+    return (
+      <div className="falisha-auth-shell falisha-auth-form-pane" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui, sans-serif' }}>
+        <div style={{ width: '100%', maxWidth: '28rem', textAlign: 'center' }}>
+          <div className="mb-8 flex flex-col items-center">
+            <img src="/logo.png" alt="Falisha" className="h-16 w-16 object-contain" />
+          </div>
+
+          <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'rgba(6,182,212,0.1)', border: '2px solid rgba(6,182,212,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+            <ShieldCheck style={{ width: '36px', height: '36px', color: '#06b6d4' }} />
+          </div>
+
+          <h1 className="falisha-auth-heading" style={{ marginBottom: '0.5rem' }}>Portal Access Ready!</h1>
+          <p className="falisha-auth-subheading" style={{ marginBottom: '1.25rem' }}>
+            Your employer portal has been created. Log in to track your hiring requirement.
+          </p>
+
+          {employerResult?.whatsappNotified ? (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '12px', padding: '0.55rem 1rem', fontSize: '0.85rem', color: '#16a34a', fontWeight: 600 }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+              Credentials sent to your WhatsApp
+            </div>
+          ) : (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '12px', padding: '0.55rem 1rem', fontSize: '0.82rem', color: '#c2410c', fontWeight: 500 }}>
+              Save your credentials below
+            </div>
+          )}
+
+          <div style={{ marginTop: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '1rem', overflow: 'hidden', textAlign: 'left' }}>
+            <div style={{ background: '#f9fafb', padding: '0.75rem 1rem', borderBottom: '1px solid #e5e7eb', fontSize: '0.8rem', fontWeight: 700, color: '#374151' }}>Your Login Credentials</div>
+            <div style={{ padding: '0.85rem 1rem', borderBottom: '1px solid #f3f4f6' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.3rem' }}>Login Email</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ flex: 1, fontFamily: 'monospace', fontSize: '0.95rem', color: '#111827', wordBreak: 'break-all' }}>{employerResult?.email}</span>
+                <button type="button" onClick={() => copyField(employerResult?.email || '', 'emp-email')} style={{ flexShrink: 0, fontSize: '0.78rem', fontWeight: 600, color: '#06b6d4', background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem 0.5rem' }}>
+                  {copied === 'emp-email' ? '✓' : 'Copy'}
+                </button>
+              </div>
+            </div>
+            {employerResult?.password ? (
+              <div style={{ padding: '0.85rem 1rem' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.3rem' }}>Temporary Password</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ flex: 1, fontFamily: 'monospace', fontSize: '0.95rem', color: '#111827', letterSpacing: '0.05em' }}>{employerResult.password}</span>
+                  <button type="button" onClick={() => copyField(employerResult!.password || '', 'emp-password')} style={{ flexShrink: 0, fontSize: '0.78rem', fontWeight: 600, color: '#06b6d4', background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem 0.5rem' }}>
+                    {copied === 'emp-password' ? '✓' : 'Copy'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ padding: '0.85rem 1rem', fontSize: '0.875rem', color: '#6b7280' }}>Use your existing password to log in.</div>
+            )}
+          </div>
+
+          <a
+            href={employerResult?.dashboardUrl || '/employer/dashboard'}
+            target="_blank"
+            rel="noreferrer"
+            className="falisha-auth-primary"
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginTop: '1.25rem', textDecoration: 'none' }}
+          >
+            Go to Employer Dashboard
+            <ArrowRight style={{ width: '16px', height: '16px' }} />
+          </a>
+
+          <p style={{ marginTop: '1.75rem', fontSize: '0.82rem', color: '#9ca3af' }}>© 2024 Falisha Jobs</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (submittedAudience === 'partner') {
+    return (
+      <div className="falisha-auth-shell falisha-auth-form-pane" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui, sans-serif' }}>
+        <div style={{ width: '100%', maxWidth: '28rem', textAlign: 'center' }}>
+          <div className="mb-8 flex flex-col items-center">
+            <img src="/logo.png" alt="Falisha" className="h-16 w-16 object-contain" />
+          </div>
+
+          <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'rgba(6,182,212,0.1)', border: '2px solid rgba(6,182,212,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+            <ShieldCheck style={{ width: '36px', height: '36px', color: '#06b6d4' }} />
+          </div>
+
+          <h1 className="falisha-auth-heading" style={{ marginBottom: '0.5rem' }}>Welcome to the Network!</h1>
+          <p className="falisha-auth-subheading" style={{ marginBottom: '1.25rem' }}>
+            Your partner portal is ready. Log in to start referring candidates and earning commissions.
+          </p>
+
+          {partnerResult?.whatsappNotified ? (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '12px', padding: '0.55rem 1rem', fontSize: '0.85rem', color: '#16a34a', fontWeight: 600 }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+              Credentials sent to your WhatsApp
+            </div>
+          ) : (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '12px', padding: '0.55rem 1rem', fontSize: '0.82rem', color: '#c2410c', fontWeight: 500 }}>
+              Save your credentials below
+            </div>
+          )}
+
+          <div style={{ marginTop: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '1rem', overflow: 'hidden', textAlign: 'left' }}>
+            <div style={{ background: '#f9fafb', padding: '0.75rem 1rem', borderBottom: '1px solid #e5e7eb', fontSize: '0.8rem', fontWeight: 700, color: '#374151' }}>Your Login Credentials</div>
+            <div style={{ padding: '0.85rem 1rem', borderBottom: '1px solid #f3f4f6' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.3rem' }}>Login Email</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ flex: 1, fontFamily: 'monospace', fontSize: '0.95rem', color: '#111827', wordBreak: 'break-all' }}>{partnerResult?.email}</span>
+                <button type="button" onClick={() => copyField(partnerResult?.email || '', 'par-email')} style={{ flexShrink: 0, fontSize: '0.78rem', fontWeight: 600, color: '#06b6d4', background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem 0.5rem' }}>
+                  {copied === 'par-email' ? '✓' : 'Copy'}
+                </button>
+              </div>
+            </div>
+            {partnerResult?.password ? (
+              <div style={{ padding: '0.85rem 1rem' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.3rem' }}>Temporary Password</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ flex: 1, fontFamily: 'monospace', fontSize: '0.95rem', color: '#111827', letterSpacing: '0.05em' }}>{partnerResult.password}</span>
+                  <button type="button" onClick={() => copyField(partnerResult!.password || '', 'par-password')} style={{ flexShrink: 0, fontSize: '0.78rem', fontWeight: 600, color: '#06b6d4', background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem 0.5rem' }}>
+                    {copied === 'par-password' ? '✓' : 'Copy'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ padding: '0.85rem 1rem', fontSize: '0.875rem', color: '#6b7280' }}>Use your existing password to log in.</div>
+            )}
+          </div>
+
+          <a
+            href={partnerResult?.dashboardUrl || '/partner/dashboard'}
+            target="_blank"
+            rel="noreferrer"
+            className="falisha-auth-primary"
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginTop: '1.25rem', textDecoration: 'none' }}
+          >
+            Go to Partner Dashboard
+            <ArrowRight style={{ width: '16px', height: '16px' }} />
+          </a>
+
+          <p style={{ marginTop: '1.75rem', fontSize: '0.82rem', color: '#9ca3af' }}>© 2024 Falisha Jobs</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ──────────────────── FORMS ────────────────────
 
   if (activeAudience === 'candidate') {
     return (
@@ -213,14 +429,6 @@ export function PublicApplicationForm() {
             <h1 className="falisha-auth-heading">Apply Now</h1>
             <p className="falisha-auth-subheading">Submit your profile — we'll find the right opportunity for you abroad.</p>
           </div>
-
-          {/* Success */}
-          {submittedAudience === 'candidate' && (
-            <div className="falisha-auth-notice falisha-auth-notice-success mb-5">
-              <ShieldCheck className="mt-0.5 h-5 w-5 flex-shrink-0" />
-              <span>Application submitted! Your CV will be parsed and a link sent after review.</span>
-            </div>
-          )}
 
           <form className="falisha-auth-form-fields" onSubmit={handleCandidateSubmit}>
 
