@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Briefcase, Building2, CheckCircle2, ChevronDown, Clock, Globe2, LayoutDashboard,
-  LogOut, Mail, MapPin, Phone, Plus, RefreshCw, Search, Settings, ShieldCheck,
+  LogOut, Mail, MapPin, Menu, Phone, Plus, RefreshCw, Search, Settings, ShieldCheck,
   Sparkles, Users, X, FileText, Banknote, CalendarDays, Star, BriefcaseBusiness,
 } from 'lucide-react';
 import { apiClient, type EmployerLeadProfile, type PortalProfileResponse } from '../lib/apiClient';
@@ -134,6 +134,7 @@ export function EmployerPortalDashboard({
   const [view, setView] = useState<View>('dashboard');
   const [requirements, setRequirements] = useState<EmployerLeadProfile[]>([]);
   const [reqLoading, setReqLoading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [profileToast, setProfileToast] = useState<string | null>(null);
@@ -296,12 +297,31 @@ export function EmployerPortalDashboard({
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 font-sans">
 
-      {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
-      <aside className="flex w-60 flex-shrink-0 flex-col border-r border-gray-200 bg-white">
+      {/* ── Mobile overlay ───────────────────────────────────────────────── */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* ── Sidebar / Drawer ─────────────────────────────────────────────── */}
+      <aside className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-shrink-0 flex-col border-r border-gray-200 bg-white transition-transform duration-300 ease-in-out lg:relative lg:z-auto lg:w-60 lg:translate-x-0 ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
         {/* Brand */}
-        <div className="flex items-center gap-2 border-b border-gray-200 px-5 py-4">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-cyan-600 text-xs font-black text-white">F</span>
-          <span className="text-base font-bold text-cyan-600">Falisha Jobs</span>
+        <div className="flex items-center justify-between gap-2 border-b border-gray-200 px-5 py-4">
+          <div className="flex items-center gap-2">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-cyan-600 text-xs font-black text-white">F</span>
+            <span className="text-base font-bold text-cyan-600">Falisha Jobs</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(false)}
+            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 lg:hidden"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         {/* Company badge */}
@@ -320,7 +340,7 @@ export function EmployerPortalDashboard({
           ] as const).map(({ v, label, Icon }) => (
             <button
               key={v}
-              onClick={() => setView(v)}
+              onClick={() => { setView(v); setSidebarOpen(false); }}
               className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
                 view === v
                   ? 'bg-cyan-50 text-cyan-700'
@@ -351,8 +371,17 @@ export function EmployerPortalDashboard({
       <div className="flex flex-1 flex-col overflow-hidden">
 
         {/* Header */}
-        <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3.5">
-          <h1 className="text-sm font-semibold text-gray-900">{VIEW_LABELS[view]}</h1>
+        <header className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3.5 lg:px-6">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 lg:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <h1 className="text-sm font-semibold text-gray-900">{VIEW_LABELS[view]}</h1>
+          </div>
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -415,7 +444,7 @@ export function EmployerPortalDashboard({
         )}
 
         {/* Content */}
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-4 lg:p-6">
 
           {/* ── Loading ── */}
           {loading && (
@@ -436,7 +465,7 @@ export function EmployerPortalDashboard({
               {/* Welcome banner */}
               <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-cyan-600 to-cyan-500 p-6 text-white shadow-md">
                 <div className="absolute right-0 top-0 h-full w-48 bg-[radial-gradient(ellipse_at_right,rgba(255,255,255,0.15),transparent_70%)]" />
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <div className="flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-cyan-200" />
@@ -515,6 +544,7 @@ export function EmployerPortalDashboard({
                     </button>
                   </div>
                 ) : (
+                  <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">
@@ -539,6 +569,7 @@ export function EmployerPortalDashboard({
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 )}
               </div>
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   BarChart3, Building2, CheckCircle2, ChevronDown, Clock, CloudUpload, FileSpreadsheet,
-  FileText, LayoutDashboard, LogOut, Mail, MapPin, MoreVertical, Phone, Plus, Search, Settings, Upload, Users, UserCircle2, X, XCircle,
+  FileText, LayoutDashboard, LogOut, Mail, MapPin, Menu, MoreVertical, Phone, Plus, Search, Settings, Upload, Users, UserCircle2, X, XCircle,
 } from 'lucide-react';
 import { apiClient, type Candidate, type PartnerBulkUploadResult, type PortalProfileResponse } from '../lib/apiClient';
 import { normalizeCandidateStatus } from '../lib/candidateStatus';
@@ -133,6 +133,7 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
   const [view, setView] = useState<View>('dashboard');
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [candidatesLoading, setCandidatesLoading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
@@ -363,11 +364,28 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
   // ────────────────────────────────────────────────────────────────────────────
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
-      {/* Sidebar */}
-      <aside className="flex w-56 flex-shrink-0 flex-col border-r border-gray-200 bg-white">
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar / Drawer */}
+      <aside className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-shrink-0 flex-col border-r border-gray-200 bg-white transition-transform duration-300 ease-in-out lg:relative lg:z-auto lg:w-56 lg:translate-x-0 ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
         {/* Brand */}
-        <div className="border-b border-gray-200 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
           <span className="text-base font-bold text-blue-600">Falisha Jobs</span>
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(false)}
+            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 lg:hidden"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         {/* Nav */}
@@ -380,7 +398,7 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
           ] as const).map(({ v, label, Icon }) => (
             <button
               key={v}
-              onClick={() => setView(v)}
+              onClick={() => { setView(v); setSidebarOpen(false); }}
               className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition ${
                 view === v ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
@@ -406,8 +424,17 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
       {/* Main area */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
-          <h1 className="text-base font-semibold text-gray-900">{VIEW_TITLE[view]}</h1>
+        <header className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-4 lg:px-6">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 lg:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <h1 className="text-base font-semibold text-gray-900">{VIEW_TITLE[view]}</h1>
+          </div>
           <div ref={accountMenuRef} className="relative">
             <button
               type="button"
@@ -456,7 +483,7 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-4 lg:p-6">
           {loading && (
             <div className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-500">Loading partner workspace…</div>
           )}
