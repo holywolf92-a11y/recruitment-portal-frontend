@@ -183,21 +183,21 @@ export function PublicApplicationForm() {
   if (activeAudience === 'candidate') {
     return (
       <div
-        className="relative flex min-h-screen flex-col items-center overflow-hidden px-4 py-8 sm:py-12"
+        className="flex min-h-screen flex-col items-center px-4 py-8 sm:py-12"
         style={{
           fontFamily: 'Manrope, ui-sans-serif, system-ui, sans-serif',
           background: 'linear-gradient(135deg, #e8eef7 0%, #dde8f5 40%, #e4edf7 70%, #edf2fb 100%)',
         }}
       >
-        {/* Soft background mesh blobs */}
-        <div className="pointer-events-none absolute -left-32 -top-32 h-80 w-80 rounded-full bg-[#b8d4f8]/40 blur-[80px]" />
-        <div className="pointer-events-none absolute -right-20 top-40 h-64 w-64 rounded-full bg-[#a0d4f0]/30 blur-[70px]" />
-        <div className="pointer-events-none absolute bottom-0 left-1/3 h-56 w-56 rounded-full bg-[#c5d9f7]/35 blur-[90px]" />
+        {/* Fixed background blobs — viewport-anchored, never affect layout */}
+        <div className="pointer-events-none fixed left-0 top-0 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#b8d4f8]/50 blur-[80px]" style={{ zIndex: 0 }} />
+        <div className="pointer-events-none fixed right-0 top-1/3 h-64 w-64 translate-x-1/2 rounded-full bg-[#a0d4f0]/35 blur-[70px]" style={{ zIndex: 0 }} />
+        <div className="pointer-events-none fixed bottom-0 left-1/2 h-56 w-56 -translate-x-1/2 rounded-full bg-[#c5d9f7]/40 blur-[90px]" style={{ zIndex: 0 }} />
 
         {/* ── Logo ── */}
-        <div className="relative z-10 mb-7 flex flex-col items-center">
-          <div className="rounded-2xl bg-white/70 p-2 shadow-[0_4px_24px_rgba(0,52,97,0.15)] backdrop-blur-sm ring-1 ring-white/80">
-            <img src="/logo.png" alt="Falisha" className="h-14 w-14 object-contain" />
+        <div className="relative mb-7 flex shrink-0 flex-col items-center" style={{ zIndex: 1 }}>
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/70 shadow-[0_4px_24px_rgba(0,52,97,0.15)] backdrop-blur-sm ring-1 ring-white/80">
+            <img src="/logo.png" alt="Falisha" className="h-12 w-12 object-contain" />
           </div>
           <p className="mt-2.5 text-[10px] font-bold uppercase tracking-[0.28em] text-[#003461]/50">
             Bridging Talent to Opportunities
@@ -205,7 +205,7 @@ export function PublicApplicationForm() {
         </div>
 
         {/* ── Card ── */}
-        <div className="relative z-10 w-full max-w-md overflow-hidden rounded-3xl bg-white/80 shadow-[0_20px_60px_rgba(0,52,97,0.18)] backdrop-blur-xl ring-1 ring-white/60">
+        <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white/80 shadow-[0_20px_60px_rgba(0,52,97,0.18)] backdrop-blur-xl ring-1 ring-white/60" style={{ zIndex: 1 }}>
 
           {/* Gradient header */}
           <div
@@ -285,7 +285,7 @@ export function PublicApplicationForm() {
           </div>
         </div>
 
-        <p className="relative z-10 mt-6 text-[11px] text-[#003461]/40">
+        <p className="mt-6 text-[11px] text-[#003461]/40" style={{ zIndex: 1, position: 'relative' }}>
           © 2024 Falisha Jobs ·{' '}
           <a className="transition hover:text-[#003461]/70" href="/privacy-policy">Privacy</a> ·{' '}
           <a className="transition hover:text-[#003461]/70" href="#">Terms</a>
