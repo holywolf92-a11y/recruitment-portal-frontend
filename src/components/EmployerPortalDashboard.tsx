@@ -464,7 +464,7 @@ export function EmployerPortalDashboard({
 
               {/* Welcome banner */}
               <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-cyan-600 to-cyan-500 p-6 text-white shadow-md">
-                <div className="absolute right-0 top-0 h-full w-48 bg-[radial-gradient(ellipse_at_right,rgba(255,255,255,0.15),transparent_70%)]" />
+                <div className="absolute right-0 top-0 h-full w-48 pointer-events-none bg-[radial-gradient(ellipse_at_right,rgba(255,255,255,0.15),transparent_70%)]" />
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <div className="flex items-center gap-2">
