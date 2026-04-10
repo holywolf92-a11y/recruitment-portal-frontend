@@ -196,10 +196,21 @@ export function PublicApplicationForm() {
             </p>
           </div>
 
+          {/* CTA badges */}
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderRadius: '999px', background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.25)', padding: '0.3rem 0.85rem', fontSize: '0.75rem', fontWeight: 700, color: '#0891b2', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              <span style={{ width: '0.45rem', height: '0.45rem', borderRadius: '50%', background: '#06b6d4', display: 'inline-block' }} />
+              Pakistan #1 Recruitment
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderRadius: '999px', background: '#f9fafb', border: '1px solid #e5e7eb', padding: '0.3rem 0.85rem', fontSize: '0.75rem', fontWeight: 600, color: '#6b7280' }}>
+              2,400+ Placed Globally
+            </span>
+          </div>
+
           {/* Heading */}
           <div className="falisha-auth-heading-block">
             <h1 className="falisha-auth-heading">Apply Now</h1>
-            <p className="falisha-auth-subheading">Our consultants will review your profile within 48 hours.</p>
+            <p className="falisha-auth-subheading">Submit your profile — we'll find the right opportunity for you abroad.</p>
           </div>
 
           {/* Success */}
@@ -316,95 +327,123 @@ export function PublicApplicationForm() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-[#f4efe8] px-4 py-10 text-stone-900 sm:px-6 lg:px-8" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui, sans-serif' }}>
-      <div className="mx-auto max-w-3xl rounded-[32px] border border-white/60 bg-white/62 p-5 shadow-[0_24px_90px_rgba(0,0,0,0.08)] backdrop-blur-2xl sm:p-7">
-        <div className="text-center">
-          <h1 className="text-3xl font-semibold tracking-tight text-stone-950 sm:text-4xl">Falisha Jobs</h1>
-          <p className="mt-3 text-sm text-stone-600 sm:text-base">Simple application form. Fill your details and press submit.</p>
-        </div>
+  // ── EMPLOYER ──
+  if (activeAudience === 'employer') {
+    return (
+      <div className="falisha-auth-shell falisha-auth-form-pane falisha-auth-form-pane-signup" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui, sans-serif' }}>
+        <div style={{ width: '100%', maxWidth: '36rem' }}>
 
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          {(['candidate', 'employer', 'partner'] as IntakeAudience[]).map((audience) => {
-            const isActive = activeAudience === audience;
-            const Icon = audience === 'candidate' ? Briefcase : audience === 'employer' ? Building2 : Handshake;
+          <div className="mb-8 flex flex-col items-center">
+            <img src="/logo.png" alt="Falisha" className="h-16 w-16 object-contain" />
+            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">Pakistan #1 Recruitment Company</p>
+          </div>
 
-            if (directAudience) {
-              return (
-                <a
-                  key={audience}
-                  href={audiencePath(audience)}
-                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${isActive ? 'bg-stone-950 text-white' : 'bg-white/80 text-stone-700 hover:bg-white'}`}
-                >
-                  <Icon className="h-4 w-4" />
-                  {audience[0].toUpperCase() + audience.slice(1)}
-                </a>
-              );
-            }
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderRadius: '999px', background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.25)', padding: '0.3rem 0.85rem', fontSize: '0.75rem', fontWeight: 700, color: '#0891b2', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
+              <span style={{ width: '0.45rem', height: '0.45rem', borderRadius: '50%', background: '#06b6d4', display: 'inline-block' }} />
+              Hire Globally
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderRadius: '999px', background: '#f9fafb', border: '1px solid #e5e7eb', padding: '0.3rem 0.85rem', fontSize: '0.75rem', fontWeight: 600, color: '#6b7280' }}>Fast · Verified · Compliant</span>
+          </div>
 
-            return (
-              <button
-                key={audience}
-                type="button"
-                onClick={() => {
-                  setSelectedAudience(audience);
-                  setSubmittedAudience(null);
-                  setError(null);
-                }}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${isActive ? 'bg-stone-950 text-white' : 'bg-white/80 text-stone-700 hover:bg-white'}`}
-              >
-                <Icon className="h-4 w-4" />
-                {audience[0].toUpperCase() + audience.slice(1)}
-              </button>
-            );
-          })}
-        </div>
+          <div className="falisha-auth-heading-block">
+            <h1 className="falisha-auth-heading">Post a Requirement</h1>
+            <p className="falisha-auth-subheading">Tell us what you need — we'll source, screen and deliver.</p>
+          </div>
 
-        <div className="mt-8 rounded-[24px] border border-stone-200/70 bg-[#fcfaf7]/85 p-4 sm:p-6">
-          {submittedAudience === activeAudience && (
-            <div className="mb-5 rounded-[22px] border border-emerald-200 bg-emerald-50 px-4 py-4 text-center text-sm text-emerald-800">
-              <p className="font-semibold text-emerald-900">Submitted successfully</p>
-              <p className="mt-1">Your request has been received.</p>
+          {submittedAudience === 'employer' && (
+            <div className="falisha-auth-notice falisha-auth-notice-success mb-5">
+              <ShieldCheck className="mt-0.5 h-5 w-5 flex-shrink-0" />
+              <span>Requirement submitted! Our team will be in touch within 24 hours.</span>
             </div>
           )}
 
-          {activeAudience === 'employer' && (
-            <form className="space-y-5" onSubmit={handleEmployerSubmit}>
-              <div className="grid gap-4 md:grid-cols-2">
-                <InputField label="Company Name" value={employerForm.companyName} onChange={(value) => setEmployerForm((current) => ({ ...current, companyName: value }))} required icon={Building2} />
-                <InputField label="Contact Name" value={employerForm.contactName} onChange={(value) => setEmployerForm((current) => ({ ...current, contactName: value }))} required icon={User2} />
-                <InputField label="Email" type="email" value={employerForm.email} onChange={(value) => setEmployerForm((current) => ({ ...current, email: value }))} required icon={Mail} />
-                <InputField label="Phone / WhatsApp" value={employerForm.phone} onChange={(value) => setEmployerForm((current) => ({ ...current, phone: value }))} required icon={Phone} />
-                <InputField label="Country" value={employerForm.country} onChange={(value) => setEmployerForm((current) => ({ ...current, country: value }))} icon={Globe2} />
-                <InputField label="City" value={employerForm.city} onChange={(value) => setEmployerForm((current) => ({ ...current, city: value }))} icon={MapPin} />
-                <InputField label="Professions Required" value={employerForm.professions} onChange={(value) => setEmployerForm((current) => ({ ...current, professions: value }))} icon={Briefcase} />
-                <InputField label="Quantity Needed" value={employerForm.quantity} onChange={(value) => setEmployerForm((current) => ({ ...current, quantity: value }))} icon={Users} />
-                <InputField label="Salary Range" value={employerForm.salaryRange} onChange={(value) => setEmployerForm((current) => ({ ...current, salaryRange: value }))} icon={Briefcase} />
-                <InputField label="Duty Hours" value={employerForm.dutyHours} onChange={(value) => setEmployerForm((current) => ({ ...current, dutyHours: value }))} icon={Users} />
-                <InputField label="Contract Duration" value={employerForm.contractDuration} onChange={(value) => setEmployerForm((current) => ({ ...current, contractDuration: value }))} icon={Briefcase} />
-                <InputField label="Benefits Included" value={employerForm.benefitsIncluded} onChange={(value) => setEmployerForm((current) => ({ ...current, benefitsIncluded: value }))} icon={Users} />
-              </div>
-              <TextAreaField label="Comments" value={employerForm.comments} onChange={(value) => setEmployerForm((current) => ({ ...current, comments: value }))} placeholder="Add any extra hiring details" />
-              <SubmitRow submitting={submitting} error={error} buttonLabel="Submit Requirement" />
-            </form>
-          )}
+          <form className="falisha-auth-form-fields" onSubmit={handleEmployerSubmit}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <InputField label="Company Name" value={employerForm.companyName} onChange={(v) => setEmployerForm((c) => ({ ...c, companyName: v }))} required icon={Building2} />
+              <InputField label="Contact Name" value={employerForm.contactName} onChange={(v) => setEmployerForm((c) => ({ ...c, contactName: v }))} required icon={User2} />
+              <InputField label="Email" type="email" value={employerForm.email} onChange={(v) => setEmployerForm((c) => ({ ...c, email: v }))} required icon={Mail} />
+              <InputField label="Phone / WhatsApp" value={employerForm.phone} onChange={(v) => setEmployerForm((c) => ({ ...c, phone: v }))} required icon={Phone} />
+              <InputField label="Country" value={employerForm.country} onChange={(v) => setEmployerForm((c) => ({ ...c, country: v }))} icon={Globe2} />
+              <InputField label="City" value={employerForm.city} onChange={(v) => setEmployerForm((c) => ({ ...c, city: v }))} icon={MapPin} />
+              <InputField label="Professions Required" value={employerForm.professions} onChange={(v) => setEmployerForm((c) => ({ ...c, professions: v }))} icon={Briefcase} />
+              <InputField label="Quantity Needed" value={employerForm.quantity} onChange={(v) => setEmployerForm((c) => ({ ...c, quantity: v }))} icon={Users} />
+              <InputField label="Salary Range" value={employerForm.salaryRange} onChange={(v) => setEmployerForm((c) => ({ ...c, salaryRange: v }))} icon={Briefcase} />
+              <InputField label="Duty Hours" value={employerForm.dutyHours} onChange={(v) => setEmployerForm((c) => ({ ...c, dutyHours: v }))} icon={Users} />
+              <InputField label="Contract Duration" value={employerForm.contractDuration} onChange={(v) => setEmployerForm((c) => ({ ...c, contractDuration: v }))} icon={Briefcase} />
+              <InputField label="Benefits Included" value={employerForm.benefitsIncluded} onChange={(v) => setEmployerForm((c) => ({ ...c, benefitsIncluded: v }))} icon={Users} />
+            </div>
+            <TextAreaField label="Comments" value={employerForm.comments} onChange={(v) => setEmployerForm((c) => ({ ...c, comments: v }))} placeholder="Add any extra hiring details" />
+            <button type="submit" disabled={submitting} className="falisha-auth-primary flex items-center justify-center gap-2">
+              {submitting ? 'Submitting…' : 'Submit Requirement'}
+              <ArrowRight className="h-4 w-4" />
+            </button>
+            {error && <div className="falisha-auth-notice falisha-auth-notice-error"><span>{error}</span></div>}
+          </form>
 
-          {activeAudience === 'partner' && (
-            <form className="space-y-5" onSubmit={handlePartnerSubmit}>
-              <div className="grid gap-4 md:grid-cols-2">
-                <InputField label="Applicant Name" value={partnerForm.applicantName} onChange={(value) => setPartnerForm((current) => ({ ...current, applicantName: value }))} required icon={User2} />
-                <InputField label="Email" type="email" value={partnerForm.email} onChange={(value) => setPartnerForm((current) => ({ ...current, email: value }))} required icon={Mail} />
-                <InputField label="Phone / WhatsApp" value={partnerForm.phone} onChange={(value) => setPartnerForm((current) => ({ ...current, phone: value }))} required icon={Phone} />
-                <InputField label="Company / Agency Name" value={partnerForm.companyName} onChange={(value) => setPartnerForm((current) => ({ ...current, companyName: value }))} icon={Building2} />
-                <InputField label="City / Country" value={partnerForm.cityCountry} onChange={(value) => setPartnerForm((current) => ({ ...current, cityCountry: value }))} icon={MapPin} />
-                <InputField label="District" value={partnerForm.district} onChange={(value) => setPartnerForm((current) => ({ ...current, district: value }))} icon={MapPin} />
-                <InputField label="CNIC" value={partnerForm.cnic} onChange={(value) => setPartnerForm((current) => ({ ...current, cnic: value }))} icon={User2} />
-                <InputField label="Partner Type" value={partnerForm.partnerType} onChange={(value) => setPartnerForm((current) => ({ ...current, partnerType: value }))} icon={Handshake} />
-              </div>
-              <SubmitRow submitting={submitting} error={error} buttonLabel="Submit Registration" />
-            </form>
-          )}
+          <p className="mt-6 text-center" style={{ fontSize: '0.82rem', color: '#9ca3af' }}>
+            © 2024 Falisha Jobs ·{' '}
+            <a className="falisha-auth-link" href="/privacy-policy">Privacy</a> ·{' '}
+            <a className="falisha-auth-link" href="#">Terms</a>
+          </p>
         </div>
+      </div>
+    );
+  }
+
+  // ── PARTNER ──
+  return (
+    <div className="falisha-auth-shell falisha-auth-form-pane falisha-auth-form-pane-signup" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui, sans-serif' }}>
+      <div style={{ width: '100%', maxWidth: '36rem' }}>
+
+        <div className="mb-8 flex flex-col items-center">
+          <img src="/logo.png" alt="Falisha" className="h-16 w-16 object-contain" />
+          <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">Pakistan #1 Recruitment Company</p>
+        </div>
+
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderRadius: '999px', background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.25)', padding: '0.3rem 0.85rem', fontSize: '0.75rem', fontWeight: 700, color: '#0891b2', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
+            <span style={{ width: '0.45rem', height: '0.45rem', borderRadius: '50%', background: '#06b6d4', display: 'inline-block' }} />
+            Partner Program
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderRadius: '999px', background: '#f9fafb', border: '1px solid #e5e7eb', padding: '0.3rem 0.85rem', fontSize: '0.75rem', fontWeight: 600, color: '#6b7280' }}>Earn · Grow · Scale</span>
+        </div>
+
+        <div className="falisha-auth-heading-block">
+          <h1 className="falisha-auth-heading">Become a Partner</h1>
+          <p className="falisha-auth-subheading">Join our network of agents and grow your recruitment business with us.</p>
+        </div>
+
+        {submittedAudience === 'partner' && (
+          <div className="falisha-auth-notice falisha-auth-notice-success mb-5">
+            <ShieldCheck className="mt-0.5 h-5 w-5 flex-shrink-0" />
+            <span>Registration submitted! We'll contact you shortly to get started.</span>
+          </div>
+        )}
+
+        <form className="falisha-auth-form-fields" onSubmit={handlePartnerSubmit}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <InputField label="Applicant Name" value={partnerForm.applicantName} onChange={(v) => setPartnerForm((c) => ({ ...c, applicantName: v }))} required icon={User2} />
+            <InputField label="Email" type="email" value={partnerForm.email} onChange={(v) => setPartnerForm((c) => ({ ...c, email: v }))} required icon={Mail} />
+            <InputField label="Phone / WhatsApp" value={partnerForm.phone} onChange={(v) => setPartnerForm((c) => ({ ...c, phone: v }))} required icon={Phone} />
+            <InputField label="Company / Agency Name" value={partnerForm.companyName} onChange={(v) => setPartnerForm((c) => ({ ...c, companyName: v }))} icon={Building2} />
+            <InputField label="City / Country" value={partnerForm.cityCountry} onChange={(v) => setPartnerForm((c) => ({ ...c, cityCountry: v }))} icon={MapPin} />
+            <InputField label="District" value={partnerForm.district} onChange={(v) => setPartnerForm((c) => ({ ...c, district: v }))} icon={MapPin} />
+            <InputField label="CNIC" value={partnerForm.cnic} onChange={(v) => setPartnerForm((c) => ({ ...c, cnic: v }))} icon={User2} />
+            <InputField label="Partner Type" value={partnerForm.partnerType} onChange={(v) => setPartnerForm((c) => ({ ...c, partnerType: v }))} icon={Handshake} />
+          </div>
+          <button type="submit" disabled={submitting} className="falisha-auth-primary flex items-center justify-center gap-2">
+            {submitting ? 'Submitting…' : 'Submit Registration'}
+            <ArrowRight className="h-4 w-4" />
+          </button>
+          {error && <div className="falisha-auth-notice falisha-auth-notice-error"><span>{error}</span></div>}
+        </form>
+
+        <p className="mt-6 text-center" style={{ fontSize: '0.82rem', color: '#9ca3af' }}>
+          © 2024 Falisha Jobs ·{' '}
+          <a className="falisha-auth-link" href="/privacy-policy">Privacy</a> ·{' '}
+          <a className="falisha-auth-link" href="#">Terms</a>
+        </p>
       </div>
     </div>
   );
@@ -497,35 +536,30 @@ function CandidateUploadField({ fileName, onFileChange }: { fileName: string | n
 
 function InputField({ label, value, onChange, required, type = 'text', icon: Icon }: { label: string; value: string; onChange: (value: string) => void; required?: boolean; type?: string; icon: typeof Briefcase }) {
   return (
-    <label className="space-y-2">
-      <span className="text-xs font-medium uppercase tracking-[0.16em] text-stone-500">{label}{required ? ' *' : ''}</span>
-      <div className="relative">
-        <Icon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
-        <input
-          type={type}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          required={required}
-          className="w-full rounded-[18px] border border-stone-200 bg-white px-4 py-3 pl-11 text-sm text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-stone-400"
-          placeholder={label}
-        />
+    <div className="falisha-auth-field">
+      <label className="falisha-auth-field-label">{label}{required ? <span className="text-red-500"> *</span> : ''}</label>
+      <div className="falisha-auth-input-wrap">
+        <Icon className="falisha-auth-input-icon" />
+        <input type={type} value={value} onChange={(e) => onChange(e.target.value)} required={required} placeholder={label} className="falisha-auth-input" />
       </div>
-    </label>
+    </div>
   );
 }
 
 function TextAreaField({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder: string }) {
   return (
-    <label className="space-y-2">
-      <span className="text-xs font-medium uppercase tracking-[0.16em] text-stone-500">{label}</span>
+    <div className="falisha-auth-field">
+      <label className="falisha-auth-field-label">{label}</label>
       <textarea
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(e) => onChange(e.target.value)}
         rows={4}
         placeholder={placeholder}
-        className="w-full rounded-[18px] border border-stone-200 bg-white px-4 py-3 text-sm text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-stone-400"
+        style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '0.85rem', background: '#fff', padding: '0.75rem 1rem', fontSize: '1rem', color: '#111827', resize: 'vertical', outline: 'none', transition: 'border-color 160ms ease, box-shadow 160ms ease' }}
+        onFocus={(e) => { e.currentTarget.style.borderColor = '#06b6d4'; e.currentTarget.style.boxShadow = '0 0 0 4px rgba(34,211,238,0.15)'; }}
+        onBlur={(e) => { e.currentTarget.style.borderColor = '#d1d5db'; e.currentTarget.style.boxShadow = 'none'; }}
       />
-    </label>
+    </div>
   );
 }
 
