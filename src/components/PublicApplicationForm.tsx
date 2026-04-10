@@ -79,10 +79,144 @@ const partnerDefaults: PartnerFormState = {
   partnerType: '',
 };
 
-const NATIONALITY_OPTIONS = ['Pakistani', 'Indian', 'Bangladeshi', 'Nepali', 'Sri Lankan', 'Other'];
-const COUNTRY_INTEREST_OPTIONS = ['Saudi Arabia', 'United Arab Emirates', 'Qatar', 'Oman', 'Kuwait', 'Europe (Schengen)', 'United Kingdom'];
+const NATIONALITY_OPTIONS = [
+  'Afghan', 'Albanian', 'Algerian', 'American', 'Argentinian', 'Armenian', 'Australian', 'Austrian',
+  'Azerbaijani', 'Bahraini', 'Bangladeshi', 'Belgian', 'Bhutanese', 'Bolivian', 'Brazilian', 'British',
+  'Bulgarian', 'Cambodian', 'Cameroonian', 'Canadian', 'Chilean', 'Chinese', 'Colombian', 'Costa Rican',
+  'Croatian', 'Cuban', 'Czech', 'Danish', 'Dominican', 'Egyptian', 'Emirati', 'Eritrean', 'Estonian',
+  'Ethiopian', 'Filipino', 'Finnish', 'French', 'Georgian', 'German', 'Ghanaian', 'Greek', 'Guatemalan',
+  'Haitian', 'Hungarian', 'Icelandic', 'Indian', 'Indonesian', 'Iranian', 'Iraqi', 'Irish', 'Israeli',
+  'Italian', 'Jamaican', 'Japanese', 'Jordanian', 'Kazakhstani', 'Kenyan', 'Kuwaiti', 'Kyrgyz',
+  'Laotian', 'Latvian', 'Lebanese', 'Liberian', 'Libyan', 'Lithuanian', 'Macedonian', 'Malagasy',
+  'Malawian', 'Malaysian', 'Maldivian', 'Malian', 'Maltese', 'Mauritanian', 'Mauritian', 'Mexican',
+  'Moldovan', 'Mongolian', 'Moroccan', 'Mozambican', 'Myanmarese', 'Namibian', 'Nepalese',
+  'New Zealander', 'Nigerian', 'Norwegian', 'Omani', 'Pakistani', 'Palestinian', 'Panamanian',
+  'Peruvian', 'Polish', 'Portuguese', 'Qatari', 'Romanian', 'Russian', 'Rwandan', 'Saudi',
+  'Senegalese', 'Serbian', 'Singaporean', 'Slovak', 'Slovenian', 'Somali', 'South African',
+  'South Korean', 'South Sudanese', 'Spanish', 'Sri Lankan', 'Sudanese', 'Swedish', 'Swiss',
+  'Syrian', 'Taiwanese', 'Tajik', 'Tanzanian', 'Thai', 'Togolese', 'Trinidadian', 'Tunisian',
+  'Turkish', 'Turkmen', 'Ugandan', 'Ukrainian', 'Uruguayan', 'Uzbek', 'Venezuelan', 'Vietnamese',
+  'Yemeni', 'Zambian', 'Zimbabwean', 'Other',
+];
+
+const WORLD_COUNTRIES = [
+  'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda', 'Argentina',
+  'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados',
+  'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina',
+  'Botswana', 'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi', 'Cabo Verde', 'Cambodia',
+  'Cameroon', 'Canada', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros',
+  'Congo (Brazzaville)', 'Congo (Kinshasa)', 'Costa Rica', 'Croatia', 'Cuba', 'Cyprus',
+  'Czech Republic', 'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic', 'Ecuador', 'Egypt',
+  'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia', 'Fiji',
+  'Finland', 'France', 'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada',
+  'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana', 'Haiti', 'Honduras', 'Hungary', 'Iceland',
+  'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Jamaica', 'Japan', 'Jordan',
+  'Kazakhstan', 'Kenya', 'Kiribati', 'Kosovo', 'Kuwait', 'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon',
+  'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg', 'Madagascar', 'Malawi',
+  'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico',
+  'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar',
+  'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria',
+  'North Korea', 'North Macedonia', 'Norway', 'Oman', 'Pakistan', 'Palau', 'Palestine', 'Panama',
+  'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar', 'Romania',
+  'Russia', 'Rwanda', 'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent and the Grenadines',
+  'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles',
+  'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa',
+  'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland',
+  'Syria', 'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Timor-Leste', 'Togo', 'Tonga',
+  'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine',
+  'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu',
+  'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe',
+];
+
+const COUNTRY_INTEREST_OPTIONS = WORLD_COUNTRIES;
 const EXPERIENCE_OPTIONS = ['Fresher', '1-3 Years', '3-5 Years', '5-10 Years', '10+ Years'];
-const PHONE_CODE_OPTIONS = ['+92', '+91', '+971', '+974', '+968', '+965', '+973', '+44'];
+const PHONE_CODE_OPTIONS = [
+  // South Asia
+  { code: '+92', label: 'Pakistan (+92)' },
+  { code: '+91', label: 'India (+91)' },
+  { code: '+880', label: 'Bangladesh (+880)' },
+  { code: '+977', label: 'Nepal (+977)' },
+  { code: '+94', label: 'Sri Lanka (+94)' },
+  { code: '+93', label: 'Afghanistan (+93)' },
+  { code: '+975', label: 'Bhutan (+975)' },
+  { code: '+960', label: 'Maldives (+960)' },
+  // Gulf / Middle East
+  { code: '+971', label: 'UAE (+971)' },
+  { code: '+966', label: 'Saudi Arabia (+966)' },
+  { code: '+974', label: 'Qatar (+974)' },
+  { code: '+968', label: 'Oman (+968)' },
+  { code: '+965', label: 'Kuwait (+965)' },
+  { code: '+973', label: 'Bahrain (+973)' },
+  { code: '+962', label: 'Jordan (+962)' },
+  { code: '+961', label: 'Lebanon (+961)' },
+  { code: '+964', label: 'Iraq (+964)' },
+  { code: '+972', label: 'Israel (+972)' },
+  { code: '+967', label: 'Yemen (+967)' },
+  { code: '+963', label: 'Syria (+963)' },
+  // Europe
+  { code: '+44', label: 'UK (+44)' },
+  { code: '+49', label: 'Germany (+49)' },
+  { code: '+33', label: 'France (+33)' },
+  { code: '+39', label: 'Italy (+39)' },
+  { code: '+34', label: 'Spain (+34)' },
+  { code: '+31', label: 'Netherlands (+31)' },
+  { code: '+32', label: 'Belgium (+32)' },
+  { code: '+43', label: 'Austria (+43)' },
+  { code: '+41', label: 'Switzerland (+41)' },
+  { code: '+46', label: 'Sweden (+46)' },
+  { code: '+47', label: 'Norway (+47)' },
+  { code: '+45', label: 'Denmark (+45)' },
+  { code: '+358', label: 'Finland (+358)' },
+  { code: '+48', label: 'Poland (+48)' },
+  { code: '+351', label: 'Portugal (+351)' },
+  { code: '+30', label: 'Greece (+30)' },
+  { code: '+40', label: 'Romania (+40)' },
+  { code: '+420', label: 'Czech Republic (+420)' },
+  { code: '+36', label: 'Hungary (+36)' },
+  { code: '+421', label: 'Slovakia (+421)' },
+  { code: '+380', label: 'Ukraine (+380)' },
+  { code: '+7', label: 'Russia (+7)' },
+  { code: '+90', label: 'Turkey (+90)' },
+  // North America
+  { code: '+1', label: 'USA / Canada (+1)' },
+  { code: '+52', label: 'Mexico (+52)' },
+  // South America
+  { code: '+55', label: 'Brazil (+55)' },
+  { code: '+54', label: 'Argentina (+54)' },
+  { code: '+57', label: 'Colombia (+57)' },
+  { code: '+56', label: 'Chile (+56)' },
+  { code: '+51', label: 'Peru (+51)' },
+  // East Asia
+  { code: '+86', label: 'China (+86)' },
+  { code: '+81', label: 'Japan (+81)' },
+  { code: '+82', label: 'South Korea (+82)' },
+  { code: '+886', label: 'Taiwan (+886)' },
+  // Southeast Asia
+  { code: '+60', label: 'Malaysia (+60)' },
+  { code: '+63', label: 'Philippines (+63)' },
+  { code: '+62', label: 'Indonesia (+62)' },
+  { code: '+66', label: 'Thailand (+66)' },
+  { code: '+84', label: 'Vietnam (+84)' },
+  { code: '+65', label: 'Singapore (+65)' },
+  { code: '+95', label: 'Myanmar (+95)' },
+  // Africa
+  { code: '+20', label: 'Egypt (+20)' },
+  { code: '+27', label: 'South Africa (+27)' },
+  { code: '+234', label: 'Nigeria (+234)' },
+  { code: '+254', label: 'Kenya (+254)' },
+  { code: '+251', label: 'Ethiopia (+251)' },
+  { code: '+255', label: 'Tanzania (+255)' },
+  { code: '+256', label: 'Uganda (+256)' },
+  { code: '+233', label: 'Ghana (+233)' },
+  { code: '+212', label: 'Morocco (+212)' },
+  { code: '+216', label: 'Tunisia (+216)' },
+  { code: '+213', label: 'Algeria (+213)' },
+  { code: '+218', label: 'Libya (+218)' },
+  { code: '+249', label: 'Sudan (+249)' },
+  // Oceania
+  { code: '+61', label: 'Australia (+61)' },
+  { code: '+64', label: 'New Zealand (+64)' },
+];
 
 function resolveAudienceFromPath(): IntakeAudience | null {
   if (typeof window === 'undefined') {
@@ -108,7 +242,11 @@ export function PublicApplicationForm() {
   const [candidatePhoneNumber, setCandidatePhoneNumber] = useState('');
   const [candidateCv, setCandidateCv] = useState<File | null>(null);
   const [employerForm, setEmployerForm] = useState(employerDefaults);
+  const [employerPhoneCode, setEmployerPhoneCode] = useState('+92');
+  const [employerPhoneNumber, setEmployerPhoneNumber] = useState('');
   const [partnerForm, setPartnerForm] = useState(partnerDefaults);
+  const [partnerPhoneCode, setPartnerPhoneCode] = useState('+92');
+  const [partnerPhoneNumber, setPartnerPhoneNumber] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submittedAudience, setSubmittedAudience] = useState<IntakeAudience | null>(null);
@@ -165,9 +303,14 @@ export function PublicApplicationForm() {
     setError(null);
 
     try {
-      const result = await apiClient.submitEmployerPortal(employerForm);
+      const result = await apiClient.submitEmployerPortal({
+        ...employerForm,
+        phone: `${employerPhoneCode} ${employerPhoneNumber}`.trim(),
+      });
       setEmployerResult(result);
       setEmployerForm(employerDefaults);
+      setEmployerPhoneCode('+92');
+      setEmployerPhoneNumber('');
       setSubmittedAudience('employer');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
@@ -183,9 +326,14 @@ export function PublicApplicationForm() {
     setError(null);
 
     try {
-      const result = await apiClient.submitPartnerPortal(partnerForm);
+      const result = await apiClient.submitPartnerPortal({
+        ...partnerForm,
+        phone: `${partnerPhoneCode} ${partnerPhoneNumber}`.trim(),
+      });
       setPartnerResult(result);
       setPartnerForm(partnerDefaults);
+      setPartnerPhoneCode('+92');
+      setPartnerPhoneNumber('');
       setSubmittedAudience('partner');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
@@ -454,9 +602,9 @@ export function PublicApplicationForm() {
             <div className="falisha-auth-field">
               <label className="falisha-auth-field-label">Phone / WhatsApp <span className="text-red-500">*</span></label>
               <div className="flex gap-2">
-                <div className="falisha-auth-input-wrap w-24 shrink-0">
+                <div className="falisha-auth-input-wrap w-44 shrink-0">
                   <select value={candidatePhoneCode} onChange={(e) => setCandidatePhoneCode(e.target.value)} className="falisha-auth-input falisha-auth-select" style={{ paddingLeft: '0.75rem' }}>
-                    {PHONE_CODE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                    {PHONE_CODE_OPTIONS.map((o) => <option key={o.code} value={o.code}>{o.label}</option>)}
                   </select>
                 </div>
                 <div className="falisha-auth-input-wrap flex-1">
@@ -574,9 +722,33 @@ export function PublicApplicationForm() {
             <div className="grid gap-4 sm:grid-cols-2">
               <InputField label="Company Name" value={employerForm.companyName} onChange={(v) => setEmployerForm((c) => ({ ...c, companyName: v }))} required icon={Building2} />
               <InputField label="Contact Name" value={employerForm.contactName} onChange={(v) => setEmployerForm((c) => ({ ...c, contactName: v }))} required icon={User2} />
-              <InputField label="Email" type="email" value={employerForm.email} onChange={(v) => setEmployerForm((c) => ({ ...c, email: v }))} required icon={Mail} />
-              <InputField label="Phone / WhatsApp" value={employerForm.phone} onChange={(v) => setEmployerForm((c) => ({ ...c, phone: v }))} required icon={Phone} type="tel" placeholder="+923001234567" />
-              <InputField label="Country" value={employerForm.country} onChange={(v) => setEmployerForm((c) => ({ ...c, country: v }))} icon={Globe2} />
+              <div className="sm:col-span-2">
+                <InputField label="Email" type="email" value={employerForm.email} onChange={(v) => setEmployerForm((c) => ({ ...c, email: v }))} required icon={Mail} />
+              </div>
+              <div className="sm:col-span-2 falisha-auth-field">
+                <label className="falisha-auth-field-label">Phone / WhatsApp <span className="text-red-500">*</span></label>
+                <div className="flex gap-2">
+                  <div className="falisha-auth-input-wrap w-44 shrink-0">
+                    <select value={employerPhoneCode} onChange={(e) => setEmployerPhoneCode(e.target.value)} className="falisha-auth-input falisha-auth-select" style={{ paddingLeft: '0.75rem' }}>
+                      {PHONE_CODE_OPTIONS.map((o) => <option key={o.code} value={o.code}>{o.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="falisha-auth-input-wrap flex-1">
+                    <Phone className="falisha-auth-input-icon" />
+                    <input type="tel" value={employerPhoneNumber} onChange={(e) => setEmployerPhoneNumber(e.target.value)} className="falisha-auth-input" placeholder="300 1234567" required />
+                  </div>
+                </div>
+              </div>
+              <div className="falisha-auth-field">
+                <label className="falisha-auth-field-label">Country</label>
+                <div className="falisha-auth-input-wrap">
+                  <Globe2 className="falisha-auth-input-icon" />
+                  <select value={employerForm.country} onChange={(e) => setEmployerForm((c) => ({ ...c, country: e.target.value }))} className="falisha-auth-input falisha-auth-select">
+                    <option value="">Select country…</option>
+                    {WORLD_COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              </div>
               <InputField label="City" value={employerForm.city} onChange={(v) => setEmployerForm((c) => ({ ...c, city: v }))} icon={MapPin} />
               <InputField label="Professions Required" value={employerForm.professions} onChange={(v) => setEmployerForm((c) => ({ ...c, professions: v }))} icon={Briefcase} />
               <InputField label="Quantity Needed" value={employerForm.quantity} onChange={(v) => setEmployerForm((c) => ({ ...c, quantity: v }))} icon={Users} />
@@ -639,9 +811,24 @@ export function PublicApplicationForm() {
         <form className="falisha-auth-form-fields" onSubmit={handlePartnerSubmit}>
           <div className="grid gap-4 sm:grid-cols-2">
             <InputField label="Applicant Name" value={partnerForm.applicantName} onChange={(v) => setPartnerForm((c) => ({ ...c, applicantName: v }))} required icon={User2} />
-            <InputField label="Email" type="email" value={partnerForm.email} onChange={(v) => setPartnerForm((c) => ({ ...c, email: v }))} required icon={Mail} />
-            <InputField label="Phone / WhatsApp" value={partnerForm.phone} onChange={(v) => setPartnerForm((c) => ({ ...c, phone: v }))} required icon={Phone} type="tel" placeholder="+923001234567" />
             <InputField label="Company / Agency Name" value={partnerForm.companyName} onChange={(v) => setPartnerForm((c) => ({ ...c, companyName: v }))} icon={Building2} />
+            <div className="sm:col-span-2">
+              <InputField label="Email" type="email" value={partnerForm.email} onChange={(v) => setPartnerForm((c) => ({ ...c, email: v }))} required icon={Mail} />
+            </div>
+            <div className="sm:col-span-2 falisha-auth-field">
+              <label className="falisha-auth-field-label">Phone / WhatsApp <span className="text-red-500">*</span></label>
+              <div className="flex gap-2">
+                <div className="falisha-auth-input-wrap w-44 shrink-0">
+                  <select value={partnerPhoneCode} onChange={(e) => setPartnerPhoneCode(e.target.value)} className="falisha-auth-input falisha-auth-select" style={{ paddingLeft: '0.75rem' }}>
+                    {PHONE_CODE_OPTIONS.map((o) => <option key={o.code} value={o.code}>{o.label}</option>)}
+                  </select>
+                </div>
+                <div className="falisha-auth-input-wrap flex-1">
+                  <Phone className="falisha-auth-input-icon" />
+                  <input type="tel" value={partnerPhoneNumber} onChange={(e) => setPartnerPhoneNumber(e.target.value)} className="falisha-auth-input" placeholder="300 1234567" required />
+                </div>
+              </div>
+            </div>
             <InputField label="City / Country" value={partnerForm.cityCountry} onChange={(v) => setPartnerForm((c) => ({ ...c, cityCountry: v }))} icon={MapPin} />
             <InputField label="District" value={partnerForm.district} onChange={(v) => setPartnerForm((c) => ({ ...c, district: v }))} icon={MapPin} />
             <InputField label="CNIC" value={partnerForm.cnic} onChange={(v) => setPartnerForm((c) => ({ ...c, cnic: v }))} icon={User2} />
@@ -704,8 +891,8 @@ function CandidatePhoneField({ code, number, onCodeChange, onNumberChange }: { c
     <div className="falisha-auth-field">
       <label className="falisha-auth-field-label">Phone / WhatsApp</label>
       <div className="flex gap-2">
-        <select value={code} onChange={(e) => onCodeChange(e.target.value)} className="falisha-auth-input falisha-auth-select" style={{ width: '5.5rem', flexShrink: 0, paddingLeft: '0.75rem' }}>
-          {PHONE_CODE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+        <select value={code} onChange={(e) => onCodeChange(e.target.value)} className="falisha-auth-input falisha-auth-select" style={{ width: '11rem', flexShrink: 0, paddingLeft: '0.75rem' }}>
+          {PHONE_CODE_OPTIONS.map((o) => <option key={o.code} value={o.code}>{o.label}</option>)}
         </select>
         <div className="falisha-auth-input-wrap flex-1">
           <Phone className="falisha-auth-input-icon" />
