@@ -513,7 +513,7 @@ const AppContent = () => {
   };
 
   useEffect(() => {
-    if (!session || (user.role !== 'candidate' && user.role !== 'partner')) {
+    if (!session || (user.role !== 'candidate' && user.role !== 'partner' && user.role !== 'employer')) {
       setPortalProfile(null);
       setPortalProfileError(null);
       setPortalProfileLoading(false);
