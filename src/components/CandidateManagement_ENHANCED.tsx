@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient, Candidate, CandidateDashboardStats } from '../lib/apiClient';
+import { formatCandidatePaymentAmount, normalizeCandidatePaymentAmount } from '../lib/candidatePayment';
 import { CANDIDATE_STATUS_VALUES, type CandidateStatus, getCandidateStatusClasses, normalizeCandidateStatus } from '../lib/candidateStatus';
 import { useCandidates } from '../lib/candidateContext';
 import { useDebounce } from '../hooks/useDebounce';
@@ -265,6 +266,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
   }, [candidateIdToOpen]);
   const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
   const [documentAction, setDocumentAction] = useState<{ candidateId: string; docType: string } | null>(null);
+  const [paymentUpdatingIds, setPaymentUpdatingIds] = useState<Record<string, boolean>>({});
+  const [paymentDrafts, setPaymentDrafts] = useState<Record<string, string>>({});
   
   // Document processing states
   const [processingDocuments, setProcessingDocuments] = useState<Map<string, {
@@ -615,6 +618,61 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
       toast.error(error?.message || 'Failed to update candidate status');
     } finally {
       setStatusUpdatingIds((prev) => {
+        const next = { ...prev };
+        delete next[candidate.id];
+        return next;
+      });
+    }
+  }
+
+  function getPaymentDraft(candidate: Candidate) {
+    return paymentDrafts[candidate.id] ?? String(normalizeCandidatePaymentAmount(candidate.payment_amount, 0));
+  }
+
+  function handlePaymentDraftChange(candidateId: string, value: string) {
+    if (!/^\d*$/.test(value)) {
+      return;
+    }
+
+    setPaymentDrafts((prev) => ({ ...prev, [candidateId]: value }));
+  }
+
+  async function handleCandidatePaymentSave(candidate: Candidate) {
+    const draftValue = paymentDrafts[candidate.id];
+    const nextAmount = normalizeCandidatePaymentAmount(draftValue ?? candidate.payment_amount, 0);
+    const currentAmount = normalizeCandidatePaymentAmount(candidate.payment_amount, 0);
+
+    if (nextAmount === currentAmount) {
+      setPaymentDrafts((prev) => {
+        if (!(candidate.id in prev)) {
+          return prev;
+        }
+        const next = { ...prev };
+        delete next[candidate.id];
+        return next;
+      });
+      return;
+    }
+
+    try {
+      setPaymentUpdatingIds((prev) => ({ ...prev, [candidate.id]: true }));
+      const updatedCandidate = await apiClient.updateCandidate(candidate.id, { payment_amount: nextAmount });
+      await refreshCandidates();
+      setSelectedCandidate((prev) => (
+        prev?.id === candidate.id
+          ? { ...prev, payment_amount: normalizeCandidatePaymentAmount(updatedCandidate.payment_amount, nextAmount) }
+          : prev
+      ));
+      setPaymentDrafts((prev) => {
+        const next = { ...prev };
+        delete next[candidate.id];
+        return next;
+      });
+      toast.success(`Payment updated to ${formatCandidatePaymentAmount(updatedCandidate.payment_amount ?? nextAmount)}`);
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to update payment');
+    } finally {
+      setPaymentUpdatingIds((prev) => {
         const next = { ...prev };
         delete next[candidate.id];
         return next;
@@ -1360,6 +1418,44 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
                           <span className="font-medium">{c.experience_years}y exp</span>
                         </div>
                       )}
+                    </div>
+
+                    <div className="mb-4 rounded-2xl border border-emerald-100 bg-emerald-50/80 p-4">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                        <div>
+                          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Payment Received</div>
+                          <div className="mt-1 text-2xl font-semibold text-emerald-900">{formatCandidatePaymentAmount(c.payment_amount)}</div>
+                          <div className="text-xs text-emerald-700">Default is 0 PKR until collected.</div>
+                        </div>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                          <div className="flex items-center rounded-xl border border-emerald-200 bg-white shadow-sm">
+                            <span className="px-3 text-sm font-semibold text-emerald-700">PKR</span>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={getPaymentDraft(c)}
+                              onChange={(event) => handlePaymentDraftChange(c.id, event.target.value)}
+                              onKeyDown={(event) => {
+                                if (event.key === 'Enter') {
+                                  event.preventDefault();
+                                  handleCandidatePaymentSave(c);
+                                }
+                              }}
+                              disabled={!!paymentUpdatingIds[c.id]}
+                              className="w-36 rounded-r-xl border-0 bg-transparent px-3 py-2 text-sm font-medium text-gray-900 outline-none"
+                              placeholder="0"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleCandidatePaymentSave(c)}
+                            disabled={!!paymentUpdatingIds[c.id]}
+                            className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-70"
+                          >
+                            {paymentUpdatingIds[c.id] ? 'Saving...' : 'Save Payment'}
+                          </button>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Contact Information */}

@@ -33,6 +33,7 @@ import { getFrontendBaseUrl } from '../lib/publicUrl';
 import { toast } from 'sonner';
 import { Toaster } from './ui/sonner';
 import { apiClient, Candidate, CandidateBrowseMetadata, CandidateFilters } from '../lib/apiClient';
+import { formatCandidatePaymentAmount, normalizeCandidatePaymentAmount } from '../lib/candidatePayment';
 import { CANDIDATE_STATUS_VALUES, type CandidateStatus, getCandidateStatusClasses, normalizeCandidateStatus } from '../lib/candidateStatus';
 import { SendToEmployerModal } from './SendToEmployerModal';
 
@@ -287,6 +288,8 @@ export function CandidateBrowserExcel() {
   const [selectedFolder, setSelectedFolder] = useState<FolderNode | null>(null);
   const [selectedCandidates, setSelectedCandidates] = useState<Set<string>>(new Set());
   const [statusUpdatingIds, setStatusUpdatingIds] = useState<Record<string, boolean>>({});
+  const [paymentUpdatingIds, setPaymentUpdatingIds] = useState<Record<string, boolean>>({});
+  const [paymentDrafts, setPaymentDrafts] = useState<Record<string, string>>({});
   const [viewMode, setViewMode] = useState<'basic' | 'detailed'>('detailed');
   const [professionMode, setProfessionMode] = useState<string | null>(null);
   const [activeMenu, setActiveMenu] = useState<'dashboard' | 'browser'>('dashboard');
@@ -357,6 +360,59 @@ export function CandidateBrowserExcel() {
       toast.error(error?.message || 'Failed to update candidate status');
     } finally {
       setStatusUpdatingIds((prev) => {
+        const next = { ...prev };
+        delete next[candidate.id];
+        return next;
+      });
+    }
+  }
+
+  function getPaymentDraft(candidate: Candidate) {
+    return paymentDrafts[candidate.id] ?? String(normalizeCandidatePaymentAmount(candidate.payment_amount, 0));
+  }
+
+  function handlePaymentDraftChange(candidateId: string, value: string) {
+    if (!/^\d*$/.test(value)) {
+      return;
+    }
+
+    setPaymentDrafts((prev) => ({ ...prev, [candidateId]: value }));
+  }
+
+  async function handleCandidatePaymentSave(candidate: Candidate) {
+    const draftValue = paymentDrafts[candidate.id];
+    const nextAmount = normalizeCandidatePaymentAmount(draftValue ?? candidate.payment_amount, 0);
+    const currentAmount = normalizeCandidatePaymentAmount(candidate.payment_amount, 0);
+
+    if (nextAmount === currentAmount) {
+      setPaymentDrafts((prev) => {
+        if (!(candidate.id in prev)) {
+          return prev;
+        }
+        const next = { ...prev };
+        delete next[candidate.id];
+        return next;
+      });
+      return;
+    }
+
+    try {
+      setPaymentUpdatingIds((prev) => ({ ...prev, [candidate.id]: true }));
+      const updatedCandidate = await apiClient.updateCandidate(candidate.id, { payment_amount: nextAmount });
+      const savedAmount = normalizeCandidatePaymentAmount(updatedCandidate.payment_amount, nextAmount);
+      setCandidates((prev) => prev.map((item) => (
+        item.id === candidate.id ? { ...item, payment_amount: savedAmount } : item
+      )));
+      setPaymentDrafts((prev) => {
+        const next = { ...prev };
+        delete next[candidate.id];
+        return next;
+      });
+      toast.success(`Payment updated to ${formatCandidatePaymentAmount(savedAmount)}`);
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to update payment');
+    } finally {
+      setPaymentUpdatingIds((prev) => {
         const next = { ...prev };
         delete next[candidate.id];
         return next;
@@ -1001,7 +1057,7 @@ export function CandidateBrowserExcel() {
         {/* Excel-like Table */}
         <div ref={tableWrapRef} className="flex-1 min-h-0 overflow-auto">
           {filteredCandidates.length > 0 ? (
-            <table className="w-full min-w-[1100px] border-collapse">
+            <table className="w-full min-w-[1260px] border-collapse">
               <thead className="bg-gray-100 sticky top-0 z-10">
                 <tr>
                   <th className="border border-gray-300 p-2 text-left bg-gray-100">
@@ -1045,6 +1101,15 @@ export function CandidateBrowserExcel() {
                     <div className="flex items-center gap-1">
                       Status
                       {sortBy === 'status' && (sortOrder === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDownIcon className="w-3 h-3" />)}
+                    </div>
+                  </th>
+                  <th
+                    className="border border-gray-300 p-2 text-left text-xs font-semibold text-gray-700 bg-gray-100 cursor-pointer hover:bg-gray-200 select-none"
+                    onClick={() => handleColumnSort('payment_amount')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Payment (PKR)
+                      {sortBy === 'payment_amount' && (sortOrder === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDownIcon className="w-3 h-3" />)}
                     </div>
                   </th>
                   <th className="border border-gray-300 p-2 text-left text-xs font-semibold text-gray-700 bg-gray-100">AI Score</th>
@@ -1164,6 +1229,41 @@ export function CandidateBrowserExcel() {
                             ))}
                           </select>
                           {statusUpdatingIds[candidate.id] && <span className="text-[11px] text-gray-500">Saving…</span>}
+                        </div>
+                      </td>
+                      <td className="border border-gray-300 p-2 align-top">
+                        <div className="flex min-w-[190px] flex-col gap-2">
+                          <div className="text-[11px] font-medium text-emerald-700">
+                            {formatCandidatePaymentAmount(candidate.payment_amount)}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center rounded border border-emerald-200 bg-emerald-50">
+                              <span className="px-2 text-[11px] font-semibold text-emerald-700">PKR</span>
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                value={getPaymentDraft(candidate)}
+                                onChange={(event) => handlePaymentDraftChange(candidate.id, event.target.value)}
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter') {
+                                    event.preventDefault();
+                                    handleCandidatePaymentSave(candidate);
+                                  }
+                                }}
+                                disabled={!!paymentUpdatingIds[candidate.id]}
+                                className="w-24 border-0 bg-transparent px-2 py-1 text-xs font-medium text-gray-900 outline-none"
+                                placeholder="0"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleCandidatePaymentSave(candidate)}
+                              disabled={!!paymentUpdatingIds[candidate.id]}
+                              className="rounded bg-emerald-600 px-2 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-70"
+                            >
+                              {paymentUpdatingIds[candidate.id] ? 'Saving...' : 'Save'}
+                            </button>
+                          </div>
                         </div>
                       </td>
                       <td className="border border-gray-300 p-2 text-sm text-center">

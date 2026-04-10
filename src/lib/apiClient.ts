@@ -266,8 +266,12 @@ export interface Candidate {
   user_id?: string | null;
   candidate_code: string;
   name: string;
+  partner_id?: string | null;
+  partner_name?: string | null;
+  is_partner_candidate?: boolean;
   father_name?: string;
   status?: 'Applied' | 'Pending' | 'Deployed' | 'Cancelled' | string;
+  payment_amount?: number;
   source?: 'WhatsApp' | 'Email' | 'Form' | 'Manual' | string;
   ai_score?: number;
   auto_extracted?: boolean;
@@ -353,6 +357,7 @@ export interface PartnerCandidatePayload {
 export interface PartnerBulkUploadResult {
   total: number;
   created: number;
+  updated: number;
   errors: Array<{ row: number; name?: string; cnic?: string; error: string }>;
   candidates: Candidate[];
 }
@@ -360,6 +365,7 @@ export interface PartnerBulkUploadResult {
 export interface CreateCandidateData {
   name: string;
   father_name?: string;
+  payment_amount?: number;
   email?: string;
   phone?: string;
   date_of_birth?: string;
@@ -905,6 +911,33 @@ class ApiClient {
         Authorization: `Bearer ${accessToken}`,
       },
     });
+  }
+
+  async uploadPartnerCandidateDocument(
+    file: File,
+    candidateId: string,
+    accessToken: string,
+    documentType?: string,
+  ): Promise<{ success: boolean; document: any; message: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (documentType) {
+      formData.append('document_type', documentType);
+    }
+
+    const url = `${API_BASE_URL}/auth/partner/candidates/${candidateId}/documents`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => '');
+      throw new Error(`Partner document upload failed: ${response.status} ${text}`);
+    }
+
+    return response.json() as Promise<{ success: boolean; document: any; message: string }>;
   }
 
   async uploadPartnerBulkCandidates(
