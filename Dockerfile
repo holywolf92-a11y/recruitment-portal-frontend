@@ -1,6 +1,8 @@
 # Frontend Dockerfile - Multi-stage build for optimal image size
-# Stage 1: Builder
-FROM node:18-alpine AS builder
+# Stage 1: Builder — use Debian-slim (glibc) to avoid musl native binding issues
+# with @tailwindcss/oxide (a Rust native module). Alpine uses musl libc which
+# causes "Cannot find native binding" errors even after fresh npm install.
+FROM node:18-slim AS builder
 
 WORKDIR /app
 
@@ -9,15 +11,13 @@ ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
 
 # Skip Puppeteer's Chromium download — not needed at build time.
-# Without this, `npm ci` downloads ~170 MB of Chrome unnecessarily.
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 
 # Copy package files
 COPY package.json package-lock.json ./
 
-# Install dependencies (delete lockfile first so npm resolves correct
-# platform-native binaries for linux/musl — lockfile is Windows-generated
-# and lacks @tailwindcss/oxide-linux-x64-musl optional dependency)
+# Install all dependencies with a clean slate (no lockfile to avoid
+# stale Windows platform-specific optional dependency resolutions)
 RUN rm -f package-lock.json && npm install
 
 # Copy source code
