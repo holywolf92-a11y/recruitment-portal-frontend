@@ -731,7 +731,7 @@ export interface AppUserProfile {
   id: string;
   email: string;
   name: string | null;
-  role: 'admin' | 'worker' | 'candidate' | 'partner';
+  role: 'admin' | 'worker' | 'candidate' | 'partner' | 'employer';
   phone: string | null;
   department: string | null;
   status: 'Active' | 'Inactive' | 'Suspended' | string | null;
@@ -753,13 +753,75 @@ export interface PartnerApplicationProfile {
   updated_at: string | null;
 }
 
+export interface EmployerLeadProfile {
+  id: string;
+  user_id?: string | null;
+  phone_number: string | null;
+  contact_name: string | null;
+  company_name: string | null;
+  email: string | null;
+  country: string | null;
+  city: string | null;
+  professions: string | null;
+  quantity: string | null;
+  salary_range: string | null;
+  contract_duration: string | null;
+  duty_hours: string | null;
+  benefits_included: string | null;
+  comments: string | null;
+  status: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface SocialLinksPayload {
+  linkedin: string;
+  facebook: string;
+  instagram: string;
+  tiktok: string;
+  youtube: string;
+  whatsappChannel: string | null;
+}
+
+export interface PublicCandidatePortalResponse {
+  success: boolean;
+  candidateId: string;
+  reference: string;
+  onboardingLink: string | null;
+  socialLinks: SocialLinksPayload;
+  whatsappNotified: boolean;
+}
+
+export interface PublicEmployerPortalResponse {
+  success: boolean;
+  leadId: string;
+  dashboardUrl: string;
+  email: string;
+  password: string | null;
+  createdNewAccount: boolean;
+  socialLinks: SocialLinksPayload;
+  whatsappNotified: boolean;
+}
+
+export interface PublicPartnerPortalResponse {
+  success: boolean;
+  applicationId: string;
+  dashboardUrl: string;
+  email: string;
+  password: string | null;
+  createdNewAccount: boolean;
+  socialLinks: SocialLinksPayload;
+  whatsappNotified: boolean;
+}
+
 export interface PortalProfileResponse {
-  role: 'admin' | 'worker' | 'candidate' | 'partner';
+  role: 'admin' | 'worker' | 'candidate' | 'partner' | 'employer';
   linkedCandidateId: string | null;
   profile: {
     user: AppUserProfile | null;
     linkedCandidate: Candidate | null;
     partnerApplication: PartnerApplicationProfile | null;
+    employerLead: EmployerLeadProfile | null;
   };
 }
 
@@ -770,6 +832,16 @@ export interface UpdatePortalProfilePayload {
   company_name?: string;
   city_country?: string;
   partner_type?: string;
+  contact_name?: string;
+  country?: string;
+  city?: string;
+  professions?: string;
+  quantity?: string;
+  salary_range?: string;
+  duty_hours?: string;
+  contract_duration?: string;
+  benefits_included?: string;
+  comments?: string;
 }
 
 export interface AdminUsersResponse {
@@ -781,13 +853,14 @@ export interface AdminUsersResponse {
     workers: number;
     candidates: number;
     partners: number;
+    employers?: number;
   };
 }
 
 export interface CreateAdminUserPayload {
   email: string;
   password: string;
-  role: 'admin' | 'worker' | 'candidate' | 'partner';
+  role: 'admin' | 'worker' | 'candidate' | 'partner' | 'employer';
   name?: string;
   phone?: string;
   department?: string;
@@ -887,6 +960,28 @@ class ApiClient {
         Authorization: `Bearer ${accessToken}`,
       },
     });
+  }
+
+  async submitCandidatePortal(payload: FormData): Promise<PublicCandidatePortalResponse> {
+    const response = await fetch(`${API_BASE_URL}/public-portal/candidate`, {
+      method: 'POST',
+      body: payload,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => null);
+      throw new Error(errorBody?.error || `API Error: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  async submitEmployerPortal(payload: Record<string, unknown>): Promise<PublicEmployerPortalResponse> {
+    return this.post<PublicEmployerPortalResponse>('/public-portal/employer', payload);
+  }
+
+  async submitPartnerPortal(payload: Record<string, unknown>): Promise<PublicPartnerPortalResponse> {
+    return this.post<PublicPartnerPortalResponse>('/public-portal/partner', payload);
   }
 
   async bootstrapCandidatePortalProfile(accessToken: string): Promise<{ candidate: Candidate }> {

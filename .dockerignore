@@ -64,7 +64,6 @@ Jenkinsfile
 docker-compose.yml
 .docker
 .dockerignore
-Dockerfile*
 
 # IDE and editors
 .vscode

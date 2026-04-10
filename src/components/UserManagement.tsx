@@ -53,6 +53,7 @@ function badgeClass(role: UserRole) {
   if (role === 'admin') return 'bg-slate-100 text-slate-800';
   if (role === 'worker') return 'bg-sky-100 text-sky-700';
   if (role === 'partner') return 'bg-emerald-100 text-emerald-700';
+  if (role === 'employer') return 'bg-violet-100 text-violet-700';
   return 'bg-amber-100 text-amber-700';
 }
 
@@ -70,6 +71,7 @@ function computeStats(users: AppUserProfile[]) {
     workers: users.filter((user) => user.role === 'worker').length,
     candidates: users.filter((user) => user.role === 'candidate').length,
     partners: users.filter((user) => user.role === 'partner').length,
+    employers: users.filter((user) => user.role === 'employer').length,
   };
 }
 
@@ -244,7 +246,7 @@ export function UserManagement() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl">User Management</h1>
-          <p className="mt-1 text-gray-600">Manage canonical admin, worker, candidate, and partner accounts backed by the live backend users table.</p>
+          <p className="mt-1 text-gray-600">Manage canonical admin, worker, candidate, partner, and employer accounts backed by the live backend users table.</p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
           <button
@@ -266,7 +268,7 @@ export function UserManagement() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-5">
         <div className="rounded-xl bg-slate-900 p-5 text-white">
           <div className="flex items-center justify-between text-sm opacity-90">
             <span>Total Users</span>
@@ -295,6 +297,13 @@ export function UserManagement() {
           </div>
           <div className="mt-3 text-3xl">{stats.workers}</div>
         </div>
+        <div className="rounded-xl bg-violet-600 p-5 text-white">
+          <div className="flex items-center justify-between text-sm opacity-90">
+            <span>Employers</span>
+            <UsersIcon className="h-6 w-6" />
+          </div>
+          <div className="mt-3 text-3xl">{stats.employers || 0}</div>
+        </div>
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -305,6 +314,7 @@ export function UserManagement() {
             <option value="worker">Worker</option>
             <option value="candidate">Candidate</option>
             <option value="partner">Partner</option>
+            <option value="employer">Employer</option>
           </select>
           <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="rounded-lg border border-gray-300 px-4 py-3">
             <option value="all">All Status</option>
@@ -454,6 +464,7 @@ export function UserManagement() {
                   <option value="worker">Worker</option>
                   <option value="candidate">Candidate</option>
                   <option value="partner">Partner</option>
+                  <option value="employer">Employer</option>
                 </select>
               </div>
               <div>
@@ -485,7 +496,7 @@ export function UserManagement() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">Create User</h2>
-                <p className="mt-1 text-sm text-gray-600">Create canonical admin, worker, candidate, or partner accounts backed by Supabase auth and the users table.</p>
+                <p className="mt-1 text-sm text-gray-600">Create canonical admin, worker, candidate, partner, or employer accounts backed by Supabase auth and the users table.</p>
               </div>
               <button onClick={() => setCreating(false)} className="rounded-lg p-2 hover:bg-gray-100"><X className="h-5 w-5 text-gray-500" /></button>
             </div>
@@ -513,6 +524,7 @@ export function UserManagement() {
                   <option value="worker">Worker</option>
                   <option value="candidate">Candidate</option>
                   <option value="partner">Partner</option>
+                  <option value="employer">Employer</option>
                 </select>
               </div>
               <div>

@@ -3,6 +3,8 @@
   import react from '@vitejs/plugin-react-swc';
   import path from 'path';
 
+  const proxyTarget = process.env.VITE_PROXY_TARGET || 'http://localhost:4000';
+
   export default defineConfig({
     plugins: [react()],
     root: '.',
@@ -57,6 +59,12 @@
     server: {
       port: 3002,
       open: true,
+      proxy: {
+        '/api': {
+          target: proxyTarget,
+          changeOrigin: true,
+        },
+      },
       historyApiFallback: true, // Enable client-side routing
     },
   });

@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'worker' | 'candidate' | 'partner';
+export type UserRole = 'admin' | 'worker' | 'candidate' | 'partner' | 'employer';
 
 export interface Permission {
   candidates: {
@@ -93,6 +93,15 @@ export const rolePermissions: Record<UserRole, Permission> = {
     users: { view: false, create: false, edit: false, delete: false },
     settings: { view: false, edit: false },
   },
+  employer: {
+    candidates: { view: false, create: false, edit: false, delete: false, export: false },
+    employers: { view: true, create: false, edit: true, delete: false },
+    jobs: { view: true, create: false, edit: false, delete: false },
+    documents: { view: false, upload: false, delete: false },
+    analytics: { view: true, export: false },
+    users: { view: false, create: false, edit: false, delete: false },
+    settings: { view: true, edit: true },
+  },
 };
 
 export const mockUsers: User[] = [
@@ -157,6 +166,10 @@ export function normalizeUserRole(role?: string | null): UserRole {
     return 'partner';
   }
 
+  if (normalized === 'employer' || normalized === 'client') {
+    return 'employer';
+  }
+
   if (normalized === 'candidate') {
     return 'candidate';
   }
@@ -172,6 +185,7 @@ export function getRoleLabel(role: UserRole): string {
   if (role === 'admin') return 'Admin';
   if (role === 'worker') return 'Worker';
   if (role === 'candidate') return 'Candidate';
+  if (role === 'employer') return 'Employer';
   return 'Partner';
 }
 

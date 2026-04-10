@@ -24,6 +24,7 @@ import { ReviewPage } from './components/ReviewPage';
 import { ReviewsDashboard } from './components/ReviewsDashboard';
 import { CandidateOnboardingPage } from './components/CandidateOnboardingPage';
 import { CandidatePortalDashboard } from './components/CandidatePortalDashboard';
+import { EmployerPortalDashboard } from './components/EmployerPortalDashboard';
 import { PartnerPortalDashboard } from './components/PartnerPortalDashboard';
 import { useAuth, AuthProvider } from './lib/authContext';
 import { CandidateProvider } from './lib/candidateContext';
@@ -206,6 +207,7 @@ const AppContent = () => {
   useEffect(() => { if (!session) setServerRole(null); }, [session]);
   const candidatePortalPath = '/profile';
   const partnerPortalPath = '/partner/dashboard';
+  const employerPortalPath = '/employer/dashboard';
 
   const tabPaths: Record<string, string> = {
     dashboard: `${portalBasePath}/dashboard`,
@@ -374,6 +376,13 @@ const AppContent = () => {
       return;
     }
 
+    if (user.role === 'employer') {
+      if (normalizedPathname !== employerPortalPath) {
+        window.history.replaceState({}, '', employerPortalPath);
+      }
+      return;
+    }
+
     const shouldRedirect =
       normalizedPathname === '/' ||
       normalizedPathname === '/login' ||
@@ -389,7 +398,7 @@ const AppContent = () => {
       }
       setActiveTab(defaultInternalTab);
     }
-  }, [candidatePortalPath, defaultInternalTab, partnerPortalPath, portalBasePath, portalProfileLoading, session, user.role]);
+  }, [candidatePortalPath, defaultInternalTab, employerPortalPath, partnerPortalPath, portalBasePath, portalProfileLoading, session, user.role]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -639,7 +648,7 @@ const AppContent = () => {
   // before rendering any portal — prevents wrong redirect/render before API returns.
   // Only block if portal profile is still actively loading (portalProfileLoading).
   // If loading finished with an error or null, fall through to avoid infinite spinner.
-  if (serverRole === null && portalProfileLoading && (sessionRole === 'candidate' || sessionRole === 'partner')) {
+  if (serverRole === null && portalProfileLoading && (sessionRole === 'candidate' || sessionRole === 'partner' || sessionRole === 'employer')) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center">
         <div className="text-center">
@@ -667,6 +676,20 @@ const AppContent = () => {
   if (user.role === 'partner') {
     return (
       <PartnerPortalDashboard
+        accessToken={session.access_token}
+        user={user}
+        portalProfile={portalProfile}
+        onSignOut={signOut}
+        loading={portalProfileLoading}
+        error={portalProfileError}
+        onRefreshPortalProfile={() => loadPortalProfile(session.access_token)}
+      />
+    );
+  }
+
+  if (user.role === 'employer') {
+    return (
+      <EmployerPortalDashboard
         accessToken={session.access_token}
         user={user}
         portalProfile={portalProfile}
@@ -925,7 +948,7 @@ export default function App() {
       return <PrivacyPolicy />;
     }
 
-    if (pathname === '/apply') {
+    if (pathname === '/apply' || pathname.startsWith('/apply/')) {
       return <PublicApplicationForm />;
     }
 
