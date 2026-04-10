@@ -15,8 +15,9 @@ ENV PUPPETEER_SKIP_DOWNLOAD=true
 # Copy package files
 COPY package.json package-lock.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies (use npm install to resolve correct platform-native binaries,
+# since package-lock.json is generated on Windows and lacks linux/musl optional deps)
+RUN npm install
 
 # Copy source code
 COPY . .
