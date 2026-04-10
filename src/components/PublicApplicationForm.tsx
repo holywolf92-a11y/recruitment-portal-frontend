@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowRight, Briefcase, Building2, Globe2, Handshake, Mail, MapPin, Phone, Upload, User2, Users } from 'lucide-react';
+import { ArrowRight, Briefcase, Building2, ChevronDown, Globe2, Handshake, Mail, MapPin, Phone, Upload, User2, Users } from 'lucide-react';
 import { apiClient } from '../lib/apiClient';
 
 type IntakeAudience = 'candidate' | 'employer' | 'partner';
@@ -78,6 +78,41 @@ const partnerDefaults: PartnerFormState = {
   partnerType: '',
 };
 
+const NATIONALITY_OPTIONS = [
+  'Pakistani',
+  'Indian',
+  'Bangladeshi',
+  'Nepali',
+  'Sri Lankan',
+  'Filipino',
+  'Other',
+];
+
+const COUNTRY_INTEREST_OPTIONS = [
+  'Saudi Arabia',
+  'United Arab Emirates',
+  'Qatar',
+  'Oman',
+  'Bahrain',
+  'Kuwait',
+  'Malaysia',
+  'Other',
+];
+
+const CANDIDATE_ROLE_OPTIONS = [
+  'Civil Engineer',
+  'HVAC Technician',
+  'Electrician',
+  'Plumber',
+  'Welder',
+  'Driver',
+  'Office Staff',
+  'General Labor',
+  'Other',
+];
+
+const EXPERIENCE_OPTIONS = ['Fresher', '1-3 Years', '3-5 Years', '5-10 Years', '10+ Years'];
+
 function resolveAudienceFromPath(): IntakeAudience | null {
   if (typeof window === 'undefined') {
     return 'candidate';
@@ -98,7 +133,7 @@ const AUDIENCE_META: Record<IntakeAudience, { label: string; title: string; desc
   candidate: {
     label: 'Candidate',
     title: 'Candidate Form',
-    description: 'Add your basic details, upload your CV, and submit.',
+    description: 'Choose your details from the ready-made options and upload your CV.',
     icon: Briefcase,
     submitLabel: 'Submit Application',
     successTitle: 'Application submitted',
@@ -257,21 +292,38 @@ export function PublicApplicationForm() {
             )}
 
             {activeAudience === 'candidate' && (
-              <form className="space-y-5" onSubmit={handleCandidateSubmit}>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <InputField label="Full Name" value={candidateForm.fullName} onChange={(value) => setCandidateForm((current) => ({ ...current, fullName: value }))} required icon={User2} />
-                  <InputField label="Email" type="email" value={candidateForm.email} onChange={(value) => setCandidateForm((current) => ({ ...current, email: value }))} required icon={Mail} />
-                  <InputField label="Phone / WhatsApp" value={candidateForm.phone} onChange={(value) => setCandidateForm((current) => ({ ...current, phone: value }))} required icon={Phone} />
-                  <InputField label="Nationality" value={candidateForm.nationality} onChange={(value) => setCandidateForm((current) => ({ ...current, nationality: value }))} icon={Globe2} />
-                  <InputField label="Country of Interest" value={candidateForm.countryOfInterest} onChange={(value) => setCandidateForm((current) => ({ ...current, countryOfInterest: value }))} icon={Globe2} />
-                  <InputField label="Preferred Role" value={candidateForm.position} onChange={(value) => setCandidateForm((current) => ({ ...current, position: value }))} icon={Briefcase} />
-                  <InputField label="Experience" value={candidateForm.experience} onChange={(value) => setCandidateForm((current) => ({ ...current, experience: value }))} icon={Users} />
-                </div>
-                <label className="block rounded-[22px] border border-dashed border-stone-300 bg-white/70 p-4 text-sm text-stone-700">
+              <form className="mx-auto max-w-xl space-y-4" onSubmit={handleCandidateSubmit}>
+                <div className="rounded-[28px] border border-[#dce6f3] bg-white p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)] sm:p-5">
+                  <div className="mb-5">
+                    <div className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-800">
+                      Career Opportunity
+                    </div>
+                    <h3 className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">Candidate Intake Profile</h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">Complete the form, upload your CV, and we will parse it for more details before sending your link.</p>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <InputField label="Full Name" value={candidateForm.fullName} onChange={(value) => setCandidateForm((current) => ({ ...current, fullName: value }))} required icon={User2} placeholder="e.g. Muhammad Ahmed" />
+                    <InputField label="Email" type="email" value={candidateForm.email} onChange={(value) => setCandidateForm((current) => ({ ...current, email: value }))} required icon={Mail} placeholder="ahmed@example.com" />
+                    <InputField label="Phone / WhatsApp" value={candidateForm.phone} onChange={(value) => setCandidateForm((current) => ({ ...current, phone: value }))} required icon={Phone} placeholder="+92 300 1234567" />
+                    <SelectField label="Nationality" value={candidateForm.nationality} onChange={(value) => setCandidateForm((current) => ({ ...current, nationality: value }))} options={NATIONALITY_OPTIONS} icon={Globe2} required placeholder="Select nationality" />
+                    <SelectField label="Country of Interest" value={candidateForm.countryOfInterest} onChange={(value) => setCandidateForm((current) => ({ ...current, countryOfInterest: value }))} options={COUNTRY_INTEREST_OPTIONS} icon={MapPin} required placeholder="Select country" />
+                    <SelectField label="Preferred Role" value={candidateForm.position} onChange={(value) => setCandidateForm((current) => ({ ...current, position: value }))} options={CANDIDATE_ROLE_OPTIONS} icon={Briefcase} required placeholder="Select role" />
+                  </div>
+
+                  <ChoiceChips
+                    label="Years of Relevant Experience"
+                    value={candidateForm.experience}
+                    options={EXPERIENCE_OPTIONS}
+                    onChange={(value) => setCandidateForm((current) => ({ ...current, experience: value }))}
+                  />
+
+                  <label className="mt-4 block rounded-[22px] border border-dashed border-[#c9d4e5] bg-[#f8fbff] p-4 text-sm text-slate-700">
                   <span className="mb-3 flex items-center gap-2 font-medium text-stone-900"><Upload className="h-4 w-4 text-stone-700" /> Upload CV</span>
                   <input type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onChange={(event) => setCandidateCv(event.target.files?.[0] || null)} className="block w-full text-sm text-stone-700 file:mr-3 file:rounded-full file:border-0 file:bg-stone-950 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white" />
                   <p className="mt-2 text-xs text-stone-500">Your CV will be parsed for more information after submit.</p>
                 </label>
+                </div>
                 <SubmitRow submitting={submitting} error={error} buttonLabel={activeMeta.submitLabel} />
               </form>
             )}
@@ -319,7 +371,7 @@ export function PublicApplicationForm() {
   );
 }
 
-function InputField({ label, value, onChange, required, type = 'text', icon: Icon }: { label: string; value: string; onChange: (value: string) => void; required?: boolean; type?: string; icon: typeof Briefcase }) {
+function InputField({ label, value, onChange, required, type = 'text', icon: Icon, placeholder }: { label: string; value: string; onChange: (value: string) => void; required?: boolean; type?: string; icon: typeof Briefcase; placeholder?: string }) {
   return (
     <label className="space-y-2">
       <span className="text-xs font-medium uppercase tracking-[0.16em] text-stone-500">{label}{required ? ' *' : ''}</span>
@@ -331,10 +383,56 @@ function InputField({ label, value, onChange, required, type = 'text', icon: Ico
           onChange={(event) => onChange(event.target.value)}
           required={required}
           className="w-full rounded-[18px] border border-stone-200 bg-white px-4 py-3 pl-11 text-sm text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-stone-400"
-          placeholder={label}
+          placeholder={placeholder || label}
         />
       </div>
     </label>
+  );
+}
+
+function SelectField({ label, value, onChange, required, icon: Icon, options, placeholder }: { label: string; value: string; onChange: (value: string) => void; required?: boolean; icon: typeof Briefcase; options: string[]; placeholder: string }) {
+  return (
+    <label className="space-y-2">
+      <span className="text-xs font-medium uppercase tracking-[0.16em] text-stone-500">{label}{required ? ' *' : ''}</span>
+      <div className="relative">
+        <Icon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          required={required}
+          className="w-full appearance-none rounded-[18px] border border-stone-200 bg-white px-4 py-3 pl-11 pr-11 text-sm text-stone-900 outline-none transition focus:border-stone-400"
+        >
+          <option value="">{placeholder}</option>
+          {options.map((option) => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
+      </div>
+    </label>
+  );
+}
+
+function ChoiceChips({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
+  return (
+    <div className="space-y-3">
+      <span className="text-xs font-medium uppercase tracking-[0.16em] text-stone-500">{label}</span>
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => {
+          const active = value === option;
+          return (
+            <button
+              key={option}
+              type="button"
+              onClick={() => onChange(option)}
+              className={`rounded-full border px-4 py-2 text-sm font-medium transition ${active ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'}`}
+            >
+              {option}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
