@@ -200,9 +200,10 @@ export function PublicApplicationForm() {
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderRadius: '999px', background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.25)', padding: '0.3rem 0.85rem', fontSize: '0.75rem', fontWeight: 700, color: '#0891b2', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
               <span style={{ width: '0.45rem', height: '0.45rem', borderRadius: '50%', background: '#06b6d4', display: 'inline-block' }} />
-              Pakistan #1 Recruitment
+              Pakistan's #1 Overseas Recruitment
             </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderRadius: '999px', background: '#f9fafb', border: '1px solid #e5e7eb', padding: '0.3rem 0.85rem', fontSize: '0.75rem', fontWeight: 600, color: '#6b7280' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderRadius: '999px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.28)', padding: '0.3rem 0.85rem', fontSize: '0.75rem', fontWeight: 700, color: '#059669' }}>
+              <span style={{ width: '0.45rem', height: '0.45rem', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
               85,000+ Placed Globally
             </span>
           </div>
@@ -335,15 +336,18 @@ export function PublicApplicationForm() {
 
           <div className="mb-8 flex flex-col items-center">
             <img src="/logo.png" alt="Falisha" className="h-16 w-16 object-contain" />
-            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">Pakistan #1 Recruitment Company</p>
+            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">Pakistan's #1 Overseas Recruitment Company</p>
           </div>
 
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderRadius: '999px', background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.25)', padding: '0.3rem 0.85rem', fontSize: '0.75rem', fontWeight: 700, color: '#0891b2', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
               <span style={{ width: '0.45rem', height: '0.45rem', borderRadius: '50%', background: '#06b6d4', display: 'inline-block' }} />
-              Hire Globally
+              Pakistan's #1 Overseas Recruitment
             </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderRadius: '999px', background: '#f9fafb', border: '1px solid #e5e7eb', padding: '0.3rem 0.85rem', fontSize: '0.75rem', fontWeight: 600, color: '#6b7280' }}>Fast · Verified · Compliant</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderRadius: '999px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.28)', padding: '0.3rem 0.85rem', fontSize: '0.75rem', fontWeight: 700, color: '#059669' }}>
+              <span style={{ width: '0.45rem', height: '0.45rem', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+              Fast · Verified · Compliant
+            </span>
           </div>
 
           <div className="falisha-auth-heading-block">
@@ -398,15 +402,18 @@ export function PublicApplicationForm() {
 
         <div className="mb-8 flex flex-col items-center">
           <img src="/logo.png" alt="Falisha" className="h-16 w-16 object-contain" />
-          <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">Pakistan #1 Recruitment Company</p>
+          <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">Pakistan's #1 Overseas Recruitment Company</p>
         </div>
 
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderRadius: '999px', background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.25)', padding: '0.3rem 0.85rem', fontSize: '0.75rem', fontWeight: 700, color: '#0891b2', textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
             <span style={{ width: '0.45rem', height: '0.45rem', borderRadius: '50%', background: '#06b6d4', display: 'inline-block' }} />
-            Partner Program
+            Pakistan's #1 Overseas Recruitment
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderRadius: '999px', background: '#f9fafb', border: '1px solid #e5e7eb', padding: '0.3rem 0.85rem', fontSize: '0.75rem', fontWeight: 600, color: '#6b7280' }}>Earn · Grow · Scale</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderRadius: '999px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.28)', padding: '0.3rem 0.85rem', fontSize: '0.75rem', fontWeight: 700, color: '#059669' }}>
+            <span style={{ width: '0.45rem', height: '0.45rem', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+            Earn · Grow · Scale
+          </span>
         </div>
 
         <div className="falisha-auth-heading-block">
