@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient, Candidate, CandidateDashboardStats } from '../lib/apiClient';
+import { CANDIDATE_STATUS_VALUES, type CandidateStatus, getCandidateStatusClasses, normalizeCandidateStatus } from '../lib/candidateStatus';
 import { useCandidates } from '../lib/candidateContext';
 import { useDebounce } from '../hooks/useDebounce';
 import { CandidateDetailsModal } from './CandidateDetailsModal';
@@ -96,8 +97,17 @@ function confidenceScore10(confidence?: Record<string, number>) {
   return Math.round(score * 10) / 10;
 }
 
-function parsePartnerSource(source?: string | null) {
-  const raw = String(source || '');
+function parsePartnerSource(candidate: { source?: string | null; partner_id?: string | null; partner_name?: string | null; is_partner_candidate?: boolean }) {
+  if (candidate.partner_id || candidate.partner_name || candidate.is_partner_candidate) {
+    return {
+      partnerUserId: candidate.partner_id || null,
+      partnerName: candidate.partner_name || null,
+      partnerCompany: null,
+      label: candidate.partner_name || 'Partner',
+    };
+  }
+
+  const raw = String(candidate.source || '');
   if (!raw.startsWith('Partner|')) {
     return null;
   }
@@ -159,8 +169,9 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
   
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkStatus, setBulkStatus] = useState<'Applied' | 'Pending' | 'Deployed' | 'Cancelled'>('Pending');
+  const [bulkStatus, setBulkStatus] = useState<CandidateStatus>('Pending');
   const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [statusUpdatingIds, setStatusUpdatingIds] = useState<Record<string, boolean>>({});
   const [slowLoadWarning, setSlowLoadWarning] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     search: '',
@@ -466,7 +477,11 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
         if (cancelled) return;
         setPositions(metadata.professions.map((profession) => profession.name));
         setCountries(metadata.countries.map((country) => country.name));
-        setStatuses(metadata.statuses.map((status) => status.name));
+        setStatuses(
+          metadata.statuses
+            .map((status) => normalizeCandidateStatus(status.name))
+            .filter((status, index, values) => values.indexOf(status) === index)
+        );
       } catch (err) {
         if (!cancelled) {
           console.warn('Failed to load candidate browse metadata', err);
@@ -581,6 +596,29 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
       alert(e?.message || 'Failed to bulk update status');
     } finally {
       setBulkUpdating(false);
+    }
+  }
+
+  async function handleCandidateStatusChange(candidate: Candidate, nextStatus: CandidateStatus) {
+    const currentStatus = normalizeCandidateStatus(candidate.status);
+    if (currentStatus === nextStatus) {
+      return;
+    }
+
+    try {
+      setStatusUpdatingIds((prev) => ({ ...prev, [candidate.id]: true }));
+      const updatedCandidate = await apiClient.updateCandidate(candidate.id, { status: nextStatus });
+      await refreshCandidates();
+      setSelectedCandidate((prev) => (prev?.id === candidate.id ? { ...prev, status: updatedCandidate.status } : prev));
+      toast.success(`Candidate status updated to ${nextStatus}`);
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to update candidate status');
+    } finally {
+      setStatusUpdatingIds((prev) => {
+        const next = { ...prev };
+        delete next[candidate.id];
+        return next;
+      });
     }
   }
 
@@ -1054,10 +1092,11 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
                 className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 disabled={bulkUpdating}
               >
-                <option value="Applied">Applied</option>
-                <option value="Pending">Pending</option>
-                <option value="Deployed">Deployed</option>
-                <option value="Cancelled">Cancelled</option>
+                {CANDIDATE_STATUS_VALUES.map((statusOption) => (
+                  <option key={statusOption} value={statusOption}>
+                    {statusOption}
+                  </option>
+                ))}
               </select>
               <button
                 onClick={applyBulkStatusUpdate}
@@ -1158,8 +1197,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
               const skills = safeJsonArray(c.skills);
               const confidenceScore = confidenceScore10(c.extraction_confidence);
               const score = typeof c.ai_score === 'number' && isFinite(c.ai_score) ? c.ai_score : confidenceScore;
-              const statusLabel = (c.status || 'Applied').toString();
-              const partnerAttribution = parsePartnerSource(c.source);
+              const statusLabel = normalizeCandidateStatus(c.status);
+              const partnerAttribution = parsePartnerSource(c);
               const selected = selectedIds.has(c.id);
 
               const cvOk = !!c.cv_received;
@@ -1293,14 +1332,21 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
 
                     {/* Status and Score Row */}
                     <div className="flex flex-wrap items-center gap-2 mb-4 pb-4 border-b border-gray-200">
-                      <span className={`px-4 py-2 rounded-lg text-sm font-medium flex-shrink-0 ${
-                        statusLabel === 'Applied' ? 'bg-blue-100 text-blue-700' :
-                        statusLabel === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
-                        statusLabel === 'Deployed' ? 'bg-green-100 text-green-700' :
-                        'bg-red-100 text-red-700'
-                      }`}>
-                        {statusLabel}
-                      </span>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <select
+                          value={statusLabel}
+                          onChange={(event) => handleCandidateStatusChange(c, event.target.value as CandidateStatus)}
+                          disabled={!!statusUpdatingIds[c.id]}
+                          className={`rounded-lg border border-transparent px-4 py-2 text-sm font-medium ${getCandidateStatusClasses(statusLabel)} ${statusUpdatingIds[c.id] ? 'cursor-wait opacity-70' : 'cursor-pointer'}`}
+                        >
+                          {CANDIDATE_STATUS_VALUES.map((statusOption) => (
+                            <option key={statusOption} value={statusOption}>
+                              {statusOption}
+                            </option>
+                          ))}
+                        </select>
+                        {statusUpdatingIds[c.id] && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
+                      </div>
                       {score != null && (
                         <div className="flex items-center gap-2 bg-yellow-50 px-4 py-2 rounded-lg flex-shrink-0">
                           <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />

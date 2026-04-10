@@ -4,6 +4,7 @@ import {
   FileText, LayoutDashboard, LogOut, Mail, MapPin, MoreVertical, Phone, Plus, Search, Settings, Upload, Users, UserCircle2, X, XCircle,
 } from 'lucide-react';
 import { apiClient, type Candidate, type PartnerBulkUploadResult, type PortalProfileResponse } from '../lib/apiClient';
+import { normalizeCandidateStatus } from '../lib/candidateStatus';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -59,14 +60,14 @@ function formatDate(iso?: string | null) {
 }
 
 function StatusBadge({ status }: { status?: string }) {
-  const s = (status || '').toLowerCase();
-  if (['verified', 'approved', 'deployed'].some((x) => s.includes(x))) {
-    return <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">Verified</span>;
-  }
-  if (['rejected', 'cancelled', 'declined'].some((x) => s.includes(x))) {
-    return <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700">Rejected</span>;
-  }
-  return <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-700">Pending</span>;
+  const normalized = normalizeCandidateStatus(status);
+  const classes = normalized === 'Applied'
+    ? 'bg-blue-100 text-blue-700'
+    : normalized === 'Pending'
+      ? 'bg-yellow-100 text-yellow-700'
+      : 'bg-green-100 text-green-700';
+
+  return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${classes}`}>{normalized}</span>;
 }
 
 interface DropZoneProps {
@@ -268,9 +269,9 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
     const today = new Date().toISOString().slice(0, 10);
     return {
       total: candidates.length,
-      verified: candidates.filter((c) => ['verified', 'approved', 'deployed'].some((x) => (c.status || '').toLowerCase().includes(x))).length,
-      pending: candidates.filter((c) => ['pending', 'applied'].some((x) => (c.status || '').toLowerCase().includes(x))).length,
-      rejected: candidates.filter((c) => ['rejected', 'cancelled', 'declined'].some((x) => (c.status || '').toLowerCase().includes(x))).length,
+      applied: candidates.filter((c) => normalizeCandidateStatus(c.status) === 'Applied').length,
+      pending: candidates.filter((c) => normalizeCandidateStatus(c.status) === 'Pending').length,
+      deployed: candidates.filter((c) => normalizeCandidateStatus(c.status) === 'Deployed').length,
       today: candidates.filter((c) => (c.created_at || '').startsWith(today)).length,
     };
   }, [candidates]);
@@ -280,12 +281,12 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
     return candidates.filter((c) => {
       const q = search.toLowerCase();
       const matchSearch = !q || (c.name || '').toLowerCase().includes(q) || (c.cnic || '').toLowerCase().includes(q) || (c.phone || '').includes(q);
-      const s = (c.status || '').toLowerCase();
+      const s = normalizeCandidateStatus(c.status).toLowerCase();
       const matchStatus =
         statusFilter === 'all' ||
-        (statusFilter === 'verified' && ['verified', 'approved', 'deployed'].some((x) => s.includes(x))) ||
-        (statusFilter === 'pending' && ['pending', 'applied'].some((x) => s.includes(x))) ||
-        (statusFilter === 'rejected' && ['rejected', 'cancelled', 'declined'].some((x) => s.includes(x)));
+        (statusFilter === 'applied' && s === 'applied') ||
+        (statusFilter === 'pending' && s === 'pending') ||
+        (statusFilter === 'deployed' && s === 'deployed');
       const matchDate =
         (!dateFrom || (c.created_at || '') >= dateFrom) &&
         (!dateTo || (c.created_at || '') <= dateTo + 'T23:59:59');
@@ -307,12 +308,12 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
         phone: uploadForm.phone.trim(),
         email: uploadForm.email.trim() || undefined,
       }, accessToken);
-      if (uploadForm.cvFile) await apiClient.uploadCandidateDocument(uploadForm.cvFile, candidate.id, 'partner', 'cv');
-      if (uploadForm.passportFile) await apiClient.uploadCandidateDocument(uploadForm.passportFile, candidate.id, 'partner', 'passport_cnic');
+      if (uploadForm.cvFile) await apiClient.uploadPartnerCandidateDocument(uploadForm.cvFile, candidate.id, accessToken, 'cv');
+      if (uploadForm.passportFile) await apiClient.uploadPartnerCandidateDocument(uploadForm.passportFile, candidate.id, accessToken, 'passport_cnic');
       if (uploadForm.photoFile) await apiClient.uploadCandidatePhoto(candidate.id, uploadForm.photoFile);
       setCandidates((prev) => [candidate, ...prev]);
       setUploadForm(EMPTY_UPLOAD_FORM);
-      setUploadSuccess(`${candidate.name} uploaded and processed successfully.`);
+      setUploadSuccess(`${candidate.name} saved successfully.`);
       setView('candidates');
     } catch (err: any) {
       setUploadError(err?.message || 'Upload failed');
@@ -467,9 +468,9 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
               <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
                 {[
                   { label: 'Total Candidates', value: stats.total, color: 'bg-blue-100', iconColor: 'text-blue-600', Icon: Users },
-                  { label: 'Verified', value: stats.verified, color: 'bg-green-100', iconColor: 'text-green-600', Icon: CheckCircle2 },
+                  { label: 'Applied', value: stats.applied, color: 'bg-blue-100', iconColor: 'text-blue-600', Icon: FileText },
                   { label: 'Pending', value: stats.pending, color: 'bg-amber-100', iconColor: 'text-amber-600', Icon: Clock },
-                  { label: 'Rejected', value: stats.rejected, color: 'bg-red-100', iconColor: 'text-red-600', Icon: XCircle },
+                  { label: 'Deployed', value: stats.deployed, color: 'bg-green-100', iconColor: 'text-green-600', Icon: CheckCircle2 },
                   { label: 'Uploads Today', value: stats.today, color: 'bg-purple-100', iconColor: 'text-purple-600', Icon: BarChart3 },
                 ].map(({ label, value, color, iconColor, Icon }) => (
                   <div key={label} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -549,9 +550,9 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
                   className="rounded-lg border border-gray-300 py-2 pl-3 pr-8 text-sm outline-none focus:border-blue-400"
                 >
                   <option value="all">All Status</option>
-                  <option value="verified">Verified</option>
+                  <option value="applied">Applied</option>
                   <option value="pending">Pending</option>
-                  <option value="rejected">Rejected</option>
+                  <option value="deployed">Deployed</option>
                 </select>
                 <div className="relative">
                   <button
@@ -786,9 +787,9 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
                     <FileText className="h-4 w-4" /> Requirements:
                   </p>
                   <ul className="space-y-1 text-xs text-blue-700 list-disc list-inside">
-                    <li>Excel must contain: Name, CNIC/Passport, Phone, Email</li>
-                    <li>ZIP files should be named matching CNIC/Passport numbers</li>
-                    <li>Supported formats: PDF, JPG, PNG for documents</li>
+                    <li>Excel must contain: Name, CNIC/Passport, Phone. Email is optional.</li>
+                    <li>ZIP filenames should include the same CNIC/Passport token used in Excel.</li>
+                    <li>Bulk files are sent through the existing ingestion and parser pipeline.</li>
                   </ul>
                 </div>
 
@@ -802,7 +803,7 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
                 {bulkResult && (
                   <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
                     <p className="font-semibold">Bulk upload complete</p>
-                    <p className="mt-1">Created {bulkResult.created} of {bulkResult.total} candidates.</p>
+                    <p className="mt-1">Created {bulkResult.created}, updated {bulkResult.updated}, across {bulkResult.total} rows.</p>
                     {bulkResult.errors.length > 0 && (
                       <ul className="mt-2 space-y-0.5 text-xs text-red-600 list-disc list-inside">
                         {bulkResult.errors.slice(0, 10).map((e, i) => (

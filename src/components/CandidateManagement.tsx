@@ -25,6 +25,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { apiClient, Candidate } from '../lib/apiClient';
+import { CANDIDATE_STATUS_VALUES, type CandidateStatus, normalizeCandidateStatus } from '../lib/candidateStatus';
 import { MergeCandidatesModal } from './MergeCandidatesModal';
 
 interface CandidateManagementProps {
@@ -78,7 +79,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkStatus, setBulkStatus] = useState<'Applied' | 'Pending' | 'Deployed' | 'Cancelled'>('Pending');
+  const [bulkStatus, setBulkStatus] = useState<CandidateStatus>('Pending');
   const [bulkUpdating, setBulkUpdating] = useState(false);
   const [mergeTarget, setMergeTarget] = useState<Candidate | null>(null);
   // ── Search: separate the raw input value from the debounced API query ────────
@@ -136,9 +137,9 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
         setCountries(uniqueCountries);
 
         const uniqueStatuses = Array.from(
-          new Set((response.candidates || []).map((c) => (c.status || 'Applied')).filter(Boolean))
+          new Set((response.candidates || []).map((c) => normalizeCandidateStatus(c.status)).filter(Boolean))
         ).sort() as string[];
-        setStatuses(uniqueStatuses.length ? uniqueStatuses : ['Applied', 'Pending', 'Deployed', 'Cancelled']);
+        setStatuses(uniqueStatuses.length ? uniqueStatuses : [...CANDIDATE_STATUS_VALUES]);
       } catch (e: any) {
         if (!isMounted || controller.signal.aborted) return;
         setError(e?.message || 'Failed to load candidates');
@@ -812,10 +813,11 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                   className="h-10 px-3 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled={bulkUpdating}
                 >
-                  <option value="Applied">Applied</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Deployed">Deployed</option>
-                  <option value="Cancelled">Cancelled</option>
+                  {CANDIDATE_STATUS_VALUES.map((statusOption) => (
+                    <option key={statusOption} value={statusOption}>
+                      {statusOption}
+                    </option>
+                  ))}
                 </select>
 
                 <button

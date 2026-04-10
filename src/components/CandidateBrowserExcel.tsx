@@ -33,6 +33,7 @@ import { getFrontendBaseUrl } from '../lib/publicUrl';
 import { toast } from 'sonner';
 import { Toaster } from './ui/sonner';
 import { apiClient, Candidate, CandidateBrowseMetadata, CandidateFilters } from '../lib/apiClient';
+import { CANDIDATE_STATUS_VALUES, type CandidateStatus, getCandidateStatusClasses, normalizeCandidateStatus } from '../lib/candidateStatus';
 import { SendToEmployerModal } from './SendToEmployerModal';
 
 interface FolderNode {
@@ -285,6 +286,7 @@ export function CandidateBrowserExcel() {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [selectedFolder, setSelectedFolder] = useState<FolderNode | null>(null);
   const [selectedCandidates, setSelectedCandidates] = useState<Set<string>>(new Set());
+  const [statusUpdatingIds, setStatusUpdatingIds] = useState<Record<string, boolean>>({});
   const [viewMode, setViewMode] = useState<'basic' | 'detailed'>('detailed');
   const [professionMode, setProfessionMode] = useState<string | null>(null);
   const [activeMenu, setActiveMenu] = useState<'dashboard' | 'browser'>('dashboard');
@@ -339,6 +341,28 @@ export function CandidateBrowserExcel() {
       }
     }
   }, [debouncedSearchQuery, appliedFrom, appliedTo, sortBy, sortOrder, currentPage, pageSize, selectedFolder, selectedCountry, activeMenu]);
+
+  async function handleCandidateStatusChange(candidate: Candidate, nextStatus: CandidateStatus) {
+    const currentStatus = normalizeCandidateStatus(candidate.status);
+    if (currentStatus === nextStatus) {
+      return;
+    }
+
+    try {
+      setStatusUpdatingIds((prev) => ({ ...prev, [candidate.id]: true }));
+      const updatedCandidate = await apiClient.updateCandidate(candidate.id, { status: nextStatus });
+      setCandidates((prev) => prev.map((item) => (item.id === candidate.id ? { ...item, status: updatedCandidate.status } : item)));
+      toast.success(`Candidate status updated to ${nextStatus}`);
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to update candidate status');
+    } finally {
+      setStatusUpdatingIds((prev) => {
+        const next = { ...prev };
+        delete next[candidate.id];
+        return next;
+      });
+    }
+  }
 
   // Fetch data when filters change
   useEffect(() => {
@@ -1126,14 +1150,21 @@ export function CandidateBrowserExcel() {
                       <td className="border border-gray-300 p-2 text-sm text-gray-700">{candidate.email || 'missing'}</td>
                       <td className="border border-gray-300 p-2 text-sm text-gray-700 text-center">{candidate.experience_years ? `${candidate.experience_years}y` : 'missing'}</td>
                       <td className="border border-gray-300 p-2">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          candidate.status === 'Applied' ? 'bg-blue-100 text-blue-700' :
-                          candidate.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
-                          candidate.status === 'Deployed' ? 'bg-green-100 text-green-700' :
-                          'bg-red-100 text-red-700'
-                        }`}>
-                          {candidate.status || 'missing'}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={normalizeCandidateStatus(candidate.status)}
+                            onChange={(event) => handleCandidateStatusChange(candidate, event.target.value as CandidateStatus)}
+                            disabled={!!statusUpdatingIds[candidate.id]}
+                            className={`rounded border border-transparent px-2 py-1 text-xs font-medium ${getCandidateStatusClasses(candidate.status)} ${statusUpdatingIds[candidate.id] ? 'cursor-wait opacity-70' : 'cursor-pointer'}`}
+                          >
+                            {CANDIDATE_STATUS_VALUES.map((statusOption) => (
+                              <option key={statusOption} value={statusOption}>
+                                {statusOption}
+                              </option>
+                            ))}
+                          </select>
+                          {statusUpdatingIds[candidate.id] && <span className="text-[11px] text-gray-500">Saving…</span>}
+                        </div>
                       </td>
                       <td className="border border-gray-300 p-2 text-sm text-center">
                         {candidate.ai_score != null ? (
