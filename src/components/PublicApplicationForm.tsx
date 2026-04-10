@@ -182,147 +182,82 @@ export function PublicApplicationForm() {
 
   if (activeAudience === 'candidate') {
     return (
-      <div className="min-h-screen bg-[#f0f4f8]" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui, sans-serif' }}>
-
-        {/* ── DARK NAVY HERO ── */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-[#001529] via-[#003461] to-[#004f91]">
-          {/* Decorative blobs */}
-          <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/5" />
-          <div className="pointer-events-none absolute bottom-0 left-0 h-48 w-48 rounded-full bg-[#00c6ff]/10 blur-2xl" />
-          <div className="pointer-events-none absolute right-10 top-10 h-24 w-24 rounded-full bg-white/5" />
-          <div className="pointer-events-none absolute left-[35%] top-[50%] h-2 w-2 rounded-full bg-[#a0f2e1]/60" />
-          <div className="pointer-events-none absolute right-[20%] top-[30%] h-3 w-3 rounded-full bg-white/20" />
-
-          {/* Logo bar */}
-          <header className="px-5 pb-2 pt-5 sm:px-8">
-            <div className="mx-auto flex max-w-lg items-center justify-between">
-              <div className="flex items-center gap-3">
-                <img src="/logo.png" alt="Falisha" className="h-9 w-9 rounded-xl bg-white/10 object-contain p-1" />
-                <div className="leading-none">
-                  <p className="text-[15px] font-extrabold text-white">Falisha Jobs</p>
-                  <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.22em] text-[#a0f2e1]">Bridging Talent to Opportunities</p>
-                </div>
-              </div>
-              <nav className="hidden items-center gap-5 sm:flex">
-                <a className="text-xs font-bold text-white" href="/apply/candidate">Apply</a>
-                <a className="text-xs text-white/50 transition hover:text-white" href="/apply/employer">Employers</a>
-                <a className="text-xs text-white/50 transition hover:text-white" href="/apply/partner">Partners</a>
-              </nav>
-            </div>
-          </header>
-
-          {/* Hero copy */}
-          <div className="px-5 pb-28 pt-7 sm:px-8">
-            <div className="mx-auto max-w-lg">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#a0f2e1]/30 bg-[#a0f2e1]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#a0f2e1]">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#a0f2e1]" />
-                Now Hiring Globally
-              </span>
-              <h1 className="mt-4 text-[2.6rem] font-black leading-[1.05] tracking-tight text-white sm:text-5xl">
-                Your Future<br />
-                <span className="bg-gradient-to-r from-[#a0f2e1] to-[#60c8f5] bg-clip-text text-transparent">Without Borders.</span>
-              </h1>
-              <p className="mt-3 max-w-sm text-[13px] leading-relaxed text-white/50">
-                Join thousands of professionals placed across GCC, Europe &amp; beyond.
-              </p>
-
-              {/* Stats row */}
-              <div className="mt-7 flex items-center gap-7">
-                <div>
-                  <p className="text-2xl font-black text-white">2,400+</p>
-                  <p className="text-[10px] uppercase tracking-wider text-white/40">Placements</p>
-                </div>
-                <div className="h-8 w-px bg-white/15" />
-                <div>
-                  <p className="text-2xl font-black text-white">48h</p>
-                  <p className="text-[10px] uppercase tracking-wider text-white/40">Review Time</p>
-                </div>
-                <div className="h-8 w-px bg-white/15" />
-                <div>
-                  <p className="text-2xl font-black text-white">12+</p>
-                  <p className="text-[10px] uppercase tracking-wider text-white/40">Countries</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── FORM CARD — overlaps the hero bottom ── */}
-        <div className="px-4 pb-14 sm:px-6">
-          <div className="mx-auto -mt-14 w-full max-w-lg">
-            <div className="rounded-3xl bg-white p-6 shadow-[0_20px_60px_rgba(0,52,97,0.16)] sm:p-8">
-
-              {/* Card header */}
-              <div className="flex items-center gap-3 border-b border-slate-100 pb-5">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#003461]/10">
-                  <User2 className="h-5 w-5 text-[#003461]" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-[#003461]">Candidate Intake Profile</h2>
-                  <p className="text-xs text-slate-400">Reviewed within 48 hours by our consultants</p>
-                </div>
-              </div>
-
-              {submittedAudience === 'candidate' && (
-                <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-sm">
-                  <p className="font-bold text-emerald-800">Application submitted!</p>
-                  <p className="mt-0.5 text-emerald-700">Your CV will be parsed and a link sent after review.</p>
-                </div>
-              )}
-
-              <form className="mt-5 space-y-5" onSubmit={handleCandidateSubmit}>
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                  <PremiumInput label="Full Name" value={candidateForm.fullName} onChange={(v) => setCandidateForm((c) => ({ ...c, fullName: v }))} placeholder="Muhammad Ahmed" required />
-                  <PremiumInput label="Email Address" type="email" value={candidateForm.email} onChange={(v) => setCandidateForm((c) => ({ ...c, email: v }))} placeholder="ahmed@example.com" required />
-                </div>
-
-                <CandidatePhoneField code={candidatePhoneCode} number={candidatePhoneNumber} onCodeChange={setCandidatePhoneCode} onNumberChange={setCandidatePhoneNumber} />
-
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                  <PremiumSelect label="Nationality" value={candidateForm.nationality} onChange={(v) => setCandidateForm((c) => ({ ...c, nationality: v }))} options={NATIONALITY_OPTIONS} />
-                  <PremiumSelect label="Country of Interest" value={candidateForm.countryOfInterest} onChange={(v) => setCandidateForm((c) => ({ ...c, countryOfInterest: v }))} options={COUNTRY_INTEREST_OPTIONS} />
-                </div>
-
-                <PremiumInput label="Preferred Role" value={candidateForm.position} onChange={(v) => setCandidateForm((c) => ({ ...c, position: v }))} placeholder="e.g. Civil Engineer, HVAC Tech" required />
-
-                <ChoiceChips label="Years of Experience" value={candidateForm.experience} options={EXPERIENCE_OPTIONS} onChange={(v) => setCandidateForm((c) => ({ ...c, experience: v }))} />
-
-                <CandidateUploadField fileName={candidateCv?.name || null} onFileChange={(f) => setCandidateCv(f)} />
-
-                <label className="flex cursor-pointer items-start gap-3">
-                  <input type="checkbox" className="mt-0.5 rounded border-slate-300 text-[#003461] focus:ring-[#003461]/20" />
-                  <span className="text-xs leading-5 text-slate-500">
-                    I agree to the{' '}
-                    <a className="font-semibold text-[#003461] underline" href="/privacy-policy">Privacy Policy</a>{' '}
-                    and data processing terms.
-                  </span>
-                </label>
-
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#003461] px-6 py-4 text-sm font-bold text-white shadow-[0_8px_28px_rgba(0,52,97,0.30)] transition hover:bg-[#004b87] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {submitting ? 'Submitting…' : 'Submit Application'}
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-
-                {error && (
-                  <div className="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
-                )}
-              </form>
-            </div>
-          </div>
-        </div>
-
-        <footer className="pb-8 text-center">
-          <p className="text-xs text-slate-400">
-            © 2024 Falisha Jobs ·{' '}
-            <a className="transition hover:text-slate-600" href="/privacy-policy">Privacy</a> ·{' '}
-            <a className="transition hover:text-slate-600" href="#">Terms</a> ·{' '}
-            <a className="transition hover:text-slate-600" href="#">Help</a>
+      <div
+        className="flex min-h-screen flex-col items-center bg-[#f1f5f9] px-4 py-8 sm:py-12"
+        style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui, sans-serif' }}
+      >
+        {/* ── Small centered logo ── */}
+        <div className="mb-6 flex flex-col items-center">
+          <img src="/logo.png" alt="Falisha" className="h-16 w-16 object-contain drop-shadow-sm" />
+          <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
+            Bridging Talent to Opportunities
           </p>
-        </footer>
+        </div>
+
+        {/* ── Centered form card ── */}
+        <div className="w-full max-w-md rounded-3xl bg-white shadow-[0_8px_40px_rgba(0,52,97,0.12)]">
+
+          {/* Card top stripe */}
+          <div className="rounded-t-3xl bg-[#003461] px-6 py-5">
+            <h2 className="text-lg font-bold text-white">Apply Now</h2>
+            <p className="mt-0.5 text-xs text-white/60">We'll review your profile within 48 hours</p>
+          </div>
+
+          {/* Form body */}
+          <div className="px-6 pb-7 pt-6">
+            {submittedAudience === 'candidate' && (
+              <div className="mb-5 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-sm">
+                <p className="font-bold text-emerald-800">Application submitted!</p>
+                <p className="mt-0.5 text-emerald-700">Your CV will be parsed and a link sent after review.</p>
+              </div>
+            )}
+
+            <form className="space-y-4" onSubmit={handleCandidateSubmit}>
+              <PremiumInput label="Full Name" value={candidateForm.fullName} onChange={(v) => setCandidateForm((c) => ({ ...c, fullName: v }))} placeholder="Muhammad Ahmed" required />
+              <PremiumInput label="Email Address" type="email" value={candidateForm.email} onChange={(v) => setCandidateForm((c) => ({ ...c, email: v }))} placeholder="ahmed@example.com" required />
+              <CandidatePhoneField code={candidatePhoneCode} number={candidatePhoneNumber} onCodeChange={setCandidatePhoneCode} onNumberChange={setCandidatePhoneNumber} />
+
+              <div className="grid grid-cols-2 gap-4">
+                <PremiumSelect label="Nationality" value={candidateForm.nationality} onChange={(v) => setCandidateForm((c) => ({ ...c, nationality: v }))} options={NATIONALITY_OPTIONS} />
+                <PremiumSelect label="Country of Interest" value={candidateForm.countryOfInterest} onChange={(v) => setCandidateForm((c) => ({ ...c, countryOfInterest: v }))} options={COUNTRY_INTEREST_OPTIONS} />
+              </div>
+
+              <PremiumInput label="Preferred Role" value={candidateForm.position} onChange={(v) => setCandidateForm((c) => ({ ...c, position: v }))} placeholder="e.g. Civil Engineer" required />
+
+              <ChoiceChips label="Years of Experience" value={candidateForm.experience} options={EXPERIENCE_OPTIONS} onChange={(v) => setCandidateForm((c) => ({ ...c, experience: v }))} />
+
+              <CandidateUploadField fileName={candidateCv?.name || null} onFileChange={(f) => setCandidateCv(f)} />
+
+              <label className="flex cursor-pointer items-start gap-3 pt-1">
+                <input type="checkbox" className="mt-0.5 rounded border-slate-300 text-[#003461] focus:ring-[#003461]/20" />
+                <span className="text-xs leading-5 text-slate-500">
+                  I agree to the{' '}
+                  <a className="font-semibold text-[#003461] underline" href="/privacy-policy">Privacy Policy</a>
+                  {' '}and data processing terms.
+                </span>
+              </label>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#003461] py-3.5 text-sm font-bold text-white shadow-[0_6px_20px_rgba(0,52,97,0.28)] transition hover:bg-[#004b87] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {submitting ? 'Submitting…' : 'Submit Application'}
+                <ArrowRight className="h-4 w-4" />
+              </button>
+
+              {error && (
+                <div className="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+              )}
+            </form>
+          </div>
+        </div>
+
+        <p className="mt-6 text-[11px] text-slate-400">
+          © 2024 Falisha Jobs ·{' '}
+          <a className="hover:text-slate-600" href="/privacy-policy">Privacy</a> ·{' '}
+          <a className="hover:text-slate-600" href="#">Terms</a>
+        </p>
       </div>
     );
   }
