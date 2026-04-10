@@ -203,62 +203,46 @@ export function PublicApplicationForm() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:py-16">
-          <div className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-12">
-            <section className="space-y-8 lg:col-span-5">
-              <div className="inline-flex items-center rounded-full bg-[#a0f2e1] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[#00201b]">
+        <main className="relative overflow-hidden px-4 py-10 sm:px-6">
+          {/* Blurred side orbs */}
+          <div className="pointer-events-none absolute -left-40 top-1/4 h-96 w-96 rounded-full bg-[#a0f2e1] opacity-50 blur-[120px]" />
+          <div className="pointer-events-none absolute -right-40 top-1/3 h-96 w-96 rounded-full bg-[#a3c9ff] opacity-40 blur-[120px]" />
+          <div className="pointer-events-none absolute -bottom-20 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-[#003461] opacity-10 blur-[100px]" />
+
+          <div className="relative z-10 mx-auto w-full max-w-xl">
+            <div className="mb-8 text-center">
+              <span className="inline-flex items-center rounded-full bg-[#a0f2e1] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-[#00201b]">
                 Career Opportunity
-              </div>
+              </span>
+              <h2 className="mt-4 text-3xl font-extrabold leading-tight tracking-tight text-[#003461] sm:text-4xl">
+                Your Future <span className="italic text-[#046b5e]">Without Borders.</span>
+              </h2>
+              <p className="mt-2 text-sm text-[#424750]">Join thousands of professionals placed across GCC, Europe &amp; beyond.</p>
+            </div>
 
-              <div className="space-y-5">
-                <h2 className="text-4xl font-extrabold leading-[0.95] tracking-[-0.05em] text-[#003461] sm:text-5xl lg:text-6xl">
-                  Your Future <br />
-                  <span className="italic text-[#046b5e]">Without Borders.</span>
-                </h2>
-                <p className="max-w-md text-base leading-8 text-[#424750] sm:text-lg">
-                  Join the thousands of professionals Falisha Jobs has placed in premium roles across the GCC, Europe, and beyond. Your expertise deserves a global stage.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <TrustBadge icon={<ShieldCheck className="h-5 w-5 text-[#046b5e]" />} title="Verified" subtitle="Manpower License 1492/SKP" />
-                <TrustBadge icon={<Globe2 className="h-5 w-5 text-[#046b5e]" />} title="Global Reach" subtitle="15+ Partner Countries" />
-              </div>
-
-              <div className="overflow-hidden rounded-[24px]">
-                <img
-                  alt="Professional recruiter"
-                  className="h-64 w-full rounded-[24px] object-cover transition duration-700 hover:scale-[1.03]"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDU-iJEZLekVnVbpJ1Tl_py9iOhIRRt_QRfFA9Wtr6VZgleBxW77_uLsN7HgSsM43AL-rjoONSzEXQdRk7hYz09X81h8S8aJCCRC7tIP3FM-6UhsLRLUUTbHRBEvvZuM8I3xpJ0g0DQgGPSHfoSOZeKrMiC4SJaORwW8k52BnqD_Ahv7eF8tSQGr-VVXNHXq7iZ1lIfqi95ccS9OBBFtSo4qnwpO6-lFt0mWv9ImLOY-dVOjVJRi_NbxoX09CymkFptgYRKZD7-Y3Q"
-                />
-              </div>
-            </section>
-
-            <section className="rounded-[24px] bg-white p-6 shadow-[0_12px_32px_rgba(0,52,97,0.08)] sm:p-8 lg:col-span-7 lg:p-10">
-              <div className="mb-10">
-                <h3 className="text-2xl font-bold tracking-tight text-[#003461]">Candidate Intake Profile</h3>
-                <p className="mt-2 text-sm leading-6 text-[#424750]">Please complete the form below. Our consultants will review your profile within 48 hours.</p>
-              </div>
+            <div className="rounded-[28px] bg-white p-6 shadow-[0_16px_48px_rgba(0,52,97,0.10)] sm:p-8">
+              <h3 className="text-xl font-bold text-[#003461]">Candidate Intake Profile</h3>
+              <p className="mt-1 text-sm leading-6 text-[#424750]">Our consultants will review your profile within 48 hours.</p>
 
               {submittedAudience === 'candidate' && (
-                <div className="mb-8 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
+                <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
                   <p className="font-semibold text-emerald-900">Application submitted</p>
                   <p className="mt-1">Your CV will be parsed and your candidate link will be sent after review.</p>
                 </div>
               )}
 
-              <form className="space-y-8" onSubmit={handleCandidateSubmit}>
-                <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+              <form className="mt-6 space-y-6" onSubmit={handleCandidateSubmit}>
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   <CandidateMinimalInput label="Full Name" value={candidateForm.fullName} onChange={(value) => setCandidateForm((current) => ({ ...current, fullName: value }))} placeholder="e.g. Muhammad Ahmed" required />
                   <CandidateMinimalInput label="Email Address" type="email" value={candidateForm.email} onChange={(value) => setCandidateForm((current) => ({ ...current, email: value }))} placeholder="ahmed@example.com" required />
                 </div>
 
-                <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   <CandidatePhoneField code={candidatePhoneCode} number={candidatePhoneNumber} onCodeChange={setCandidatePhoneCode} onNumberChange={setCandidatePhoneNumber} />
                   <CandidateMinimalSelect label="Nationality" value={candidateForm.nationality} onChange={(value) => setCandidateForm((current) => ({ ...current, nationality: value }))} options={NATIONALITY_OPTIONS} />
                 </div>
 
-                <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   <CandidateMinimalSelect label="Country of Interest" value={candidateForm.countryOfInterest} onChange={(value) => setCandidateForm((current) => ({ ...current, countryOfInterest: value }))} options={COUNTRY_INTEREST_OPTIONS} />
                   <CandidateMinimalInput label="Preferred Role" value={candidateForm.position} onChange={(value) => setCandidateForm((current) => ({ ...current, position: value }))} placeholder="e.g. Civil Engineer, HVAC Tech" required />
                 </div>
@@ -267,19 +251,18 @@ export function PublicApplicationForm() {
 
                 <CandidateUploadField fileName={candidateCv?.name || null} onFileChange={(file) => setCandidateCv(file)} />
 
-                <div className="flex flex-col gap-5 pt-2 md:flex-row md:items-center md:justify-between">
-                  <label className="flex items-start gap-3 text-xs leading-5 text-[#424750]">
-                    <input type="checkbox" className="mt-0.5 rounded border-slate-300 text-[#003461] focus:ring-[#003461]" />
-                    <span>
-                      I agree to the <a className="font-semibold text-[#046b5e] underline" href="/privacy-policy">Privacy Policy</a> and data processing terms.
-                    </span>
-                  </label>
-                  <SubmitButton submitting={submitting} label="Submit Application" />
-                </div>
+                <label className="flex items-start gap-3 text-xs leading-5 text-[#424750]">
+                  <input type="checkbox" className="mt-0.5 rounded border-slate-300 text-[#003461] focus:ring-[#003461]" />
+                  <span>
+                    I agree to the <a className="font-semibold text-[#046b5e] underline" href="/privacy-policy">Privacy Policy</a> and data processing terms.
+                  </span>
+                </label>
+
+                <SubmitButton submitting={submitting} label="Submit Application" />
 
                 {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
               </form>
-            </section>
+            </div>
           </div>
         </main>
 
