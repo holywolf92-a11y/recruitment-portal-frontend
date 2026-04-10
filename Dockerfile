@@ -1,8 +1,6 @@
 # Frontend Dockerfile - Multi-stage build for optimal image size
-# Stage 1: Builder — use Debian-slim (glibc) to avoid musl native binding issues
-# with @tailwindcss/oxide (a Rust native module). Alpine uses musl libc which
-# causes "Cannot find native binding" errors even after fresh npm install.
-FROM node:18-slim AS builder
+# Stage 1: Builder
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
@@ -16,9 +14,8 @@ ENV PUPPETEER_SKIP_DOWNLOAD=true
 # Copy package files
 COPY package.json package-lock.json ./
 
-# Install all dependencies with a clean slate (no lockfile to avoid
-# stale Windows platform-specific optional dependency resolutions)
-RUN rm -f package-lock.json && npm install
+# Install dependencies
+RUN npm ci
 
 # Copy source code
 COPY . .

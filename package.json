@@ -29,6 +29,7 @@
     "@radix-ui/react-toggle-group": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.8",
     "@supabase/supabase-js": "^2.93.2",
+    "autoprefixer": "^10.4.27",
     "axios": "^1.13.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "*",
@@ -43,6 +44,7 @@
     "lucide-react": "^0.487.0",
     "next-themes": "^0.4.6",
     "pdfjs-dist": "^5.4.530",
+    "postcss": "^8.5.9",
     "puppeteer": "^24.36.1",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
@@ -53,9 +55,8 @@
     "recharts": "^2.15.2",
     "sonner": "^2.0.3",
     "tailwind-merge": "*",
-    "vaul": "^1.1.2",
-    "tailwindcss": "^4.2.2",
-    "@tailwindcss/vite": "^4.2.2"
+    "tailwindcss": "^3.4.19",
+    "vaul": "^1.1.2"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
