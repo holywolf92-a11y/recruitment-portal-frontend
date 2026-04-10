@@ -300,8 +300,8 @@ export function EmployerPortalDashboard({
       <aside className="flex w-60 flex-shrink-0 flex-col border-r border-gray-200 bg-white">
         {/* Brand */}
         <div className="flex items-center gap-2 border-b border-gray-200 px-5 py-4">
-          <img src="/logo.png" alt="Falisha" className="h-7 w-7 object-contain" />
-          <span className="text-base font-bold text-[#0891b2]">Falisha Jobs</span>
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-cyan-600 text-xs font-black text-white">F</span>
+          <span className="text-base font-bold text-cyan-600">Falisha Jobs</span>
         </div>
 
         {/* Company badge */}
