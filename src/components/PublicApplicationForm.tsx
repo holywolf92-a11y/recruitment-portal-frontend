@@ -182,108 +182,146 @@ export function PublicApplicationForm() {
 
   if (activeAudience === 'candidate') {
     return (
-      <div className="min-h-screen bg-[#f8f9fa] text-[#191c1d]" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui, sans-serif' }}>
-        <header className="sticky top-0 z-40 border-b border-slate-200 bg-slate-50/95 backdrop-blur">
-          <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#003461] text-white">
-                <Briefcase className="h-5 w-5" />
+      <div className="min-h-screen bg-[#f0f4f8]" style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui, sans-serif' }}>
+
+        {/* ── DARK NAVY HERO ── */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-[#001529] via-[#003461] to-[#004f91]">
+          {/* Decorative blobs */}
+          <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/5" />
+          <div className="pointer-events-none absolute bottom-0 left-0 h-48 w-48 rounded-full bg-[#00c6ff]/10 blur-2xl" />
+          <div className="pointer-events-none absolute right-10 top-10 h-24 w-24 rounded-full bg-white/5" />
+          <div className="pointer-events-none absolute left-[35%] top-[50%] h-2 w-2 rounded-full bg-[#a0f2e1]/60" />
+          <div className="pointer-events-none absolute right-[20%] top-[30%] h-3 w-3 rounded-full bg-white/20" />
+
+          {/* Logo bar */}
+          <header className="px-5 pb-2 pt-5 sm:px-8">
+            <div className="mx-auto flex max-w-lg items-center justify-between">
+              <div className="flex items-center gap-3">
+                <img src="/logo.png" alt="Falisha" className="h-9 w-9 rounded-xl bg-white/10 object-contain p-1" />
+                <div className="leading-none">
+                  <p className="text-[15px] font-extrabold text-white">Falisha Jobs</p>
+                  <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.22em] text-[#a0f2e1]">Bridging Talent to Opportunities</p>
+                </div>
               </div>
-              <div className="flex flex-col">
-                <h1 className="text-xl font-extrabold tracking-tight text-[#003461]">Falisha Jobs</h1>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#5c616a]">Pakistan #1 Man Power Recruitment</span>
-              </div>
+              <nav className="hidden items-center gap-5 sm:flex">
+                <a className="text-xs font-bold text-white" href="/apply/candidate">Apply</a>
+                <a className="text-xs text-white/50 transition hover:text-white" href="/apply/employer">Employers</a>
+                <a className="text-xs text-white/50 transition hover:text-white" href="/apply/partner">Partners</a>
+              </nav>
             </div>
+          </header>
 
-            <nav className="hidden items-center gap-7 md:flex">
-              <a className="text-sm font-semibold text-[#003461]" href="/apply/candidate">Apply Now</a>
-              <a className="text-sm text-slate-500 transition hover:text-[#003461]" href="/apply/employer">Employer</a>
-              <a className="text-sm text-slate-500 transition hover:text-[#003461]" href="/apply/partner">Partner</a>
-            </nav>
-          </div>
-        </header>
-
-        <main className="relative overflow-hidden px-4 py-10 sm:px-6">
-          {/* Blurred side orbs */}
-          <div className="pointer-events-none absolute -left-40 top-1/4 h-96 w-96 rounded-full bg-[#a0f2e1] opacity-50 blur-[120px]" />
-          <div className="pointer-events-none absolute -right-40 top-1/3 h-96 w-96 rounded-full bg-[#a3c9ff] opacity-40 blur-[120px]" />
-          <div className="pointer-events-none absolute -bottom-20 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-[#003461] opacity-10 blur-[100px]" />
-
-          <div className="relative z-10 mx-auto w-full max-w-xl">
-            <div className="mb-8 text-center">
-              <span className="inline-flex items-center rounded-full bg-[#a0f2e1] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-[#00201b]">
-                Career Opportunity
+          {/* Hero copy */}
+          <div className="px-5 pb-28 pt-7 sm:px-8">
+            <div className="mx-auto max-w-lg">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#a0f2e1]/30 bg-[#a0f2e1]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#a0f2e1]">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#a0f2e1]" />
+                Now Hiring Globally
               </span>
-              <h2 className="mt-4 text-3xl font-extrabold leading-tight tracking-tight text-[#003461] sm:text-4xl">
-                Your Future <span className="italic text-[#046b5e]">Without Borders.</span>
-              </h2>
-              <p className="mt-2 text-sm text-[#424750]">Join thousands of professionals placed across GCC, Europe &amp; beyond.</p>
-            </div>
+              <h1 className="mt-4 text-[2.6rem] font-black leading-[1.05] tracking-tight text-white sm:text-5xl">
+                Your Future<br />
+                <span className="bg-gradient-to-r from-[#a0f2e1] to-[#60c8f5] bg-clip-text text-transparent">Without Borders.</span>
+              </h1>
+              <p className="mt-3 max-w-sm text-[13px] leading-relaxed text-white/50">
+                Join thousands of professionals placed across GCC, Europe &amp; beyond.
+              </p>
 
-            <div className="rounded-[28px] bg-white p-6 shadow-[0_16px_48px_rgba(0,52,97,0.10)] sm:p-8">
-              <h3 className="text-xl font-bold text-[#003461]">Candidate Intake Profile</h3>
-              <p className="mt-1 text-sm leading-6 text-[#424750]">Our consultants will review your profile within 48 hours.</p>
+              {/* Stats row */}
+              <div className="mt-7 flex items-center gap-7">
+                <div>
+                  <p className="text-2xl font-black text-white">2,400+</p>
+                  <p className="text-[10px] uppercase tracking-wider text-white/40">Placements</p>
+                </div>
+                <div className="h-8 w-px bg-white/15" />
+                <div>
+                  <p className="text-2xl font-black text-white">48h</p>
+                  <p className="text-[10px] uppercase tracking-wider text-white/40">Review Time</p>
+                </div>
+                <div className="h-8 w-px bg-white/15" />
+                <div>
+                  <p className="text-2xl font-black text-white">12+</p>
+                  <p className="text-[10px] uppercase tracking-wider text-white/40">Countries</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── FORM CARD — overlaps the hero bottom ── */}
+        <div className="px-4 pb-14 sm:px-6">
+          <div className="mx-auto -mt-14 w-full max-w-lg">
+            <div className="rounded-3xl bg-white p-6 shadow-[0_20px_60px_rgba(0,52,97,0.16)] sm:p-8">
+
+              {/* Card header */}
+              <div className="flex items-center gap-3 border-b border-slate-100 pb-5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#003461]/10">
+                  <User2 className="h-5 w-5 text-[#003461]" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-[#003461]">Candidate Intake Profile</h2>
+                  <p className="text-xs text-slate-400">Reviewed within 48 hours by our consultants</p>
+                </div>
+              </div>
 
               {submittedAudience === 'candidate' && (
-                <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
-                  <p className="font-semibold text-emerald-900">Application submitted</p>
-                  <p className="mt-1">Your CV will be parsed and your candidate link will be sent after review.</p>
+                <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-sm">
+                  <p className="font-bold text-emerald-800">Application submitted!</p>
+                  <p className="mt-0.5 text-emerald-700">Your CV will be parsed and a link sent after review.</p>
                 </div>
               )}
 
-              <form className="mt-6 space-y-6" onSubmit={handleCandidateSubmit}>
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <CandidateMinimalInput label="Full Name" value={candidateForm.fullName} onChange={(value) => setCandidateForm((current) => ({ ...current, fullName: value }))} placeholder="e.g. Muhammad Ahmed" required />
-                  <CandidateMinimalInput label="Email Address" type="email" value={candidateForm.email} onChange={(value) => setCandidateForm((current) => ({ ...current, email: value }))} placeholder="ahmed@example.com" required />
+              <form className="mt-5 space-y-5" onSubmit={handleCandidateSubmit}>
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                  <PremiumInput label="Full Name" value={candidateForm.fullName} onChange={(v) => setCandidateForm((c) => ({ ...c, fullName: v }))} placeholder="Muhammad Ahmed" required />
+                  <PremiumInput label="Email Address" type="email" value={candidateForm.email} onChange={(v) => setCandidateForm((c) => ({ ...c, email: v }))} placeholder="ahmed@example.com" required />
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <CandidatePhoneField code={candidatePhoneCode} number={candidatePhoneNumber} onCodeChange={setCandidatePhoneCode} onNumberChange={setCandidatePhoneNumber} />
-                  <CandidateMinimalSelect label="Nationality" value={candidateForm.nationality} onChange={(value) => setCandidateForm((current) => ({ ...current, nationality: value }))} options={NATIONALITY_OPTIONS} />
+                <CandidatePhoneField code={candidatePhoneCode} number={candidatePhoneNumber} onCodeChange={setCandidatePhoneCode} onNumberChange={setCandidatePhoneNumber} />
+
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                  <PremiumSelect label="Nationality" value={candidateForm.nationality} onChange={(v) => setCandidateForm((c) => ({ ...c, nationality: v }))} options={NATIONALITY_OPTIONS} />
+                  <PremiumSelect label="Country of Interest" value={candidateForm.countryOfInterest} onChange={(v) => setCandidateForm((c) => ({ ...c, countryOfInterest: v }))} options={COUNTRY_INTEREST_OPTIONS} />
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <CandidateMinimalSelect label="Country of Interest" value={candidateForm.countryOfInterest} onChange={(value) => setCandidateForm((current) => ({ ...current, countryOfInterest: value }))} options={COUNTRY_INTEREST_OPTIONS} />
-                  <CandidateMinimalInput label="Preferred Role" value={candidateForm.position} onChange={(value) => setCandidateForm((current) => ({ ...current, position: value }))} placeholder="e.g. Civil Engineer, HVAC Tech" required />
-                </div>
+                <PremiumInput label="Preferred Role" value={candidateForm.position} onChange={(v) => setCandidateForm((c) => ({ ...c, position: v }))} placeholder="e.g. Civil Engineer, HVAC Tech" required />
 
-                <ChoiceChips label="Years of Relevant Experience" value={candidateForm.experience} options={EXPERIENCE_OPTIONS} onChange={(value) => setCandidateForm((current) => ({ ...current, experience: value }))} />
+                <ChoiceChips label="Years of Experience" value={candidateForm.experience} options={EXPERIENCE_OPTIONS} onChange={(v) => setCandidateForm((c) => ({ ...c, experience: v }))} />
 
-                <CandidateUploadField fileName={candidateCv?.name || null} onFileChange={(file) => setCandidateCv(file)} />
+                <CandidateUploadField fileName={candidateCv?.name || null} onFileChange={(f) => setCandidateCv(f)} />
 
-                <label className="flex items-start gap-3 text-xs leading-5 text-[#424750]">
-                  <input type="checkbox" className="mt-0.5 rounded border-slate-300 text-[#003461] focus:ring-[#003461]" />
-                  <span>
-                    I agree to the <a className="font-semibold text-[#046b5e] underline" href="/privacy-policy">Privacy Policy</a> and data processing terms.
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input type="checkbox" className="mt-0.5 rounded border-slate-300 text-[#003461] focus:ring-[#003461]/20" />
+                  <span className="text-xs leading-5 text-slate-500">
+                    I agree to the{' '}
+                    <a className="font-semibold text-[#003461] underline" href="/privacy-policy">Privacy Policy</a>{' '}
+                    and data processing terms.
                   </span>
                 </label>
 
-                <SubmitButton submitting={submitting} label="Submit Application" />
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#003461] px-6 py-4 text-sm font-bold text-white shadow-[0_8px_28px_rgba(0,52,97,0.30)] transition hover:bg-[#004b87] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {submitting ? 'Submitting…' : 'Submit Application'}
+                  <ArrowRight className="h-4 w-4" />
+                </button>
 
-                {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
+                {error && (
+                  <div className="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+                )}
               </form>
             </div>
           </div>
-        </main>
+        </div>
 
-        <footer className="mt-16 border-t border-slate-200 bg-slate-50 py-10">
-          <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-8 px-4 sm:px-6 md:flex-row">
-            <div className="flex flex-col items-center gap-2 md:items-start">
-              <span className="text-xl font-bold tracking-tight text-[#003461]">Falisha Jobs</span>
-              <p className="text-[12px] text-slate-500">© 2024 Falisha Jobs. All rights reserved.</p>
-            </div>
-
-            <div className="flex flex-wrap justify-center gap-6 text-sm text-slate-500">
-              <a className="transition hover:text-[#003461]" href="/privacy-policy">Privacy Policy</a>
-              <a className="transition hover:text-[#003461]" href="#">Terms of Service</a>
-              <a className="transition hover:text-[#003461]" href="#">Help Center</a>
-            </div>
-
-            <div className="flex items-center gap-4 text-[#003461]">
-              <Globe2 className="h-5 w-5" />
-              <Share2 className="h-5 w-5" />
-            </div>
-          </div>
+        <footer className="pb-8 text-center">
+          <p className="text-xs text-slate-400">
+            © 2024 Falisha Jobs ·{' '}
+            <a className="transition hover:text-slate-600" href="/privacy-policy">Privacy</a> ·{' '}
+            <a className="transition hover:text-slate-600" href="#">Terms</a> ·{' '}
+            <a className="transition hover:text-slate-600" href="#">Help</a>
+          </p>
         </footer>
       </div>
     );
@@ -395,58 +433,58 @@ function TrustBadge({ icon, title, subtitle }: { icon: ReactNode; title: string;
   );
 }
 
-function CandidateMinimalInput({ label, value, onChange, placeholder, type = 'text', required }: { label: string; value: string; onChange: (value: string) => void; placeholder: string; type?: string; required?: boolean }) {
+function PremiumInput({ label, value, onChange, placeholder, type = 'text', required }: { label: string; value: string; onChange: (value: string) => void; placeholder: string; type?: string; required?: boolean }) {
   return (
-    <label className="space-y-2">
-      <span className="block text-xs font-bold uppercase tracking-[0.18em] text-[#003461]">{label}</span>
+    <div className="space-y-1.5">
+      <label className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{label}</label>
       <input
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         required={required}
         placeholder={placeholder}
-        className="w-full border-0 border-b border-[#727781] bg-[#e7e8e9] px-4 py-3 text-sm text-[#191c1d] transition focus:border-b-2 focus:border-[#003461] focus:bg-white focus:outline-none focus:ring-0"
+        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 transition placeholder:text-slate-400 focus:border-[#003461] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#003461]/10"
       />
-    </label>
+    </div>
   );
 }
 
-function CandidateMinimalSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: string[] }) {
+function PremiumSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: string[] }) {
   return (
-    <label className="space-y-2">
-      <span className="block text-xs font-bold uppercase tracking-[0.18em] text-[#003461]">{label}</span>
+    <div className="space-y-1.5">
+      <label className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{label}</label>
       <div className="relative">
         <select
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="w-full appearance-none border-0 border-b border-[#727781] bg-[#e7e8e9] px-4 py-3 text-sm text-[#191c1d] transition focus:border-b-2 focus:border-[#003461] focus:bg-white focus:outline-none focus:ring-0"
+          className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 transition focus:border-[#003461] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#003461]/10"
         >
           {options.map((option) => (
             <option key={option} value={option}>{option}</option>
           ))}
         </select>
-        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
       </div>
-    </label>
+    </div>
   );
 }
 
 function CandidatePhoneField({ code, number, onCodeChange, onNumberChange }: { code: string; number: string; onCodeChange: (value: string) => void; onNumberChange: (value: string) => void }) {
   return (
-    <label className="space-y-2">
-      <span className="block text-xs font-bold uppercase tracking-[0.18em] text-[#003461]">Phone / WhatsApp</span>
-      <div className="flex">
+    <div className="space-y-1.5">
+      <label className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Phone / WhatsApp</label>
+      <div className="flex gap-2">
         <div className="relative w-24 shrink-0">
           <select
             value={code}
             onChange={(event) => onCodeChange(event.target.value)}
-            className="w-full appearance-none border-0 border-b border-[#727781] bg-[#e7e8e9] px-3 py-3 pr-8 text-sm text-[#191c1d] transition focus:border-b-2 focus:border-[#003461] focus:bg-white focus:outline-none focus:ring-0"
+            className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 pr-7 text-sm text-slate-900 transition focus:border-[#003461] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#003461]/10"
           >
             {PHONE_CODE_OPTIONS.map((option) => (
               <option key={option} value={option}>{option}</option>
             ))}
           </select>
-          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
         </div>
         <input
           type="tel"
@@ -454,29 +492,29 @@ function CandidatePhoneField({ code, number, onCodeChange, onNumberChange }: { c
           onChange={(event) => onNumberChange(event.target.value)}
           required
           placeholder="300 1234567"
-          className="w-full border-0 border-b border-[#727781] bg-[#e7e8e9] px-4 py-3 text-sm text-[#191c1d] transition focus:border-b-2 focus:border-[#003461] focus:bg-white focus:outline-none focus:ring-0"
+          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 transition placeholder:text-slate-400 focus:border-[#003461] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#003461]/10"
         />
       </div>
-    </label>
+    </div>
   );
 }
 
 function CandidateUploadField({ fileName, onFileChange }: { fileName: string | null; onFileChange: (file: File | null) => void }) {
   return (
-    <label className="block space-y-2">
-      <span className="block text-xs font-bold uppercase tracking-[0.18em] text-[#003461]">Upload CV (PDF preferred)</span>
-      <div className="relative flex h-32 w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#c2c6d1] bg-[#f8f9fa] transition hover:bg-[#e7e8e9]">
+    <div className="space-y-1.5">
+      <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Upload CV (PDF preferred)</span>
+      <label className="relative flex h-28 w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 transition hover:border-[#003461]/40 hover:bg-white">
         <input
           type="file"
           accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
           onChange={(event) => onFileChange(event.target.files?.[0] || null)}
           className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
         />
-        <Upload className="mb-2 h-7 w-7 text-[#a3c9ff]" />
-        <p className="text-sm font-medium text-[#424750]">{fileName || 'Drop your file here or click to browse'}</p>
-        <p className="text-[10px] text-[#727781]">Max size: 5MB</p>
-      </div>
-    </label>
+        <Upload className="mb-1.5 h-6 w-6 text-[#003461]/30" />
+        <p className="text-xs font-medium text-slate-500">{fileName || 'Drop file here or click to browse'}</p>
+        <p className="text-[10px] text-slate-400">PDF, DOC, DOCX · Max 5MB</p>
+      </label>
+    </div>
   );
 }
 
@@ -516,9 +554,9 @@ function TextAreaField({ label, value, onChange, placeholder }: { label: string;
 
 function ChoiceChips({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
   return (
-    <div className="space-y-4">
-      <span className="block text-xs font-bold uppercase tracking-[0.18em] text-[#003461]">{label}</span>
-      <div className="flex flex-wrap gap-3">
+    <div className="space-y-3">
+      <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">{label}</span>
+      <div className="flex flex-wrap gap-2">
         {options.map((option) => {
           const active = value === option;
           return (
@@ -526,7 +564,7 @@ function ChoiceChips({ label, value, options, onChange }: { label: string; value
               key={option}
               type="button"
               onClick={() => onChange(option)}
-              className={`rounded-full border px-6 py-2 text-sm font-semibold transition ${active ? 'border-[#003461] bg-[#003461] text-white' : 'border-[#c2c6d1] bg-white text-[#191c1d]'}`}
+              className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${active ? 'border-[#003461] bg-[#003461] text-white shadow-[0_4px_14px_rgba(0,52,97,0.25)]' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}
             >
               {option}
             </button>
