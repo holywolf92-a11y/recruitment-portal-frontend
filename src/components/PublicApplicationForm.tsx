@@ -183,113 +183,135 @@ export function PublicApplicationForm() {
   if (activeAudience === 'candidate') {
     return (
       <div
-        className="flex min-h-screen flex-col items-center px-4 py-8 sm:py-12"
-        style={{
-          fontFamily: 'Manrope, ui-sans-serif, system-ui, sans-serif',
-          background: 'linear-gradient(135deg, #e8eef7 0%, #dde8f5 40%, #e4edf7 70%, #edf2fb 100%)',
-        }}
+        className="falisha-auth-shell falisha-auth-form-pane"
+        style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui, sans-serif' }}
       >
-        {/* Fixed background blobs — viewport-anchored, never affect layout */}
-        <div className="pointer-events-none fixed left-0 top-0 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#b8d4f8]/50 blur-[80px]" style={{ zIndex: 0 }} />
-        <div className="pointer-events-none fixed right-0 top-1/3 h-64 w-64 translate-x-1/2 rounded-full bg-[#a0d4f0]/35 blur-[70px]" style={{ zIndex: 0 }} />
-        <div className="pointer-events-none fixed bottom-0 left-1/2 h-56 w-56 -translate-x-1/2 rounded-full bg-[#c5d9f7]/40 blur-[90px]" style={{ zIndex: 0 }} />
+        <div className="falisha-auth-form-inner">
 
-        {/* ── Logo ── */}
-        <div className="relative mb-7 flex shrink-0 flex-col items-center" style={{ zIndex: 1 }}>
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/70 shadow-[0_4px_24px_rgba(0,52,97,0.15)] backdrop-blur-sm ring-1 ring-white/80">
-            <img src="/logo.png" alt="Falisha" className="h-12 w-12 object-contain" />
+          {/* Logo */}
+          <div className="mb-8 flex flex-col items-center">
+            <img src="/logo.png" alt="Falisha" className="h-16 w-16 object-contain" />
+            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">
+              Bridging Talent to Opportunities
+            </p>
           </div>
-          <p className="mt-2.5 text-[10px] font-bold uppercase tracking-[0.28em] text-[#003461]/50">
-            Bridging Talent to Opportunities
-          </p>
-        </div>
 
-        {/* ── Card ── */}
-        <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white/80 shadow-[0_20px_60px_rgba(0,52,97,0.18)] backdrop-blur-xl ring-1 ring-white/60" style={{ zIndex: 1 }}>
+          {/* Heading */}
+          <div className="falisha-auth-heading-block">
+            <h1 className="falisha-auth-heading">Apply Now</h1>
+            <p className="falisha-auth-subheading">Our consultants will review your profile within 48 hours.</p>
+          </div>
 
-          {/* Gradient header */}
-          <div
-            className="relative overflow-hidden px-6 py-6"
-            style={{ background: 'linear-gradient(135deg, #002244 0%, #003461 50%, #005299 100%)' }}
-          >
-            {/* Header shimmer orbs */}
-            <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/5" />
-            <div className="pointer-events-none absolute -bottom-4 right-16 h-16 w-16 rounded-full bg-[#60c8f5]/10" />
-            <div className="relative z-10 flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm ring-1 ring-white/20">
-                <User2 className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h2 className="text-[15px] font-extrabold tracking-tight text-white">Apply Now</h2>
-                <p className="text-[11px] text-white/55">Reviewed within 48 hours by our team</p>
-              </div>
-              <div className="ml-auto flex items-center gap-1.5 rounded-full bg-[#a0f2e1]/15 px-2.5 py-1 ring-1 ring-[#a0f2e1]/25">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#a0f2e1]" />
-                <span className="text-[9px] font-bold uppercase tracking-widest text-[#a0f2e1]">Live</span>
+          {/* Success */}
+          {submittedAudience === 'candidate' && (
+            <div className="falisha-auth-notice falisha-auth-notice-success mb-5">
+              <ShieldCheck className="mt-0.5 h-5 w-5 flex-shrink-0" />
+              <span>Application submitted! Your CV will be parsed and a link sent after review.</span>
+            </div>
+          )}
+
+          <form className="falisha-auth-form-fields" onSubmit={handleCandidateSubmit}>
+
+            {/* Full Name */}
+            <div className="falisha-auth-field">
+              <label className="falisha-auth-field-label">Full Name <span className="text-red-500">*</span></label>
+              <div className="falisha-auth-input-wrap">
+                <User2 className="falisha-auth-input-icon" />
+                <input type="text" value={candidateForm.fullName} onChange={(e) => setCandidateForm((c) => ({ ...c, fullName: e.target.value }))} className="falisha-auth-input" placeholder="Muhammad Ahmed" required />
               </div>
             </div>
-          </div>
 
-          {/* Form body */}
-          <div className="px-6 pb-7 pt-5">
-            {submittedAudience === 'candidate' && (
-              <div className="mb-5 flex items-start gap-3 rounded-2xl border border-emerald-200/60 bg-emerald-50 px-4 py-4 text-sm">
-                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                <div>
-                  <p className="font-bold text-emerald-800">Application submitted!</p>
-                  <p className="mt-0.5 text-emerald-700">Your CV will be parsed and a link sent after review.</p>
+            {/* Email */}
+            <div className="falisha-auth-field">
+              <label className="falisha-auth-field-label">Email Address <span className="text-red-500">*</span></label>
+              <div className="falisha-auth-input-wrap">
+                <Mail className="falisha-auth-input-icon" />
+                <input type="email" value={candidateForm.email} onChange={(e) => setCandidateForm((c) => ({ ...c, email: e.target.value }))} className="falisha-auth-input" placeholder="ahmed@example.com" required />
+              </div>
+            </div>
+
+            {/* Phone */}
+            <div className="falisha-auth-field">
+              <label className="falisha-auth-field-label">Phone / WhatsApp <span className="text-red-500">*</span></label>
+              <div className="flex gap-2">
+                <div className="falisha-auth-input-wrap w-24 shrink-0">
+                  <select value={candidatePhoneCode} onChange={(e) => setCandidatePhoneCode(e.target.value)} className="falisha-auth-input falisha-auth-select" style={{ paddingLeft: '0.75rem' }}>
+                    {PHONE_CODE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </div>
+                <div className="falisha-auth-input-wrap flex-1">
+                  <Phone className="falisha-auth-input-icon" />
+                  <input type="tel" value={candidatePhoneNumber} onChange={(e) => setCandidatePhoneNumber(e.target.value)} className="falisha-auth-input" placeholder="300 1234567" required />
                 </div>
               </div>
-            )}
+            </div>
 
-            <form className="space-y-4" onSubmit={handleCandidateSubmit}>
-              <PremiumInput label="Full Name" value={candidateForm.fullName} onChange={(v) => setCandidateForm((c) => ({ ...c, fullName: v }))} placeholder="Muhammad Ahmed" required />
-              <PremiumInput label="Email Address" type="email" value={candidateForm.email} onChange={(v) => setCandidateForm((c) => ({ ...c, email: v }))} placeholder="ahmed@example.com" required />
-              <CandidatePhoneField code={candidatePhoneCode} number={candidatePhoneNumber} onCodeChange={setCandidatePhoneCode} onNumberChange={setCandidatePhoneNumber} />
-
-              <div className="grid grid-cols-2 gap-3">
-                <PremiumSelect label="Nationality" value={candidateForm.nationality} onChange={(v) => setCandidateForm((c) => ({ ...c, nationality: v }))} options={NATIONALITY_OPTIONS} />
-                <PremiumSelect label="Country of Interest" value={candidateForm.countryOfInterest} onChange={(v) => setCandidateForm((c) => ({ ...c, countryOfInterest: v }))} options={COUNTRY_INTEREST_OPTIONS} />
+            {/* Nationality + Country */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="falisha-auth-field">
+                <label className="falisha-auth-field-label">Nationality</label>
+                <div className="falisha-auth-input-wrap">
+                  <Globe2 className="falisha-auth-input-icon" />
+                  <select value={candidateForm.nationality} onChange={(e) => setCandidateForm((c) => ({ ...c, nationality: e.target.value }))} className="falisha-auth-input falisha-auth-select">
+                    {NATIONALITY_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </div>
               </div>
+              <div className="falisha-auth-field">
+                <label className="falisha-auth-field-label">Country of Interest</label>
+                <div className="falisha-auth-input-wrap">
+                  <MapPin className="falisha-auth-input-icon" />
+                  <select value={candidateForm.countryOfInterest} onChange={(e) => setCandidateForm((c) => ({ ...c, countryOfInterest: e.target.value }))} className="falisha-auth-input falisha-auth-select">
+                    {COUNTRY_INTEREST_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
 
-              <PremiumInput label="Preferred Role" value={candidateForm.position} onChange={(v) => setCandidateForm((c) => ({ ...c, position: v }))} placeholder="e.g. Civil Engineer, HVAC Tech" required />
+            {/* Preferred Role */}
+            <div className="falisha-auth-field">
+              <label className="falisha-auth-field-label">Preferred Role <span className="text-red-500">*</span></label>
+              <div className="falisha-auth-input-wrap">
+                <Briefcase className="falisha-auth-input-icon" />
+                <input type="text" value={candidateForm.position} onChange={(e) => setCandidateForm((c) => ({ ...c, position: e.target.value }))} className="falisha-auth-input" placeholder="e.g. Civil Engineer, HVAC Tech" required />
+              </div>
+            </div>
 
-              <ChoiceChips label="Years of Experience" value={candidateForm.experience} options={EXPERIENCE_OPTIONS} onChange={(v) => setCandidateForm((c) => ({ ...c, experience: v }))} />
+            {/* Experience chips */}
+            <ChoiceChips label="Years of Experience" value={candidateForm.experience} options={EXPERIENCE_OPTIONS} onChange={(v) => setCandidateForm((c) => ({ ...c, experience: v }))} />
 
-              <CandidateUploadField fileName={candidateCv?.name || null} onFileChange={(f) => setCandidateCv(f)} />
+            {/* CV Upload */}
+            <CandidateUploadField fileName={candidateCv?.name || null} onFileChange={(f) => setCandidateCv(f)} />
 
-              <label className="flex cursor-pointer items-start gap-3 pt-1">
-                <input type="checkbox" className="mt-0.5 rounded border-slate-300 text-[#003461] focus:ring-[#003461]/20" />
-                <span className="text-xs leading-5 text-slate-500">
-                  I agree to the{' '}
-                  <a className="font-semibold text-[#003461] underline underline-offset-2" href="/privacy-policy">Privacy Policy</a>
-                  {' '}and data processing terms.
-                </span>
-              </label>
+            {/* Privacy */}
+            <label className="flex cursor-pointer items-start gap-2.5">
+              <input type="checkbox" className="falisha-auth-checkbox mt-0.5" />
+              <span style={{ fontSize: '0.9rem', lineHeight: '1.6', color: '#374151' }}>
+                I agree to the{' '}
+                <a className="falisha-auth-link font-semibold" href="/privacy-policy">Privacy Policy</a>
+                {' '}and data processing terms.
+              </span>
+            </label>
 
-              <button
-                type="submit"
-                disabled={submitting}
-                className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl py-3.5 text-sm font-bold text-white shadow-[0_8px_24px_rgba(0,52,97,0.35)] transition-all duration-200 hover:shadow-[0_12px_32px_rgba(0,52,97,0.45)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-                style={{ background: 'linear-gradient(135deg, #002244 0%, #003461 50%, #005299 100%)' }}
-              >
-                <span className="absolute inset-0 translate-x-[-100%] bg-white/10 transition-transform duration-300 group-hover:translate-x-[100%]" />
-                {submitting ? 'Submitting…' : 'Submit Application'}
-                <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
-              </button>
+            {/* Submit */}
+            <button type="submit" disabled={submitting} className="falisha-auth-primary flex items-center justify-center gap-2">
+              {submitting ? 'Submitting…' : 'Submit Application'}
+              <ArrowRight className="h-4 w-4" />
+            </button>
 
-              {error && (
-                <div className="rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
-              )}
-            </form>
-          </div>
+            {error && (
+              <div className="falisha-auth-notice falisha-auth-notice-error">
+                <span>{error}</span>
+              </div>
+            )}
+          </form>
+
+          <p className="mt-6 text-center" style={{ fontSize: '0.82rem', color: '#9ca3af' }}>
+            © 2024 Falisha Jobs ·{' '}
+            <a className="falisha-auth-link" href="/privacy-policy">Privacy</a> ·{' '}
+            <a className="falisha-auth-link" href="#">Terms</a>
+          </p>
         </div>
-
-        <p className="mt-6 text-[11px] text-[#003461]/40" style={{ zIndex: 1, position: 'relative' }}>
-          © 2024 Falisha Jobs ·{' '}
-          <a className="transition hover:text-[#003461]/70" href="/privacy-policy">Privacy</a> ·{' '}
-          <a className="transition hover:text-[#003461]/70" href="#">Terms</a>
-        </p>
       </div>
     );
   }
@@ -400,67 +422,41 @@ function TrustBadge({ icon, title, subtitle }: { icon: ReactNode; title: string;
   );
 }
 
+// PremiumInput kept for backward compat but unused now
 function PremiumInput({ label, value, onChange, placeholder, type = 'text', required }: { label: string; value: string; onChange: (value: string) => void; placeholder: string; type?: string; required?: boolean }) {
   return (
-    <div className="space-y-1.5">
-      <label className="block text-[10px] font-bold uppercase tracking-[0.16em] text-[#003461]/60">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        required={required}
-        placeholder={placeholder}
-        className="w-full rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm text-slate-900 shadow-sm transition-all duration-150 placeholder:text-slate-400 focus:border-[#003461]/40 focus:bg-white focus:outline-none focus:ring-3 focus:ring-[#003461]/10"
-      />
+    <div className="falisha-auth-field">
+      <label className="falisha-auth-field-label">{label}</label>
+      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} required={required} placeholder={placeholder} className="falisha-auth-input" style={{ paddingLeft: '1rem' }} />
     </div>
   );
 }
 
+// PremiumSelect kept for backward compat but unused now
 function PremiumSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: string[] }) {
   return (
-    <div className="space-y-1.5">
-      <label className="block text-[10px] font-bold uppercase tracking-[0.16em] text-[#003461]/60">{label}</label>
-      <div className="relative">
-        <select
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="w-full appearance-none rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm text-slate-900 shadow-sm transition-all duration-150 focus:border-[#003461]/40 focus:bg-white focus:outline-none focus:ring-3 focus:ring-[#003461]/10"
-        >
-          {options.map((option) => (
-            <option key={option} value={option}>{option}</option>
-          ))}
-        </select>
-        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-      </div>
+    <div className="falisha-auth-field">
+      <label className="falisha-auth-field-label">{label}</label>
+      <select value={value} onChange={(e) => onChange(e.target.value)} className="falisha-auth-input falisha-auth-select" style={{ paddingLeft: '1rem' }}>
+        {options.map((o) => <option key={o} value={o}>{o}</option>)}
+      </select>
     </div>
   );
 }
 
+// CandidatePhoneField rendered inline in main form now; keeping stub to avoid errors
 function CandidatePhoneField({ code, number, onCodeChange, onNumberChange }: { code: string; number: string; onCodeChange: (value: string) => void; onNumberChange: (value: string) => void }) {
   return (
-    <div className="space-y-1.5">
-      <label className="block text-[10px] font-bold uppercase tracking-[0.16em] text-[#003461]/60">Phone / WhatsApp</label>
+    <div className="falisha-auth-field">
+      <label className="falisha-auth-field-label">Phone / WhatsApp</label>
       <div className="flex gap-2">
-        <div className="relative w-24 shrink-0">
-          <select
-            value={code}
-            onChange={(event) => onCodeChange(event.target.value)}
-            className="w-full appearance-none rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-3 pr-7 text-sm text-slate-900 shadow-sm transition-all duration-150 focus:border-[#003461]/40 focus:bg-white focus:outline-none focus:ring-3 focus:ring-[#003461]/10"
-          >
-            {PHONE_CODE_OPTIONS.map((option) => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+        <select value={code} onChange={(e) => onCodeChange(e.target.value)} className="falisha-auth-input falisha-auth-select" style={{ width: '5.5rem', flexShrink: 0, paddingLeft: '0.75rem' }}>
+          {PHONE_CODE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+        <div className="falisha-auth-input-wrap flex-1">
+          <Phone className="falisha-auth-input-icon" />
+          <input type="tel" value={number} onChange={(e) => onNumberChange(e.target.value)} required placeholder="300 1234567" className="falisha-auth-input" />
         </div>
-        <input
-          type="tel"
-          value={number}
-          onChange={(event) => onNumberChange(event.target.value)}
-          required
-          placeholder="300 1234567"
-          className="w-full rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm text-slate-900 shadow-sm transition-all duration-150 placeholder:text-slate-400 focus:border-[#003461]/40 focus:bg-white focus:outline-none focus:ring-3 focus:ring-[#003461]/10"
-        />
       </div>
     </div>
   );
@@ -468,22 +464,32 @@ function CandidatePhoneField({ code, number, onCodeChange, onNumberChange }: { c
 
 function CandidateUploadField({ fileName, onFileChange }: { fileName: string | null; onFileChange: (file: File | null) => void }) {
   return (
-    <div className="space-y-1.5">
-      <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-[#003461]/60">Upload CV (PDF preferred)</span>
+    <div className="falisha-auth-field">
+      <label className="falisha-auth-field-label">Upload CV</label>
       <label
-        className="relative flex h-28 w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#003461]/15 bg-[#003461]/[0.03] transition-all duration-150 hover:border-[#003461]/30 hover:bg-[#003461]/[0.06]"
+        style={{
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '7rem',
+          width: '100%',
+          cursor: 'pointer',
+          borderRadius: '0.85rem',
+          border: '2px dashed #d1d5db',
+          background: '#f9fafb',
+          transition: 'border-color 160ms ease, background 160ms ease',
+        }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = '#06b6d4'; (e.currentTarget as HTMLElement).style.background = '#f0fdfe'; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = '#d1d5db'; (e.currentTarget as HTMLElement).style.background = '#f9fafb'; }}
       >
-        <input
-          type="file"
-          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-          onChange={(event) => onFileChange(event.target.files?.[0] || null)}
-          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-        />
-        <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-[#003461]/10">
-          <Upload className="h-4 w-4 text-[#003461]/50" />
+        <input type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onChange={(e) => onFileChange(e.target.files?.[0] || null)} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }} />
+        <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '2.2rem', width: '2.2rem', borderRadius: '0.6rem', background: 'rgba(6,182,212,0.1)' }}>
+          <Upload style={{ height: '1rem', width: '1rem', color: '#06b6d4' }} />
         </div>
-        <p className="text-xs font-semibold text-slate-600">{fileName || 'Drop file here or click to browse'}</p>
-        <p className="mt-0.5 text-[10px] text-slate-400">PDF, DOC, DOCX · Max 5MB</p>
+        <p style={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151' }}>{fileName || 'Drop file here or click to browse'}</p>
+        <p style={{ marginTop: '0.15rem', fontSize: '0.78rem', color: '#9ca3af' }}>PDF, DOC, DOCX · Max 5MB</p>
       </label>
     </div>
   );
@@ -525,8 +531,8 @@ function TextAreaField({ label, value, onChange, placeholder }: { label: string;
 
 function ChoiceChips({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
   return (
-    <div className="space-y-2.5">
-      <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-[#003461]/60">{label}</span>
+    <div className="falisha-auth-field">
+      <label className="falisha-auth-field-label">{label}</label>
       <div className="flex flex-wrap gap-2">
         {options.map((option) => {
           const active = value === option;
@@ -535,11 +541,18 @@ function ChoiceChips({ label, value, options, onChange }: { label: string; value
               key={option}
               type="button"
               onClick={() => onChange(option)}
-              className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition-all duration-150 ${
-                active
-                  ? 'border-[#003461] bg-[#003461] text-white shadow-[0_4px_16px_rgba(0,52,97,0.30)]'
-                  : 'border-slate-200/80 bg-white/80 text-slate-600 hover:border-[#003461]/30 hover:bg-white hover:text-[#003461]'
-              }`}
+              style={{
+                borderRadius: '999px',
+                border: active ? '2px solid #06b6d4' : '2px solid #e5e7eb',
+                background: active ? '#06b6d4' : '#ffffff',
+                color: active ? '#ffffff' : '#4b5563',
+                padding: '0.35rem 1rem',
+                fontSize: '0.88rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 160ms ease',
+                boxShadow: active ? '0 8px 20px rgba(6,182,212,0.28)' : 'none',
+              }}
             >
               {option}
             </button>
