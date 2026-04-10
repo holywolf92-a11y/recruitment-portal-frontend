@@ -15,9 +15,10 @@ ENV PUPPETEER_SKIP_DOWNLOAD=true
 # Copy package files
 COPY package.json package-lock.json ./
 
-# Install dependencies (use npm install to resolve correct platform-native binaries,
-# since package-lock.json is generated on Windows and lacks linux/musl optional deps)
-RUN npm install
+# Install dependencies (delete lockfile first so npm resolves correct
+# platform-native binaries for linux/musl — lockfile is Windows-generated
+# and lacks @tailwindcss/oxide-linux-x64-musl optional dependency)
+RUN rm -f package-lock.json && npm install
 
 # Copy source code
 COPY . .
