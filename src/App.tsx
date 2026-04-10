@@ -696,7 +696,7 @@ const AppContent = () => {
         onSignOut={signOut}
         loading={portalProfileLoading}
         error={portalProfileError}
-        onRefreshPortalProfile={() => loadPortalProfile(session.access_token)}
+        onRefreshPortalProfile={async () => { await loadPortalProfile(session.access_token); }}
       />
     );
   }

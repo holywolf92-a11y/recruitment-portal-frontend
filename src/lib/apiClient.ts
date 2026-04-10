@@ -962,6 +962,28 @@ class ApiClient {
     });
   }
 
+  async getEmployerRequirements(accessToken: string): Promise<{ requirements: EmployerLeadProfile[] }> {
+    return this.get<{ requirements: EmployerLeadProfile[] }>('/auth/portal-requirements', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  }
+
+  async createEmployerRequirement(accessToken: string, payload: {
+    professions: string;
+    quantity?: string;
+    country?: string;
+    city?: string;
+    salary_range?: string;
+    duty_hours?: string;
+    contract_duration?: string;
+    benefits_included?: string;
+    comments?: string;
+  }): Promise<{ requirement: EmployerLeadProfile }> {
+    return this.post<{ requirement: EmployerLeadProfile }>('/auth/portal-requirements', payload, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  }
+
   async submitCandidatePortal(payload: FormData): Promise<PublicCandidatePortalResponse> {
     const response = await fetch(`${API_BASE_URL}/public-portal/candidate`, {
       method: 'POST',

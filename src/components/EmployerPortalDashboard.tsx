@@ -1,30 +1,20 @@
-import { useEffect, useState } from 'react';
-import { Building2, Clock3, Globe2, LogOut, Mail, MapPin, Phone, RefreshCw, ShieldCheck, Sparkles, Users } from 'lucide-react';
-import { apiClient, type PortalProfileResponse } from '../lib/apiClient';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Briefcase, Building2, CheckCircle2, ChevronDown, Clock, Globe2, LayoutDashboard,
+  LogOut, Mail, MapPin, Phone, Plus, RefreshCw, Search, Settings, ShieldCheck,
+  Sparkles, Users, X, FileText, Banknote, CalendarDays, Star, BriefcaseBusiness,
+} from 'lucide-react';
+import { apiClient, type EmployerLeadProfile, type PortalProfileResponse } from '../lib/apiClient';
 
-type EmployerPortalDashboardProps = {
-  accessToken: string;
-  user: {
-    name: string;
-    email: string;
-    roleLabel: string;
-  };
-  portalProfile: PortalProfileResponse | null;
-  loading: boolean;
-  error?: string | null;
-  onSignOut: () => Promise<void>;
-  onRefreshPortalProfile: () => Promise<void>;
-};
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-type EmployerFormState = {
-  company_name: string;
-  contact_name: string;
-  email: string;
-  phone: string;
-  country: string;
-  city: string;
+type View = 'dashboard' | 'requirements' | 'post-job' | 'profile';
+
+type PostJobForm = {
   professions: string;
   quantity: string;
+  country: string;
+  city: string;
   salary_range: string;
   duty_hours: string;
   contract_duration: string;
@@ -32,15 +22,19 @@ type EmployerFormState = {
   comments: string;
 };
 
-const emptyState: EmployerFormState = {
-  company_name: '',
-  contact_name: '',
-  email: '',
-  phone: '',
-  country: '',
-  city: '',
+type ProfileForm = {
+  company_name: string;
+  contact_name: string;
+  phone: string;
+  country: string;
+  city: string;
+};
+
+const EMPTY_JOB: PostJobForm = {
   professions: '',
   quantity: '',
+  country: '',
+  city: '',
   salary_range: '',
   duty_hours: '',
   contract_duration: '',
@@ -48,215 +42,940 @@ const emptyState: EmployerFormState = {
   comments: '',
 };
 
-export function EmployerPortalDashboard({ accessToken, user, portalProfile, loading, error, onSignOut, onRefreshPortalProfile }: EmployerPortalDashboardProps) {
-  const employerLead = portalProfile?.profile.employerLead;
-  const profileUser = portalProfile?.profile.user;
-  const [formState, setFormState] = useState<EmployerFormState>(emptyState);
-  const [saving, setSaving] = useState(false);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
+const WORLD_COUNTRIES = [
+  'Afghanistan', 'Albania', 'Algeria', 'Angola', 'Argentina', 'Armenia', 'Australia',
+  'Austria', 'Azerbaijan', 'Bahrain', 'Bangladesh', 'Belgium', 'Bolivia', 'Bosnia and Herzegovina',
+  'Brazil', 'Bulgaria', 'Cambodia', 'Cameroon', 'Canada', 'Chile', 'China', 'Colombia',
+  'Croatia', 'Cuba', 'Czech Republic', 'Denmark', 'Dominican Republic', 'Ecuador', 'Egypt',
+  'Ethiopia', 'Finland', 'France', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Guatemala',
+  'Hungary', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Jamaica',
+  'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kuwait', 'Kyrgyzstan', 'Lebanon', 'Libya',
+  'Malaysia', 'Maldives', 'Malta', 'Mauritius', 'Mexico', 'Moldova', 'Mongolia', 'Morocco',
+  'Myanmar', 'Nepal', 'Netherlands', 'New Zealand', 'Nigeria', 'Norway', 'Oman', 'Pakistan',
+  'Palestine', 'Panama', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar', 'Romania',
+  'Russia', 'Rwanda', 'Saudi Arabia', 'Senegal', 'Serbia', 'Singapore', 'Slovakia',
+  'Slovenia', 'Somalia', 'South Africa', 'South Korea', 'Spain', 'Sri Lanka', 'Sudan',
+  'Sweden', 'Switzerland', 'Syria', 'Taiwan', 'Tanzania', 'Thailand', 'Tunisia', 'Turkey',
+  'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay',
+  'Uzbekistan', 'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe',
+];
 
-  useEffect(() => {
-    setFormState({
-      company_name: employerLead?.company_name || '',
-      contact_name: employerLead?.contact_name || profileUser?.name || user.name || '',
-      email: employerLead?.email || profileUser?.email || user.email || '',
-      phone: employerLead?.phone_number || profileUser?.phone || '',
-      country: employerLead?.country || '',
-      city: employerLead?.city || '',
-      professions: employerLead?.professions || '',
-      quantity: employerLead?.quantity || '',
-      salary_range: employerLead?.salary_range || '',
-      duty_hours: employerLead?.duty_hours || '',
-      contract_duration: employerLead?.contract_duration || '',
-      benefits_included: employerLead?.benefits_included || '',
-      comments: employerLead?.comments || '',
-    });
-  }, [employerLead, profileUser, user.email, user.name]);
+const CONTRACT_OPTIONS = ['6 months', '1 year', '2 years', '3 years', 'Renewable', 'Permanent'];
+const HOURS_OPTIONS = ['8 hrs / 5 days', '8 hrs / 6 days', '10 hrs / 6 days', '12 hrs / 6 days', 'Shift work'];
+const QTY_OPTIONS = ['1–5', '6–10', '11–20', '21–50', '51–100', '100+'];
+const SALARY_OPTIONS = [
+  'SAR 800–1,200/mo', 'SAR 1,200–1,800/mo', 'SAR 1,800–2,500/mo', 'SAR 2,500–4,000/mo', 'SAR 4,000+/mo',
+  'AED 1,000–1,500/mo', 'AED 1,500–2,500/mo', 'AED 2,500–4,000/mo', 'AED 4,000+/mo',
+  'QAR 1,000–1,500/mo', 'QAR 1,500–2,500/mo', 'QAR 2,500–4,000/mo',
+  'USD 300–500/mo', 'USD 500–800/mo', 'USD 800–1,200/mo', 'USD 1,200–2,000/mo',
+  'Negotiable',
+];
 
-  const updateField = (field: keyof EmployerFormState, value: string) => {
-    setFormState((current) => ({ ...current, [field]: value }));
+// ─── Props ────────────────────────────────────────────────────────────────────
+
+type EmployerPortalDashboardProps = {
+  accessToken: string;
+  user: { name: string; email: string; roleLabel: string };
+  portalProfile: PortalProfileResponse | null;
+  loading: boolean;
+  error?: string | null;
+  onSignOut: () => Promise<void>;
+  onRefreshPortalProfile: () => Promise<void>;
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function initials(name?: string | null) {
+  const n = (name || '?').trim();
+  const parts = n.split(/\s+/).filter(Boolean);
+  return (parts[0]?.[0] || '') + (parts[1]?.[0] || parts[0]?.[1] || '');
+}
+
+function formatDate(iso?: string | null) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function StatusBadge({ status }: { status?: string | null }) {
+  const s = (status || 'New').toLowerCase();
+  const map: Record<string, string> = {
+    new: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+    active: 'bg-green-50 text-green-700 border-green-200',
+    'in progress': 'bg-blue-50 text-blue-700 border-blue-200',
+    fulfilled: 'bg-purple-50 text-purple-700 border-purple-200',
+    closed: 'bg-gray-100 text-gray-500 border-gray-200',
+    pending: 'bg-amber-50 text-amber-700 border-amber-200',
   };
-
-  const handleSave = async () => {
-    setSaving(true);
-    setSaveError(null);
-    setStatusMessage(null);
-
-    try {
-      await apiClient.updatePortalProfile(accessToken, formState);
-      setStatusMessage('Employer portal profile updated.');
-      await onRefreshPortalProfile();
-    } catch (err: any) {
-      setSaveError(err?.message || 'Failed to update employer profile.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const summaryCards = [
-    { label: 'Hiring Status', value: employerLead?.status || 'New', icon: ShieldCheck },
-    { label: 'Requested Roles', value: employerLead?.professions || 'Not set', icon: Users },
-    { label: 'Quantity', value: employerLead?.quantity || 'Not set', icon: Building2 },
-    { label: 'Duty Hours', value: employerLead?.duty_hours || 'Not set', icon: Clock3 },
-  ];
-
+  const cls = map[s] ?? map.new;
   return (
-    <div className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(252,211,77,0.18),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(251,146,60,0.16),_transparent_28%),linear-gradient(180deg,_#20130a,_#120c08_56%,_#0b0908)] text-amber-50">
-      <div className="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-        <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-white/8 p-6 shadow-[0_32px_120px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:p-8">
-          <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(251,191,36,0.22),transparent_34%,rgba(251,146,60,0.18))]" />
-          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-            <div className="max-w-3xl space-y-4">
-              <p className="inline-flex items-center gap-2 rounded-full border border-amber-300/25 bg-amber-300/10 px-3 py-1 text-xs uppercase tracking-[0.3em] text-amber-100/90">
-                <Sparkles className="h-3.5 w-3.5" /> Employer Command Center
-              </p>
-              <div>
-                <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-5xl" style={{ fontFamily: 'Georgia, Times New Roman, serif' }}>
-                  {formState.company_name || 'Falisha Employer Portal'}
-                </h1>
-                <p className="mt-3 max-w-2xl text-sm leading-7 text-amber-50/74 sm:text-base">
-                  Review your hiring brief, update company details, and keep Falisha aligned on the workforce you need next.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-3 text-sm text-amber-50/80">
-                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/15 px-3 py-2"><Mail className="h-4 w-4 text-amber-300" /> {formState.email || user.email}</span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/15 px-3 py-2"><Phone className="h-4 w-4 text-amber-300" /> {formState.phone || 'Add your WhatsApp number'}</span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/15 px-3 py-2"><Globe2 className="h-4 w-4 text-amber-300" /> {formState.country || 'Country pending'}</span>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={onRefreshPortalProfile}
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white transition hover:bg-white/16"
-              >
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
-              </button>
-              <button
-                type="button"
-                onClick={onSignOut}
-                className="inline-flex items-center gap-2 rounded-full border border-amber-300/25 bg-amber-400/12 px-4 py-2 text-sm text-amber-100 transition hover:bg-amber-400/20"
-              >
-                <LogOut className="h-4 w-4" /> Sign out
-              </button>
-            </div>
-          </div>
-        </section>
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${cls}`}>
+      {status || 'New'}
+    </span>
+  );
+}
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {summaryCards.map(({ label, value, icon: Icon }) => (
-            <article key={label} className="rounded-[28px] border border-white/8 bg-white/7 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.18)] backdrop-blur-md">
-              <div className="flex items-center justify-between">
-                <p className="text-xs uppercase tracking-[0.22em] text-amber-100/60">{label}</p>
-                <Icon className="h-5 w-5 text-amber-300" />
-              </div>
-              <p className="mt-5 text-2xl font-semibold text-white">{value}</p>
-            </article>
+// ─── Main component ───────────────────────────────────────────────────────────
+
+export function EmployerPortalDashboard({
+  accessToken,
+  user,
+  portalProfile,
+  loading,
+  error,
+  onSignOut,
+  onRefreshPortalProfile,
+}: EmployerPortalDashboardProps) {
+  const lead = portalProfile?.profile.employerLead;
+  const account = portalProfile?.profile.user;
+  const companyName = lead?.company_name || account?.name || user.name || 'My Company';
+  const accountMenuRef = useRef<HTMLDivElement | null>(null);
+
+  // ── shared state
+  const [view, setView] = useState<View>('dashboard');
+  const [requirements, setRequirements] = useState<EmployerLeadProfile[]>([]);
+  const [reqLoading, setReqLoading] = useState(false);
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const [showProfileDialog, setShowProfileDialog] = useState(false);
+  const [profileToast, setProfileToast] = useState<string | null>(null);
+
+  // ── requirements list state
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  // ── post-job state
+  const [jobForm, setJobForm] = useState<PostJobForm>(EMPTY_JOB);
+  const [posting, setPosting] = useState(false);
+  const [postError, setPostError] = useState<string | null>(null);
+  const [postSuccess, setPostSuccess] = useState<string | null>(null);
+
+  // ── profile edit state
+  const [profileForm, setProfileForm] = useState<ProfileForm>({
+    company_name: '',
+    contact_name: '',
+    phone: '',
+    country: '',
+    city: '',
+  });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
+  // ── Init forms from portalProfile
+  useEffect(() => {
+    setProfileForm({
+      company_name: lead?.company_name || account?.name || user.name || '',
+      contact_name: lead?.contact_name || account?.name || user.name || '',
+      phone: lead?.phone_number || account?.phone || '',
+      country: lead?.country || '',
+      city: lead?.city || '',
+    });
+  }, [lead, account, user.name]);
+
+  // ── Load requirements on mount
+  useEffect(() => {
+    let live = true;
+    setReqLoading(true);
+    apiClient.getEmployerRequirements(accessToken)
+      .then((r) => { if (live) setRequirements(r.requirements || []); })
+      .catch(() => {})
+      .finally(() => { if (live) setReqLoading(false); });
+    return () => { live = false; };
+  }, [accessToken]);
+
+  // ── Close account menu on outside click
+  useEffect(() => {
+    if (!showAccountMenu) return undefined;
+    function handleClick(e: MouseEvent) {
+      if (accountMenuRef.current && !accountMenuRef.current.contains(e.target as Node)) {
+        setShowAccountMenu(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showAccountMenu]);
+
+  // ── Toast auto-clear
+  useEffect(() => {
+    if (!profileToast) return undefined;
+    const t = window.setTimeout(() => setProfileToast(null), 3000);
+    return () => clearTimeout(t);
+  }, [profileToast]);
+
+  // ── Post success auto-clear
+  useEffect(() => {
+    if (!postSuccess) return undefined;
+    const t = window.setTimeout(() => setPostSuccess(null), 4000);
+    return () => clearTimeout(t);
+  }, [postSuccess]);
+
+  // ── Stats
+  const stats = useMemo(() => {
+    const all = requirements;
+    return {
+      total: all.length,
+      active: all.filter((r) => ['new', 'active'].includes((r.status || 'new').toLowerCase())).length,
+      inProgress: all.filter((r) => (r.status || '').toLowerCase() === 'in progress').length,
+      fulfilled: all.filter((r) => (r.status || '').toLowerCase() === 'fulfilled').length,
+    };
+  }, [requirements]);
+
+  // ── Filtered requirements
+  const filtered = useMemo(() => {
+    return requirements.filter((r) => {
+      const q = search.toLowerCase();
+      const matchSearch = !q || (r.professions || '').toLowerCase().includes(q) || (r.country || '').toLowerCase().includes(q) || (r.city || '').toLowerCase().includes(q);
+      const s = (r.status || 'new').toLowerCase();
+      const matchStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'new' && s === 'new') ||
+        (statusFilter === 'active' && s === 'active') ||
+        (statusFilter === 'in-progress' && s === 'in progress') ||
+        (statusFilter === 'fulfilled' && s === 'fulfilled');
+      return matchSearch && matchStatus;
+    });
+  }, [requirements, search, statusFilter]);
+
+  // ── Handlers
+  async function handlePostJob(e: React.FormEvent) {
+    e.preventDefault();
+    setPosting(true);
+    setPostError(null);
+    setPostSuccess(null);
+    try {
+      const req = await apiClient.createEmployerRequirement(accessToken, {
+        professions: jobForm.professions,
+        quantity: jobForm.quantity || undefined,
+        country: jobForm.country || undefined,
+        city: jobForm.city || undefined,
+        salary_range: jobForm.salary_range || undefined,
+        duty_hours: jobForm.duty_hours || undefined,
+        contract_duration: jobForm.contract_duration || undefined,
+        benefits_included: jobForm.benefits_included || undefined,
+        comments: jobForm.comments || undefined,
+      });
+      setRequirements((prev) => [req.requirement, ...prev]);
+      setJobForm(EMPTY_JOB);
+      setPostSuccess('Requirement posted successfully! Our team will start sourcing candidates.');
+      setView('requirements');
+    } catch (err: any) {
+      setPostError(err?.message || 'Failed to post requirement.');
+    } finally {
+      setPosting(false);
+    }
+  }
+
+  async function handleProfileSave(e: React.FormEvent) {
+    e.preventDefault();
+    setProfileSaving(true);
+    setProfileError(null);
+    try {
+      await apiClient.updatePortalProfile(accessToken, {
+        company_name: profileForm.company_name,
+        contact_name: profileForm.contact_name,
+        phone: profileForm.phone,
+        country: profileForm.country,
+        city: profileForm.city,
+      });
+      await onRefreshPortalProfile();
+      setProfileToast('Profile updated successfully.');
+      setShowProfileDialog(false);
+    } catch (err: any) {
+      setProfileError(err?.message || 'Failed to update profile.');
+    } finally {
+      setProfileSaving(false);
+    }
+  }
+
+  const VIEW_LABELS: Record<View, string> = {
+    dashboard: 'Dashboard',
+    requirements: 'My Requirements',
+    'post-job': 'Post a Requirement',
+    profile: 'Company Profile',
+  };
+
+  // ────────────────────────────────────────────────────────────────────────────
+  return (
+    <div className="flex h-screen overflow-hidden bg-gray-50 font-sans">
+
+      {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
+      <aside className="flex w-60 flex-shrink-0 flex-col border-r border-gray-200 bg-white">
+        {/* Brand */}
+        <div className="flex items-center gap-2 border-b border-gray-200 px-5 py-4">
+          <img src="/logo.png" alt="Falisha" className="h-7 w-7 object-contain" />
+          <span className="text-base font-bold text-[#0891b2]">Falisha Jobs</span>
+        </div>
+
+        {/* Company badge */}
+        <div className="mx-3 mt-3 rounded-xl bg-cyan-50 px-3 py-2.5">
+          <p className="truncate text-xs font-semibold text-cyan-700">{companyName}</p>
+          <p className="text-[11px] text-cyan-500">Employer Account</p>
+        </div>
+
+        {/* Nav */}
+        <nav className="mt-3 flex-1 space-y-0.5 px-2">
+          {([
+            { v: 'dashboard' as View, label: 'Dashboard', Icon: LayoutDashboard },
+            { v: 'requirements' as View, label: 'My Requirements', Icon: FileText },
+            { v: 'post-job' as View, label: 'Post a Job', Icon: Plus },
+            { v: 'profile' as View, label: 'Company Profile', Icon: Building2 },
+          ] as const).map(({ v, label, Icon }) => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                view === v
+                  ? 'bg-cyan-50 text-cyan-700'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+            >
+              <Icon className="h-4 w-4 flex-shrink-0" />
+              {label}
+              {v === 'post-job' && (
+                <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-cyan-100 text-[10px] font-bold text-cyan-700">+</span>
+              )}
+            </button>
           ))}
-        </section>
+        </nav>
 
-        <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="rounded-[30px] border border-white/8 bg-white/8 p-6 shadow-[0_20px_70px_rgba(0,0,0,0.22)] backdrop-blur-xl sm:p-7">
-            <div className="mb-6 flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-semibold text-white" style={{ fontFamily: 'Georgia, Times New Roman, serif' }}>Company Profile</h2>
-                <p className="mt-2 text-sm text-amber-50/68">Update the same information your account team sees when planning recruitment delivery.</p>
-              </div>
+        {/* Logout */}
+        <div className="border-t border-gray-200 px-2 py-3">
+          <button
+            onClick={onSignOut}
+            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-500 transition hover:bg-gray-50 hover:text-red-600"
+          >
+            <LogOut className="h-4 w-4" /> Sign out
+          </button>
+        </div>
+      </aside>
+
+      {/* ── Main ────────────────────────────────────────────────────────────── */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+
+        {/* Header */}
+        <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3.5">
+          <h1 className="text-sm font-semibold text-gray-900">{VIEW_LABELS[view]}</h1>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => { void onRefreshPortalProfile(); }}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-500 transition hover:bg-gray-50"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+
+            {/* Account menu */}
+            <div ref={accountMenuRef} className="relative">
               <button
                 type="button"
-                onClick={handleSave}
-                disabled={saving}
-                className="rounded-full bg-gradient-to-r from-amber-300 via-orange-300 to-amber-200 px-5 py-2.5 text-sm font-semibold text-stone-900 transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => setShowAccountMenu((c) => !c)}
+                className="flex items-center gap-2.5 rounded-xl border border-transparent px-2.5 py-2 transition hover:border-gray-200 hover:bg-gray-50"
               >
-                {saving ? 'Saving...' : 'Save changes'}
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-600 text-xs font-bold text-white">
+                  {initials(companyName).toUpperCase() || 'E'}
+                </span>
+                <span className="hidden min-w-0 text-left sm:block">
+                  <span className="block max-w-[150px] truncate text-sm font-semibold text-gray-900">{companyName}</span>
+                  <span className="block text-xs text-gray-500">{user.email}</span>
+                </span>
+                <ChevronDown className={`h-3.5 w-3.5 text-gray-400 transition-transform ${showAccountMenu ? 'rotate-180' : ''}`} />
               </button>
-            </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              {[
-                { key: 'company_name', label: 'Company name' },
-                { key: 'contact_name', label: 'Contact person' },
-                { key: 'email', label: 'Business email', type: 'email' },
-                { key: 'phone', label: 'WhatsApp number' },
-                { key: 'country', label: 'Country' },
-                { key: 'city', label: 'City' },
-                { key: 'professions', label: 'Professions needed' },
-                { key: 'quantity', label: 'Quantity required' },
-                { key: 'salary_range', label: 'Salary range' },
-                { key: 'duty_hours', label: 'Duty hours' },
-                { key: 'contract_duration', label: 'Contract duration' },
-                { key: 'benefits_included', label: 'Benefits included' },
-              ].map((field) => (
-                <label key={field.key} className="space-y-2">
-                  <span className="text-xs uppercase tracking-[0.2em] text-amber-100/56">{field.label}</span>
+              {showAccountMenu && (
+                <div className="absolute right-0 z-30 mt-2 w-64 rounded-2xl border border-gray-200 bg-white p-2 shadow-xl">
+                  <div className="px-3 py-2.5">
+                    <p className="truncate text-sm font-semibold text-gray-900">{companyName}</p>
+                    <p className="mt-0.5 truncate text-xs text-gray-500">{user.email}</p>
+                  </div>
+                  <hr className="my-1.5 border-gray-100" />
+                  <button
+                    type="button"
+                    onClick={() => { setShowAccountMenu(false); setView('profile'); }}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                  >
+                    <Settings className="h-4 w-4" /> Company Profile
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowAccountMenu(false); void onSignOut(); }}
+                    className="mt-0.5 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-red-600 transition hover:bg-red-50"
+                  >
+                    <LogOut className="h-4 w-4" /> Sign out
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* Toast */}
+        {profileToast && (
+          <div className="absolute right-6 top-16 z-40 flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700 shadow-lg">
+            <CheckCircle2 className="h-4 w-4" /> {profileToast}
+          </div>
+        )}
+
+        {/* Content */}
+        <main className="flex-1 overflow-auto p-6">
+
+          {/* ── Loading ── */}
+          {loading && (
+            <div className="rounded-xl border border-gray-200 bg-white px-6 py-8 text-center text-sm text-gray-400">
+              Loading employer workspace…
+            </div>
+          )}
+
+          {/* ── Error ── */}
+          {!loading && error && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">{error}</div>
+          )}
+
+          {/* ─────────────────── DASHBOARD VIEW ─────────────────── */}
+          {!loading && view === 'dashboard' && (
+            <div className="space-y-6">
+
+              {/* Welcome banner */}
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-cyan-600 to-cyan-500 p-6 text-white shadow-md">
+                <div className="absolute right-0 top-0 h-full w-48 bg-[radial-gradient(ellipse_at_right,rgba(255,255,255,0.15),transparent_70%)]" />
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-cyan-200" />
+                      <span className="text-xs font-semibold uppercase tracking-widest text-cyan-100">Employer Portal</span>
+                    </div>
+                    <h2 className="mt-2 text-2xl font-bold">{companyName}</h2>
+                    <p className="mt-1 text-sm text-cyan-100">
+                      Manage your hiring requirements and track fulfilment in real time.
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-3 text-xs">
+                      {(lead?.email || user.email) && (
+                        <span className="flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1">
+                          <Mail className="h-3 w-3" /> {lead?.email || user.email}
+                        </span>
+                      )}
+                      {lead?.phone_number && (
+                        <span className="flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1">
+                          <Phone className="h-3 w-3" /> {lead.phone_number}
+                        </span>
+                      )}
+                      {(lead?.country || lead?.city) && (
+                        <span className="flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1">
+                          <MapPin className="h-3 w-3" /> {[lead?.city, lead?.country].filter(Boolean).join(', ')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setView('post-job')}
+                    className="flex-shrink-0 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-cyan-700 shadow transition hover:bg-cyan-50"
+                  >
+                    + Post Requirement
+                  </button>
+                </div>
+              </div>
+
+              {/* Stat cards */}
+              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                {[
+                  { label: 'Total Requirements', value: stats.total, Icon: FileText, color: 'text-cyan-600', bg: 'bg-cyan-50' },
+                  { label: 'Open / Active', value: stats.active, Icon: BriefcaseBusiness, color: 'text-green-600', bg: 'bg-green-50' },
+                  { label: 'In Progress', value: stats.inProgress, Icon: Clock, color: 'text-blue-600', bg: 'bg-blue-50' },
+                  { label: 'Fulfilled', value: stats.fulfilled, Icon: CheckCircle2, color: 'text-purple-600', bg: 'bg-purple-50' },
+                ].map(({ label, value, Icon, color, bg }) => (
+                  <div key={label} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <div className={`inline-flex rounded-xl p-2.5 ${bg}`}>
+                      <Icon className={`h-5 w-5 ${color}`} />
+                    </div>
+                    <p className="mt-4 text-2xl font-bold text-gray-900">{value}</p>
+                    <p className="mt-0.5 text-xs text-gray-500">{label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Recent requirements */}
+              <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+                <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+                  <h2 className="text-sm font-semibold text-gray-900">Recent Requirements</h2>
+                  <button onClick={() => setView('requirements')} className="text-xs font-medium text-cyan-600 hover:underline">
+                    View all →
+                  </button>
+                </div>
+                {reqLoading ? (
+                  <p className="px-5 py-4 text-sm text-gray-400">Loading requirements…</p>
+                ) : requirements.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                    <Briefcase className="mx-auto h-8 w-8 text-gray-300" />
+                    <p className="mt-3 text-sm font-medium text-gray-500">No requirements yet</p>
+                    <button
+                      type="button"
+                      onClick={() => setView('post-job')}
+                      className="mt-3 rounded-lg bg-cyan-600 px-4 py-2 text-xs font-semibold text-white hover:bg-cyan-700"
+                    >
+                      Post your first requirement
+                    </button>
+                  </div>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">
+                        <th className="px-5 py-3">Role / Position</th>
+                        <th className="px-4 py-3">Qty</th>
+                        <th className="px-4 py-3">Country</th>
+                        <th className="px-4 py-3">Salary</th>
+                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {requirements.slice(0, 6).map((r) => (
+                        <tr key={r.id} className="transition hover:bg-gray-50">
+                          <td className="px-5 py-3.5 font-medium text-gray-900">{r.professions || '—'}</td>
+                          <td className="px-4 py-3.5 text-gray-600">{r.quantity || '—'}</td>
+                          <td className="px-4 py-3.5 text-gray-600">{r.country || '—'}</td>
+                          <td className="px-4 py-3.5 text-gray-600">{r.salary_range || '—'}</td>
+                          <td className="px-4 py-3.5"><StatusBadge status={r.status} /></td>
+                          <td className="px-4 py-3.5 text-gray-400">{formatDate(r.created_at)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              {postSuccess && (
+                <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-5 py-3.5 text-sm font-medium text-green-700">
+                  <CheckCircle2 className="h-4 w-4 flex-shrink-0" /> {postSuccess}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ─────────────────── REQUIREMENTS VIEW ─────────────────── */}
+          {!loading && view === 'requirements' && (
+            <div className="space-y-5">
+              {/* Toolbar */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative flex-1" style={{ minWidth: '200px' }}>
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <input
-                    type={field.type || 'text'}
-                    value={formState[field.key as keyof EmployerFormState]}
-                    onChange={(event) => updateField(field.key as keyof EmployerFormState, event.target.value)}
-                    className="w-full rounded-2xl border border-white/10 bg-black/18 px-4 py-3 text-sm text-white outline-none transition placeholder:text-amber-50/28 focus:border-amber-300/55 focus:bg-black/24"
-                    placeholder={field.label}
+                    type="text"
+                    placeholder="Search by role, country…"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 bg-white py-2 pl-9 pr-4 text-sm outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
                   />
-                </label>
-              ))}
+                </div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 outline-none focus:border-cyan-400"
+                >
+                  <option value="all">All statuses</option>
+                  <option value="new">New</option>
+                  <option value="active">Active</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="fulfilled">Fulfilled</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setView('post-job')}
+                  className="flex items-center gap-2 rounded-xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-cyan-700"
+                >
+                  <Plus className="h-4 w-4" /> New Requirement
+                </button>
+              </div>
+
+              {/* Cards grid */}
+              {reqLoading ? (
+                <p className="text-sm text-gray-400">Loading…</p>
+              ) : filtered.length === 0 ? (
+                <div className="mt-8 flex flex-col items-center justify-center rounded-xl border border-gray-200 bg-white py-12 text-center">
+                  <Briefcase className="h-8 w-8 text-gray-300" />
+                  <p className="mt-3 text-sm font-medium text-gray-500">No requirements found</p>
+                  <button
+                    type="button"
+                    onClick={() => setView('post-job')}
+                    className="mt-3 rounded-lg bg-cyan-600 px-4 py-2 text-xs font-semibold text-white hover:bg-cyan-700"
+                  >
+                    Post a requirement
+                  </button>
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {filtered.map((r) => (
+                    <RequirementCard key={r.id} req={r} />
+                  ))}
+                </div>
+              )}
             </div>
+          )}
 
-            <label className="mt-4 block space-y-2">
-              <span className="text-xs uppercase tracking-[0.2em] text-amber-100/56">Operational notes</span>
-              <textarea
-                value={formState.comments}
-                onChange={(event) => updateField('comments', event.target.value)}
-                rows={5}
-                className="w-full rounded-[24px] border border-white/10 bg-black/18 px-4 py-3 text-sm text-white outline-none transition placeholder:text-amber-50/28 focus:border-amber-300/55 focus:bg-black/24"
-                placeholder="Hiring seasons, visa constraints, accommodation notes, interview preferences..."
-              />
-            </label>
+          {/* ─────────────────── POST JOB VIEW ─────────────────── */}
+          {!loading && view === 'post-job' && (
+            <div className="mx-auto max-w-2xl">
+              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+                <div className="border-b border-gray-200 px-6 py-5">
+                  <h2 className="text-lg font-semibold text-gray-900">Post a New Requirement</h2>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Describe the role you need to fill — Falisha will source, screen, and deliver.
+                  </p>
+                </div>
 
-            {(statusMessage || saveError || error) && (
-              <div className={`mt-5 rounded-2xl border px-4 py-3 text-sm ${saveError || error ? 'border-rose-400/30 bg-rose-500/10 text-rose-100' : 'border-emerald-400/25 bg-emerald-500/10 text-emerald-100'}`}>
-                {saveError || error || statusMessage}
+                <form onSubmit={handlePostJob} className="divide-y divide-gray-100">
+                  {/* Role */}
+                  <section className="px-6 py-5 space-y-4">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-cyan-700">Role Details</h3>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Role / Position <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <BriefcaseBusiness className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="text"
+                          required
+                          value={jobForm.professions}
+                          onChange={(e) => setJobForm((f) => ({ ...f, professions: e.target.value }))}
+                          placeholder="e.g. HVAC Technician, Civil Engineer, Driver"
+                          className="w-full rounded-xl border border-gray-200 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Workers Needed</label>
+                        <div className="relative">
+                          <Users className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                          <select
+                            value={jobForm.quantity}
+                            onChange={(e) => setJobForm((f) => ({ ...f, quantity: e.target.value }))}
+                            className="w-full appearance-none rounded-xl border border-gray-200 py-2.5 pl-10 pr-8 text-sm text-gray-700 outline-none focus:border-cyan-400"
+                          >
+                            <option value="">Select quantity…</option>
+                            {QTY_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Salary / Package</label>
+                        <div className="relative">
+                          <Banknote className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                          <select
+                            value={jobForm.salary_range}
+                            onChange={(e) => setJobForm((f) => ({ ...f, salary_range: e.target.value }))}
+                            className="w-full appearance-none rounded-xl border border-gray-200 py-2.5 pl-10 pr-8 text-sm text-gray-700 outline-none focus:border-cyan-400"
+                          >
+                            <option value="">Select range…</option>
+                            {SALARY_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                            <option value="custom">Enter custom…</option>
+                          </select>
+                        </div>
+                        {jobForm.salary_range === 'custom' && (
+                          <input
+                            type="text"
+                            placeholder="e.g. SAR 2,000/mo"
+                            className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-cyan-400"
+                            onChange={(e) => setJobForm((f) => ({ ...f, salary_range: e.target.value }))}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Location */}
+                  <section className="px-6 py-5 space-y-4">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-cyan-700">Job Location</h3>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Country</label>
+                        <div className="relative">
+                          <Globe2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                          <select
+                            value={jobForm.country}
+                            onChange={(e) => setJobForm((f) => ({ ...f, country: e.target.value }))}
+                            className="w-full appearance-none rounded-xl border border-gray-200 py-2.5 pl-10 pr-8 text-sm text-gray-700 outline-none focus:border-cyan-400"
+                          >
+                            <option value="">Select country…</option>
+                            {WORLD_COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">City</label>
+                        <div className="relative">
+                          <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                          <input
+                            type="text"
+                            value={jobForm.city}
+                            onChange={(e) => setJobForm((f) => ({ ...f, city: e.target.value }))}
+                            placeholder="e.g. Riyadh, Dubai"
+                            className="w-full rounded-xl border border-gray-200 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-cyan-400"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Working Conditions */}
+                  <section className="px-6 py-5 space-y-4">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-cyan-700">Working Conditions</h3>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Duty Hours</label>
+                        <div className="relative">
+                          <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                          <select
+                            value={jobForm.duty_hours}
+                            onChange={(e) => setJobForm((f) => ({ ...f, duty_hours: e.target.value }))}
+                            className="w-full appearance-none rounded-xl border border-gray-200 py-2.5 pl-10 pr-8 text-sm text-gray-700 outline-none focus:border-cyan-400"
+                          >
+                            <option value="">Select hours…</option>
+                            {HOURS_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                            <option value="other">Other (specify in notes)</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Contract Duration</label>
+                        <div className="relative">
+                          <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                          <select
+                            value={jobForm.contract_duration}
+                            onChange={(e) => setJobForm((f) => ({ ...f, contract_duration: e.target.value }))}
+                            className="w-full appearance-none rounded-xl border border-gray-200 py-2.5 pl-10 pr-8 text-sm text-gray-700 outline-none focus:border-cyan-400"
+                          >
+                            <option value="">Select duration…</option>
+                            {CONTRACT_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">Benefits Included</label>
+                      <div className="relative">
+                        <Star className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <input
+                          type="text"
+                          value={jobForm.benefits_included}
+                          onChange={(e) => setJobForm((f) => ({ ...f, benefits_included: e.target.value }))}
+                          placeholder="e.g. Accommodation, Meals, Medical, Transport"
+                          className="w-full rounded-xl border border-gray-200 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-cyan-400"
+                        />
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Notes */}
+                  <section className="px-6 py-5 space-y-4">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-cyan-700">Additional Notes</h3>
+                    <textarea
+                      value={jobForm.comments}
+                      onChange={(e) => setJobForm((f) => ({ ...f, comments: e.target.value }))}
+                      rows={4}
+                      placeholder="Visa type, interview process, accommodation details, language preference, start date…"
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                    />
+                  </section>
+
+                  {/* Submit */}
+                  <div className="flex items-center justify-between px-6 py-5">
+                    <button
+                      type="button"
+                      onClick={() => { setJobForm(EMPTY_JOB); setPostError(null); }}
+                      className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
+                    >
+                      Clear form
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={posting}
+                      className="inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {posting ? 'Posting…' : 'Post Requirement'}
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {postError && (
+                    <div className="mx-6 mb-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                      {postError}
+                    </div>
+                  )}
+                </form>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          <div className="space-y-6">
-            <article className="rounded-[30px] border border-white/8 bg-white/8 p-6 shadow-[0_20px_70px_rgba(0,0,0,0.22)] backdrop-blur-xl">
-              <h2 className="text-xl font-semibold text-white" style={{ fontFamily: 'Georgia, Times New Roman, serif' }}>Fulfilment Snapshot</h2>
-              <div className="mt-5 space-y-4 text-sm text-amber-50/74">
-                <div className="flex items-start gap-3 rounded-2xl border border-white/8 bg-black/18 p-4">
-                  <MapPin className="mt-0.5 h-4 w-4 text-amber-300" />
-                  <div>
-                    <p className="font-medium text-white">Target market</p>
-                    <p>{formState.city ? `${formState.city}, ${formState.country || ''}`.trim().replace(/,$/, '') : formState.country || 'Add the destination market you are hiring for.'}</p>
-                  </div>
+          {/* ─────────────────── PROFILE VIEW ─────────────────── */}
+          {!loading && view === 'profile' && (
+            <div className="mx-auto max-w-xl">
+              <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+                <div className="border-b border-gray-200 px-6 py-5">
+                  <h2 className="text-lg font-semibold text-gray-900">Company Profile</h2>
+                  <p className="mt-1 text-sm text-gray-500">Update your company details visible to the Falisha team.</p>
                 </div>
-                <div className="flex items-start gap-3 rounded-2xl border border-white/8 bg-black/18 p-4">
-                  <Users className="mt-0.5 h-4 w-4 text-amber-300" />
-                  <div>
-                    <p className="font-medium text-white">Open hiring brief</p>
-                    <p>{formState.professions || 'List the roles you want Falisha to deliver.'}</p>
+                <form onSubmit={handleProfileSave} className="px-6 py-5 space-y-4">
+                  {[
+                    { key: 'company_name', label: 'Company Name', icon: Building2, placeholder: 'Acme Corp' },
+                    { key: 'contact_name', label: 'Contact Person', icon: Users, placeholder: 'Ahmad Khan' },
+                    { key: 'phone', label: 'WhatsApp / Phone', icon: Phone, placeholder: '+971501234567' },
+                  ].map(({ key, label, icon: Icon, placeholder }) => (
+                    <div key={key} className="space-y-1.5">
+                      <label className="block text-sm font-medium text-gray-700">{label}</label>
+                      <div className="relative">
+                        <Icon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="text"
+                          value={profileForm[key as keyof ProfileForm]}
+                          onChange={(e) => setProfileForm((f) => ({ ...f, [key]: e.target.value }))}
+                          placeholder={placeholder}
+                          className="w-full rounded-xl border border-gray-200 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
+                        />
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <label className="block text-sm font-medium text-gray-700">Country</label>
+                      <div className="relative">
+                        <Globe2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                        <select
+                          value={profileForm.country}
+                          onChange={(e) => setProfileForm((f) => ({ ...f, country: e.target.value }))}
+                          className="w-full appearance-none rounded-xl border border-gray-200 py-2.5 pl-10 pr-8 text-sm text-gray-700 outline-none focus:border-cyan-400"
+                        >
+                          <option value="">Select country…</option>
+                          {WORLD_COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-sm font-medium text-gray-700">City</label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="text"
+                          value={profileForm.city}
+                          onChange={(e) => setProfileForm((f) => ({ ...f, city: e.target.value }))}
+                          placeholder="e.g. Dubai"
+                          className="w-full rounded-xl border border-gray-200 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-cyan-400"
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start gap-3 rounded-2xl border border-white/8 bg-black/18 p-4">
-                  <Clock3 className="mt-0.5 h-4 w-4 text-amber-300" />
-                  <div>
-                    <p className="font-medium text-white">Working model</p>
-                    <p>{formState.duty_hours || 'Share daily hours, rotations, and overtime expectations.'}</p>
+
+                  {profileError && (
+                    <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{profileError}</div>
+                  )}
+
+                  <div className="flex justify-end pt-2">
+                    <button
+                      type="submit"
+                      disabled={profileSaving}
+                      className="inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-cyan-700 disabled:opacity-60"
+                    >
+                      {profileSaving ? 'Saving…' : 'Save Profile'}
+                      <ShieldCheck className="h-4 w-4" />
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Account info card */}
+              <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Account Info</p>
+                <div className="mt-3 space-y-2 text-sm">
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Mail className="h-4 w-4 text-gray-400" />
+                    {lead?.email || user.email}
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <ShieldCheck className="h-4 w-4 text-gray-400" />
+                    <span>Status: </span>
+                    <StatusBadge status={lead?.status} />
                   </div>
                 </div>
               </div>
-            </article>
+            </div>
+          )}
 
-            <article className="rounded-[30px] border border-white/8 bg-gradient-to-br from-amber-400/18 via-orange-300/10 to-white/6 p-6 shadow-[0_20px_70px_rgba(0,0,0,0.22)] backdrop-blur-xl">
-              <p className="text-xs uppercase tracking-[0.2em] text-amber-100/60">Portal Identity</p>
-              <h3 className="mt-3 text-2xl font-semibold text-white" style={{ fontFamily: 'Georgia, Times New Roman, serif' }}>{user.roleLabel}</h3>
-              <p className="mt-3 text-sm leading-7 text-amber-50/74">
-                This login is reserved for your company so Falisha can keep requirements, communication, and approvals tied to one verified account.
-              </p>
-            </article>
-          </div>
-        </section>
+        </main>
       </div>
     </div>
+  );
+}
+
+// ─── Requirement Card ─────────────────────────────────────────────────────────
+
+function RequirementCard({ req }: { req: EmployerLeadProfile }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <article className="rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md">
+      <div className="p-5">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-50">
+            <BriefcaseBusiness className="h-5 w-5 text-cyan-600" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-2">
+              <p className="truncate font-semibold text-gray-900">{req.professions || 'Untitled Role'}</p>
+              <StatusBadge status={req.status} />
+            </div>
+            <p className="mt-0.5 text-xs text-gray-500">
+              {[req.city, req.country].filter(Boolean).join(', ') || 'Location TBD'}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs text-gray-500">
+          {req.quantity && (
+            <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-gray-400" /> {req.quantity} workers</span>
+          )}
+          {req.salary_range && (
+            <span className="flex items-center gap-1.5"><Banknote className="h-3.5 w-3.5 text-gray-400" /> {req.salary_range}</span>
+          )}
+          {req.contract_duration && (
+            <span className="flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5 text-gray-400" /> {req.contract_duration}</span>
+          )}
+          {req.duty_hours && (
+            <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5 text-gray-400" /> {req.duty_hours}</span>
+          )}
+        </div>
+
+        {(req.benefits_included || req.comments) && (
+          <>
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="mt-3 flex items-center gap-1 text-xs font-medium text-cyan-600 hover:underline"
+            >
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+              {expanded ? 'Hide details' : 'View details'}
+            </button>
+            {expanded && (
+              <div className="mt-2 space-y-1.5 rounded-xl bg-gray-50 p-3 text-xs text-gray-600">
+                {req.benefits_included && (
+                  <p><span className="font-semibold text-gray-700">Benefits: </span>{req.benefits_included}</p>
+                )}
+                {req.comments && (
+                  <p><span className="font-semibold text-gray-700">Notes: </span>{req.comments}</p>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      <div className="border-t border-gray-100 px-5 py-2.5 text-xs text-gray-400">
+        Posted {req.created_at
+          ? new Date(req.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+          : '—'}
+      </div>
+    </article>
   );
 }
