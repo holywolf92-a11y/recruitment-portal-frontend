@@ -203,7 +203,7 @@ export function PublicApplicationForm() {
               Pakistan #1 Recruitment
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderRadius: '999px', background: '#f9fafb', border: '1px solid #e5e7eb', padding: '0.3rem 0.85rem', fontSize: '0.75rem', fontWeight: 600, color: '#6b7280' }}>
-              2,400+ Placed Globally
+              85,000+ Placed Globally
             </span>
           </div>
 
