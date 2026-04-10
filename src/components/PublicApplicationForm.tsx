@@ -575,7 +575,7 @@ export function PublicApplicationForm() {
               <InputField label="Company Name" value={employerForm.companyName} onChange={(v) => setEmployerForm((c) => ({ ...c, companyName: v }))} required icon={Building2} />
               <InputField label="Contact Name" value={employerForm.contactName} onChange={(v) => setEmployerForm((c) => ({ ...c, contactName: v }))} required icon={User2} />
               <InputField label="Email" type="email" value={employerForm.email} onChange={(v) => setEmployerForm((c) => ({ ...c, email: v }))} required icon={Mail} />
-              <InputField label="Phone / WhatsApp" value={employerForm.phone} onChange={(v) => setEmployerForm((c) => ({ ...c, phone: v }))} required icon={Phone} />
+              <InputField label="Phone / WhatsApp" value={employerForm.phone} onChange={(v) => setEmployerForm((c) => ({ ...c, phone: v }))} required icon={Phone} type="tel" placeholder="+923001234567" />
               <InputField label="Country" value={employerForm.country} onChange={(v) => setEmployerForm((c) => ({ ...c, country: v }))} icon={Globe2} />
               <InputField label="City" value={employerForm.city} onChange={(v) => setEmployerForm((c) => ({ ...c, city: v }))} icon={MapPin} />
               <InputField label="Professions Required" value={employerForm.professions} onChange={(v) => setEmployerForm((c) => ({ ...c, professions: v }))} icon={Briefcase} />
@@ -640,7 +640,7 @@ export function PublicApplicationForm() {
           <div className="grid gap-4 sm:grid-cols-2">
             <InputField label="Applicant Name" value={partnerForm.applicantName} onChange={(v) => setPartnerForm((c) => ({ ...c, applicantName: v }))} required icon={User2} />
             <InputField label="Email" type="email" value={partnerForm.email} onChange={(v) => setPartnerForm((c) => ({ ...c, email: v }))} required icon={Mail} />
-            <InputField label="Phone / WhatsApp" value={partnerForm.phone} onChange={(v) => setPartnerForm((c) => ({ ...c, phone: v }))} required icon={Phone} />
+            <InputField label="Phone / WhatsApp" value={partnerForm.phone} onChange={(v) => setPartnerForm((c) => ({ ...c, phone: v }))} required icon={Phone} type="tel" placeholder="+923001234567" />
             <InputField label="Company / Agency Name" value={partnerForm.companyName} onChange={(v) => setPartnerForm((c) => ({ ...c, companyName: v }))} icon={Building2} />
             <InputField label="City / Country" value={partnerForm.cityCountry} onChange={(v) => setPartnerForm((c) => ({ ...c, cityCountry: v }))} icon={MapPin} />
             <InputField label="District" value={partnerForm.district} onChange={(v) => setPartnerForm((c) => ({ ...c, district: v }))} icon={MapPin} />
@@ -749,13 +749,13 @@ function CandidateUploadField({ fileName, onFileChange }: { fileName: string | n
   );
 }
 
-function InputField({ label, value, onChange, required, type = 'text', icon: Icon }: { label: string; value: string; onChange: (value: string) => void; required?: boolean; type?: string; icon: typeof Briefcase }) {
+function InputField({ label, value, onChange, required, type = 'text', icon: Icon, placeholder }: { label: string; value: string; onChange: (value: string) => void; required?: boolean; type?: string; icon: typeof Briefcase; placeholder?: string }) {
   return (
     <div className="falisha-auth-field">
       <label className="falisha-auth-field-label">{label}{required ? <span className="text-red-500"> *</span> : ''}</label>
       <div className="falisha-auth-input-wrap">
         <Icon className="falisha-auth-input-icon" />
-        <input type={type} value={value} onChange={(e) => onChange(e.target.value)} required={required} placeholder={label} className="falisha-auth-input" />
+        <input type={type} value={value} onChange={(e) => onChange(e.target.value)} required={required} placeholder={placeholder ?? label} className="falisha-auth-input" />
       </div>
     </div>
   );
