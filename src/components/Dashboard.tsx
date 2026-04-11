@@ -1,287 +1,195 @@
-import { mockCandidates, mockJobOrders, mockEmployers } from '../lib/mockData';
-import { Users, Briefcase, Building2, TrendingUp, MapPin, Award, UserCheck, Calendar } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { apiClient, CandidateDashboardStats } from '../lib/apiClient';
+import { Users, Briefcase, Building2, UserCheck, TrendingUp, AlertTriangle, RefreshCw, Star } from 'lucide-react';
+
+interface DashboardData {
+  stats: CandidateDashboardStats;
+  totalEmployers: number;
+  totalJobOrders: number;
+}
 
 export function Dashboard() {
-  // Calculate stats
-  const totalCandidates = mockCandidates.length;
-  const newToday = mockCandidates.filter(c => c.appliedDate === '2025-12-13').length;
-  const newThisWeek = mockCandidates.filter(c => {
-    const date = new Date(c.appliedDate);
-    const weekAgo = new Date('2025-12-06');
-    return date >= weekAgo;
-  }).length;
-  
-  const statusBreakdown = {
-    Applied: mockCandidates.filter(c => c.status === 'Applied').length,
-    Pending: mockCandidates.filter(c => c.status === 'Pending').length,
-    Deployed: mockCandidates.filter(c => c.status === 'Deployed').length,
-    Cancelled: mockCandidates.filter(c => c.status === 'Cancelled').length,
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [stats, employersRes, jobOrdersRes] = await Promise.all([
+        apiClient.getCandidateDashboardStats(),
+        apiClient.getEmployers({ limit: 1 }),
+        apiClient.getJobOrders({ limit: 1 }),
+      ]);
+      setData({
+        stats,
+        totalEmployers: employersRes.total,
+        totalJobOrders: jobOrdersRes.total,
+      });
+    } catch (err: any) {
+      setError(err?.message || 'Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const sourceBreakdown = {
-    WhatsApp: mockCandidates.filter(c => c.source === 'WhatsApp').length,
-    Email: mockCandidates.filter(c => c.source === 'Email').length,
-    Form: mockCandidates.filter(c => c.source === 'Form').length,
-    Manual: mockCandidates.filter(c => c.source === 'Manual').length,
-  };
+  useEffect(() => { load(); }, []);
 
-  // Country breakdown
-  const countryBreakdown: { [key: string]: number } = {};
-  mockCandidates.forEach(c => {
-    countryBreakdown[c.country] = (countryBreakdown[c.country] || 0) + 1;
-  });
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
+          <p className="text-gray-500 text-sm mt-1">Welcome to Falisha Manpower Recruitment Portal</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-gray-100 rounded-xl h-32 animate-pulse" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="bg-gray-100 rounded-xl h-24 animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-  // Position breakdown
-  const positionBreakdown: { [key: string]: number } = {};
-  mockCandidates.forEach(c => {
-    positionBreakdown[c.position] = (positionBreakdown[c.position] || 0) + 1;
-  });
+  if (error || !data) {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-semibold text-red-800">Failed to load dashboard</p>
+            <p className="text-sm text-red-600 mt-1">{error}</p>
+          </div>
+          <button onClick={load} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 text-sm font-medium">
+            <RefreshCw className="w-3.5 h-3.5" />
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-  const openJobs = mockJobOrders.filter(j => j.status === 'Open').length;
-  const totalEmployers = mockEmployers.length;
+  const { stats, totalEmployers, totalJobOrders } = data;
+
+  const kpis = [
+    {
+      label: 'Total Candidates',
+      value: stats.totalCandidates.toLocaleString(),
+      sub: stats.newThisWeek > 0 ? `+${stats.newThisWeek} this week` : 'No new this week',
+      icon: Users,
+      from: 'from-blue-500',
+      to: 'to-blue-600',
+    },
+    {
+      label: 'Job Orders',
+      value: totalJobOrders.toLocaleString(),
+      sub: 'Total job orders',
+      icon: Briefcase,
+      from: 'from-emerald-500',
+      to: 'to-emerald-600',
+    },
+    {
+      label: 'Active Employers',
+      value: totalEmployers.toLocaleString(),
+      sub: 'Registered companies',
+      icon: Building2,
+      from: 'from-violet-500',
+      to: 'to-violet-600',
+    },
+    {
+      label: 'Deployed',
+      value: stats.deployed.toLocaleString(),
+      sub: 'Successfully placed',
+      icon: UserCheck,
+      from: 'from-orange-500',
+      to: 'to-orange-600',
+    },
+  ];
+
+  const secondaryStats = [
+    {
+      label: 'Pending Review',
+      value: stats.pendingReview,
+      icon: AlertTriangle,
+      color: stats.pendingReview > 0 ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-green-700 bg-green-50 border-green-200',
+      note: stats.pendingReview > 0 ? 'Needs attention' : 'All clear',
+    },
+    {
+      label: 'New This Week',
+      value: stats.newThisWeek,
+      icon: TrendingUp,
+      color: 'text-blue-700 bg-blue-50 border-blue-200',
+      note: 'Last 7 days',
+    },
+    {
+      label: 'Professions',
+      value: stats.totalProfessions,
+      icon: Star,
+      color: 'text-violet-700 bg-violet-50 border-violet-200',
+      note: 'Distinct roles',
+    },
+  ];
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2>Dashboard</h2>
-        <p className="text-gray-600">Welcome to Falisha Manpower Recruitment Portal</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
+          <p className="text-gray-500 text-sm mt-1">Welcome to Falisha Manpower Recruitment Portal</p>
+        </div>
+        <button
+          onClick={load}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-600 text-sm font-medium transition-colors"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          Refresh
+        </button>
       </div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 shadow-lg text-white transform transition-all hover:scale-105">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-90">Total Candidates</p>
-              <p className="text-4xl font-bold mt-2">{totalCandidates}</p>
-              <p className="text-sm mt-2 bg-white bg-opacity-20 px-2 py-1 rounded inline-block">
-                +{newToday} today
-              </p>
-            </div>
-            <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-              <Users className="w-8 h-8" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 shadow-lg text-white transform transition-all hover:scale-105">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-90">Open Job Orders</p>
-              <p className="text-4xl font-bold mt-2">{openJobs}</p>
-              <p className="text-sm mt-2 opacity-75">{mockJobOrders.length} total orders</p>
-            </div>
-            <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-              <Briefcase className="w-8 h-8" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 shadow-lg text-white transform transition-all hover:scale-105">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-90">Active Employers</p>
-              <p className="text-4xl font-bold mt-2">{totalEmployers}</p>
-              <p className="text-sm mt-2 opacity-75">Registered companies</p>
-            </div>
-            <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-              <Building2 className="w-8 h-8" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-6 shadow-lg text-white transform transition-all hover:scale-105">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-90">Deployed</p>
-              <p className="text-4xl font-bold mt-2">{statusBreakdown.Deployed}</p>
-              <p className="text-sm mt-2 opacity-75">Successfully placed</p>
-            </div>
-            <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-              <UserCheck className="w-8 h-8" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Status Breakdown */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-          <h3 className="text-xl font-bold text-gray-900 mb-6">Status Breakdown</h3>
-          <div className="space-y-5">
-            {Object.entries(statusBreakdown).map(([status, count]) => {
-              const percentage = (count / totalCandidates) * 100;
-              const colors: { [key: string]: { bg: string; bar: string; text: string } } = {
-                Applied: { bg: 'bg-blue-50', bar: 'bg-gradient-to-r from-blue-500 to-blue-600', text: 'text-blue-700' },
-                Pending: { bg: 'bg-yellow-50', bar: 'bg-gradient-to-r from-yellow-500 to-yellow-600', text: 'text-yellow-700' },
-                Deployed: { bg: 'bg-green-50', bar: 'bg-gradient-to-r from-green-500 to-green-600', text: 'text-green-700' },
-                Cancelled: { bg: 'bg-red-50', bar: 'bg-gradient-to-r from-red-500 to-red-600', text: 'text-red-700' },
-              };
-              return (
-                <div key={status} className={`p-3 rounded-lg ${colors[status].bg}`}>
-                  <div className="flex justify-between mb-2">
-                    <span className={`text-sm font-semibold ${colors[status].text}`}>{status}</span>
-                    <span className={`text-sm font-bold ${colors[status].text}`}>{count} ({percentage.toFixed(0)}%)</span>
-                  </div>
-                  <div className="w-full bg-white rounded-full h-3 shadow-inner">
-                    <div
-                      className={`h-3 rounded-full ${colors[status].bar} shadow-sm transition-all duration-500`}
-                      style={{ width: `${percentage}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Source Breakdown */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-          <h3 className="text-xl font-bold text-gray-900 mb-6">Application Source</h3>
-          <div className="space-y-5">
-            {Object.entries(sourceBreakdown).map(([source, count]) => {
-              const percentage = (count / totalCandidates) * 100;
-              const colors: { [key: string]: { bg: string; bar: string } } = {
-                WhatsApp: { bg: 'bg-green-50', bar: 'bg-gradient-to-r from-green-500 to-emerald-600' },
-                Email: { bg: 'bg-blue-50', bar: 'bg-gradient-to-r from-blue-500 to-cyan-600' },
-                Form: { bg: 'bg-purple-50', bar: 'bg-gradient-to-r from-purple-500 to-pink-600' },
-                Manual: { bg: 'bg-gray-50', bar: 'bg-gradient-to-r from-gray-500 to-slate-600' },
-              };
-              return (
-                <div key={source} className={`p-3 rounded-lg ${colors[source].bg}`}>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-sm font-semibold text-gray-700">{source}</span>
-                    <span className="text-sm font-bold text-gray-900">{count} ({percentage.toFixed(0)}%)</span>
-                  </div>
-                  <div className="w-full bg-white rounded-full h-3 shadow-inner">
-                    <div
-                      className={`h-3 rounded-full ${colors[source].bar} shadow-sm transition-all duration-500`}
-                      style={{ width: `${percentage}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Country & Position Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Country Breakdown */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <MapPin className="w-5 h-5 text-blue-600" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900">Country Distribution</h3>
-          </div>
-          <div className="space-y-3">
-            {Object.entries(countryBreakdown)
-              .sort((a, b) => b[1] - a[1])
-              .map(([country, count], index) => (
-                <div key={country} className="flex justify-between items-center py-3 px-4 rounded-lg hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-0">
-                  <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold">
-                      {index + 1}
-                    </span>
-                    <span className="font-medium text-gray-900">{country}</span>
-                  </div>
-                  <span className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-sm">
-                    {count}
-                  </span>
-                </div>
-              ))}
-          </div>
-        </div>
-
-        {/* Position Breakdown */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <Award className="w-5 h-5 text-green-600" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900">Position Distribution</h3>
-          </div>
-          <div className="space-y-3">
-            {Object.entries(positionBreakdown)
-              .sort((a, b) => b[1] - a[1])
-              .map(([position, count], index) => (
-                <div key={position} className="flex justify-between items-center py-3 px-4 rounded-lg hover:bg-green-50 transition-colors border-b border-gray-100 last:border-0">
-                  <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs font-bold">
-                      {index + 1}
-                    </span>
-                    <span className="font-medium text-gray-900">{position}</span>
-                  </div>
-                  <span className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-sm">
-                    {count}
-                  </span>
-                </div>
-              ))}
-          </div>
-        </div>
-      </div>
-
-      {/* AI Insights */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-            <TrendingUp className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h3 className="text-blue-900">AI Insights & Recommendations</h3>
-            <div className="mt-3 space-y-2">
-              <p className="text-sm text-blue-800">
-                • <strong>Electrician applications increased by 32%</strong> this week. High demand for UAE positions.
-              </p>
-              <p className="text-sm text-blue-800">
-                • <strong>Saudi Arabia is currently the top demand destination</strong> with {countryBreakdown['Saudi Arabia']} active candidates.
-              </p>
-              <p className="text-sm text-blue-800">
-                • <strong>Recommendation:</strong> Push marketing for Welder and Steel Fixer positions - high AI matching scores detected.
-              </p>
-              <p className="text-sm text-blue-800">
-                • <strong>Alert:</strong> 5 candidates pending document verification for more than 3 days. Follow-up required.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Activity */}
-      <div className="bg-white rounded-lg p-6 border border-gray-200">
-        <div className="flex items-center gap-2 mb-4">
-          <Calendar className="w-5 h-5 text-gray-600" />
-          <h3>Recent Applications</h3>
-        </div>
-        <div className="space-y-3">
-          {mockCandidates.slice(0, 5).map(candidate => (
-            <div key={candidate.id} className="flex items-center justify-between py-3 border-b border-gray-100">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                  <Users className="w-5 h-5 text-gray-600" />
-                </div>
-                <div>
-                  <p>{candidate.name}</p>
-                  <p className="text-sm text-gray-600">{candidate.position} • {candidate.country}</p>
-                </div>
+      {/* Primary KPIs */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {kpis.map(({ label, value, sub, icon: Icon, from, to }) => (
+          <div
+            key={label}
+            className={`bg-gradient-to-br ${from} ${to} rounded-xl p-5 shadow-sm text-white`}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-sm font-medium opacity-85">{label}</p>
+                <p className="text-3xl font-bold mt-1 leading-none">{value}</p>
+                <p className="text-xs mt-2 px-2 py-0.5 rounded-full inline-block bg-white/20 opacity-90">
+                  {sub}
+                </p>
               </div>
-              <div className="text-right">
-                <span className={`px-3 py-1 rounded-full text-sm ${
-                  candidate.status === 'Applied' ? 'bg-blue-100 text-blue-700' :
-                  candidate.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
-                  candidate.status === 'Deployed' ? 'bg-green-100 text-green-700' :
-                  'bg-red-100 text-red-700'
-                }`}>
-                  {candidate.status}
-                </span>
-                <p className="text-sm text-gray-500 mt-1">{candidate.appliedDate}</p>
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Icon className="w-6 h-6" />
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Secondary stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        {secondaryStats.map(({ label, value, icon: Icon, color, note }) => (
+          <div key={label} className={`rounded-xl border p-5 flex items-center gap-4 ${color}`}>
+            <div className="w-11 h-11 rounded-xl bg-white/70 flex items-center justify-center flex-shrink-0">
+              <Icon className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-2xl font-bold leading-none">{value.toLocaleString()}</p>
+              <p className="text-sm font-semibold mt-0.5">{label}</p>
+              <p className="text-xs opacity-60 mt-0.5">{note}</p>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
