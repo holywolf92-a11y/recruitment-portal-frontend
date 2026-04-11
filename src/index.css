@@ -962,11 +962,24 @@
     line-height: 1.6;
   }
 
-  .falisha-auth-toggle-row,
   .falisha-auth-form-options,
   .falisha-auth-bottom-actions {
     grid-template-columns: minmax(0, 1fr);
     flex-direction: column;
+  }
+
+  .falisha-auth-toggle-row {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+
+  .falisha-auth-toggle {
+    padding: 0.65rem 0.5rem;
+  }
+
+  .falisha-auth-toggle-content {
+    font-size: 0.875rem;
+    gap: 0.35rem;
   }
 
   .falisha-auth-toggle-content,
