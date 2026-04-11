@@ -648,7 +648,7 @@ export function Login() {
                 <div className="falisha-auth-browser-brand-row">
                   <span className="falisha-auth-browser-brand">FALISHA</span>
                   <span className="falisha-auth-browser-divider">|</span>
-                  <span className="falisha-auth-browser-brand-copy">FalishaMove</span>
+                  <span className="falisha-auth-browser-brand-copy">FalishaJobs</span>
                   <button className="falisha-auth-relocate-pill">Relocate now</button>
                 </div>
                 <div className="falisha-auth-browser-avatar">
@@ -659,7 +659,7 @@ export function Login() {
               <div className="falisha-auth-browser-hero">
                 <div className="falisha-auth-browser-hero-title-row">
                   <span className="falisha-auth-browser-plane">✈</span>
-                  <h3 className="falisha-auth-browser-hero-title">WorkiumMove → United Kingdom</h3>
+                  <h3 className="falisha-auth-browser-hero-title">FalishaJobs → United Kingdom</h3>
                 </div>
                 <p className="falisha-auth-browser-hero-copy">Welcome back! Continue your relocation journey.</p>
 
