@@ -1885,6 +1885,25 @@ class ApiClient {
     });
   }
 
+  async updateAdminEmployerLead(
+    id: string,
+    updates: {
+      status?: string;
+      notes?: string;
+      company_name?: string;
+      contact_name?: string;
+      professions?: string;
+      quantity?: string;
+      country?: string;
+      salary_range?: string;
+    }
+  ): Promise<{ lead: EmployerLeadProfile }> {
+    return this.request<{ lead: EmployerLeadProfile }>(`/employer-leads/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+  }
+
   // Job Orders API
   async generateJobCode(): Promise<string> {
     const response = await this.request<{ jobCode: string }>('/job-orders/generate-code');

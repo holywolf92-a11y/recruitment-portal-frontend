@@ -1,8 +1,8 @@
 ﻿import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Briefcase, Building2, MapPin, DollarSign, Users, RefreshCw, AlertCircle, Clock, X, ChevronDown } from 'lucide-react';
+import { Search, Plus, Briefcase, Building2, MapPin, DollarSign, Users, RefreshCw, AlertCircle, Clock, X, ChevronDown, Globe } from 'lucide-react';
 import { apiClient, EmployerLeadProfile } from '../lib/apiClient';
 
-const STATUS_OPTIONS = ['New', 'Active', 'Contacted', 'Closed'];
+const STATUS_OPTIONS = ['New', 'Active', 'Contacted', 'In Progress', 'Fulfilled', 'Closed'];
 
 const STATUS_COLORS: Record<string, string> = {
   new: 'bg-blue-100 text-blue-700',
@@ -11,6 +11,10 @@ const STATUS_COLORS: Record<string, string> = {
   Active: 'bg-green-100 text-green-700',
   contacted: 'bg-yellow-100 text-yellow-700',
   Contacted: 'bg-yellow-100 text-yellow-700',
+  'in progress': 'bg-orange-100 text-orange-700',
+  'In Progress': 'bg-orange-100 text-orange-700',
+  fulfilled: 'bg-purple-100 text-purple-700',
+  Fulfilled: 'bg-purple-100 text-purple-700',
   closed: 'bg-gray-100 text-gray-600',
   Closed: 'bg-gray-100 text-gray-600',
 };
@@ -48,6 +52,21 @@ export function JobOrderManagement() {
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Inline status updates
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null); // order id being updated
+
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
+    setUpdatingStatus(orderId);
+    try {
+      const result = await apiClient.updateAdminEmployerLead(orderId, { status: newStatus });
+      setOrders(prev => prev.map(o => o.id === orderId ? result.lead : o));
+    } catch {
+      // silently revert on failure — user can retry
+    } finally {
+      setUpdatingStatus(null);
+    }
+  };
 
   // Company name suggestions from existing leads
   const [companies, setCompanies] = useState<{company_name: string; contact_name: string | null; email: string | null; phone_number: string | null}[]>([]);
@@ -116,9 +135,15 @@ export function JobOrderManagement() {
     }
   };
 
-  const openCount = orders.filter(o => o.status?.toLowerCase() === 'new' || o.status?.toLowerCase() === 'active').length;
-  const closedCount = orders.filter(o => o.status?.toLowerCase() === 'closed').length;
-  const countries = new Set(orders.map(o => o.country).filter(Boolean)).size;
+  const openCount = orders.filter(o => {
+    const s = (o.status || '').toLowerCase();
+    return s === 'new' || s === 'active' || s === 'contacted' || s === 'in progress';
+  }).length;
+  const closedCount = orders.filter(o => {
+    const s = (o.status || '').toLowerCase();
+    return s === 'closed' || s === 'fulfilled';
+  }).length;
+  const portalCount = orders.filter(o => o.user_id).length;
 
   // Companies for suggestions filtered by typed name
   const companySuggestions = companies.filter(c =>
@@ -174,7 +199,12 @@ export function JobOrderManagement() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
             >
               <option value="all">All Statuses</option>
-              {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+              <option value="New">New</option>
+              <option value="Active">Active</option>
+              <option value="Contacted">Contacted</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Fulfilled">Fulfilled</option>
+              <option value="Closed">Closed</option>
             </select>
             <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
@@ -241,15 +271,38 @@ export function JobOrderManagement() {
                       </h3>
                       <div className="flex items-center gap-1.5 mt-1 text-sm text-green-100">
                         <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span className="truncate">{order.company_name || 'Unknown Company'}</span>
+                        <span className="truncate">{order.company_name || order.contact_name || order.email || 'Unknown Company'}</span>
                       </div>
                     </div>
                   </div>
-                  {order.status && (
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0 ml-2 ${STATUS_COLORS[order.status] || 'bg-white bg-opacity-20 text-white'}`}>
-                      {order.status}
-                    </span>
-                  )}
+                  <div className="flex flex-col items-end gap-1.5 flex-shrink-0 ml-2">
+                    {/* Portal badge — employer submitted this via their portal */}
+                    {order.user_id && (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-white bg-opacity-20 text-white flex items-center gap-1">
+                        <Globe className="w-3 h-3" />
+                        Portal
+                      </span>
+                    )}
+                    {/* Inline status dropdown */}
+                    <div className="relative">
+                      <select
+                        value={
+                          order.status
+                            ? STATUS_OPTIONS.find(s => s.toLowerCase() === order.status!.toLowerCase()) || order.status
+                            : 'New'
+                        }
+                        onChange={e => handleStatusChange(order.id!, e.target.value)}
+                        disabled={updatingStatus === order.id}
+                        onClick={e => e.stopPropagation()}
+                        className={`text-xs font-medium rounded-full px-2.5 py-1 border-0 cursor-pointer appearance-none pr-5 focus:ring-2 focus:ring-white focus:ring-opacity-50 ${
+                          STATUS_COLORS[order.status || 'New'] || 'bg-white bg-opacity-20 text-white'
+                        } ${updatingStatus === order.id ? 'opacity-60' : ''}`}
+                      >
+                        {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                      <ChevronDown className="w-3 h-3 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-current opacity-70" />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -317,12 +370,12 @@ export function JobOrderManagement() {
               <p className="text-2xl font-bold text-green-900">{openCount}</p>
             </div>
             <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">Closed</p>
+              <p className="text-sm text-gray-600 mb-1">Closed / Fulfilled</p>
               <p className="text-2xl font-bold text-gray-900">{closedCount}</p>
             </div>
             <div className="bg-purple-50 p-4 rounded-lg">
-              <p className="text-sm text-purple-600 mb-1">Countries</p>
-              <p className="text-2xl font-bold text-purple-900">{countries}</p>
+              <p className="text-sm text-purple-600 mb-1">Via Employer Portal</p>
+              <p className="text-2xl font-bold text-purple-900">{portalCount}</p>
             </div>
           </div>
         </div>
