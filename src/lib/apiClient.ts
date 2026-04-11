@@ -1852,6 +1852,16 @@ class ApiClient {
     });
   }
 
+  async getAdminEmployerLeads(filters: { search?: string; status?: string; limit?: number; offset?: number } = {}): Promise<{ leads: EmployerLeadProfile[]; total: number }> {
+    const params = new URLSearchParams();
+    if (filters.search) params.append('search', filters.search);
+    if (filters.status) params.append('status', filters.status);
+    if (filters.limit) params.append('limit', filters.limit.toString());
+    if (filters.offset) params.append('offset', filters.offset.toString());
+    const query = params.toString();
+    return this.request<{ leads: EmployerLeadProfile[]; total: number }>(`/employer-leads${query ? `?${query}` : ''}`);
+  }
+
   // Job Orders API
   async generateJobCode(): Promise<string> {
     const response = await this.request<{ jobCode: string }>('/job-orders/generate-code');
