@@ -1353,7 +1353,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
                   </div>
 
                   {/* Card Content */}
-                  <div className="pt-20 p-4 sm:p-6">
+                  <div className="pt-20 px-4 pb-4 sm:px-6 sm:pb-6">
                     {/* Name and Title */}
                     <div className="mb-4">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
