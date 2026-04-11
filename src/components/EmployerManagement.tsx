@@ -33,6 +33,7 @@ export function EmployerManagement() {
       const result = await apiClient.getAdminEmployerLeads({
         search: debouncedSearch || undefined,
         limit: 200,
+        dedupe: true,
       });
       setLeads(result.leads);
       setTotal(result.total);

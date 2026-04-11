@@ -1852,14 +1852,37 @@ class ApiClient {
     });
   }
 
-  async getAdminEmployerLeads(filters: { search?: string; status?: string; limit?: number; offset?: number } = {}): Promise<{ leads: EmployerLeadProfile[]; total: number }> {
+  async getAdminEmployerLeads(filters: { search?: string; status?: string; limit?: number; offset?: number; dedupe?: boolean } = {}): Promise<{ leads: EmployerLeadProfile[]; total: number }> {
     const params = new URLSearchParams();
     if (filters.search) params.append('search', filters.search);
     if (filters.status) params.append('status', filters.status);
     if (filters.limit) params.append('limit', filters.limit.toString());
     if (filters.offset) params.append('offset', filters.offset.toString());
+    if (filters.dedupe !== undefined) params.append('dedupe', filters.dedupe.toString());
     const query = params.toString();
     return this.request<{ leads: EmployerLeadProfile[]; total: number }>(`/employer-leads${query ? `?${query}` : ''}`);
+  }
+
+  async createAdminEmployerLead(data: {
+    company_name: string;
+    contact_name?: string;
+    email?: string;
+    phone_number?: string;
+    country?: string;
+    city?: string;
+    professions: string;
+    quantity?: string;
+    salary_range?: string;
+    duty_hours?: string;
+    contract_duration?: string;
+    benefits_included?: string;
+    comments?: string;
+    status?: string;
+  }): Promise<{ lead: EmployerLeadProfile }> {
+    return this.request<{ lead: EmployerLeadProfile }>('/employer-leads', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
   // Job Orders API
