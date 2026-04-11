@@ -521,37 +521,15 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                 >
                   <div className="h-24 bg-gradient-to-r from-blue-500 via-purple-500 to-fuchsia-500" />
 
-                  <div className="px-5 pb-5 -mt-10">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-16 h-16 rounded-full bg-white p-1 shadow">
-                          <div className="w-full h-full rounded-full bg-blue-50 flex items-center justify-center">
-                            <span className="text-blue-700 font-bold text-xl">{getInitials(c.name)}</span>
-                          </div>
-                        </div>
-                        <div className="pt-10">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-lg font-bold text-gray-900 leading-tight">{c.name}</h3>
-                            <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${badge.cls}`}>
-                              {badge.label}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-600 flex items-center gap-2 mt-1">
-                            <Briefcase className="w-4 h-4 text-gray-400" />
-                            <span className="font-medium">{c.position || '—'}</span>
-                          </p>
-                          <p className="text-sm text-gray-600 flex items-center gap-2 mt-1">
-                            <MapPin className="w-4 h-4 text-gray-400" />
-                            <span>
-                              {(c.nationality || '—')}{' '}
-                              <span className="text-gray-400">→</span>{' '}
-                              <span className="text-blue-700 font-medium">{c.country_of_interest || '—'}</span>
-                            </span>
-                          </p>
+                  <div className="px-5 pb-5">
+                    {/* Avatar row — pulled up over the banner, checkbox top-right */}
+                    <div className="-mt-10 mb-2 flex items-end justify-between">
+                      <div className="w-16 h-16 rounded-full bg-white p-1 shadow flex-shrink-0">
+                        <div className="w-full h-full rounded-full bg-blue-50 flex items-center justify-center">
+                          <span className="text-blue-700 font-bold text-xl">{getInitials(c.name)}</span>
                         </div>
                       </div>
-
-                      <div className="pt-3">
+                      <div className="pb-1">
                         <input
                           type="checkbox"
                           checked={selected}
@@ -559,6 +537,28 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                           className="w-5 h-5 rounded border-gray-300"
                         />
                       </div>
+                    </div>
+
+                    {/* Name + details row — safely below the avatar */}
+                    <div className="mt-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-lg font-bold text-gray-900 leading-tight">{c.name}</h3>
+                        <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${badge.cls}`}>
+                          {badge.label}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 flex items-center gap-2 mt-1">
+                        <Briefcase className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium">{c.position || '—'}</span>
+                      </p>
+                      <p className="text-sm text-gray-600 flex items-center gap-2 mt-1">
+                        <MapPin className="w-4 h-4 text-gray-400" />
+                        <span>
+                          {(c.nationality || '—')}{' '}
+                          <span className="text-gray-400">→</span>{' '}
+                          <span className="text-blue-700 font-medium">{c.country_of_interest || '—'}</span>
+                        </span>
+                      </p>
                     </div>
 
                     {/* Pills row */}
