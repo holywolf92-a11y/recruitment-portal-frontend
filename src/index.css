@@ -268,6 +268,116 @@
   color: #0891b2;
 }
 
+.falisha-public-apply-shell {
+  align-items: flex-start;
+  padding-top: clamp(1.25rem, 4vw, 3.25rem);
+  padding-bottom: 3rem;
+  background:
+    radial-gradient(circle at top left, rgba(8, 76, 147, 0.12), transparent 32%),
+    linear-gradient(180deg, #fff8ef 0%, #ffffff 34%);
+}
+
+.falisha-public-apply-inner {
+  max-width: 32rem;
+}
+
+.falisha-public-apply-hero {
+  margin-bottom: 1.35rem;
+  border: 1px solid rgba(17, 34, 66, 0.08);
+  border-radius: 1.5rem;
+  padding: 1.15rem;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(255, 249, 240, 0.98)),
+    #ffffff;
+  box-shadow: 0 20px 44px rgba(17, 34, 66, 0.08);
+}
+
+.falisha-public-apply-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.falisha-public-apply-kicker {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #084c93;
+}
+
+.falisha-public-apply-brand-copy {
+  margin: 0.3rem 0 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #5b6474;
+}
+
+.falisha-public-apply-badges {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-bottom: 1.1rem;
+}
+
+.falisha-public-apply-badge {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-height: 100%;
+  border-radius: 1.15rem;
+  padding: 0.95rem 0.95rem 1rem;
+  border: 1px solid transparent;
+}
+
+.falisha-public-apply-badge-primary {
+  background: linear-gradient(135deg, rgba(8, 76, 147, 0.1), rgba(6, 182, 212, 0.08));
+  border-color: rgba(8, 76, 147, 0.15);
+}
+
+.falisha-public-apply-badge-secondary {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(217, 119, 6, 0.1));
+  border-color: rgba(16, 185, 129, 0.18);
+}
+
+.falisha-public-apply-badge-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f172a;
+  box-shadow: inset 0 0 0 1px rgba(17, 34, 66, 0.08);
+}
+
+.falisha-public-apply-badge-title {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.35;
+  font-weight: 800;
+  color: #111827;
+}
+
+.falisha-public-apply-badge-copy {
+  margin: 0.28rem 0 0;
+  font-size: 0.76rem;
+  line-height: 1.5;
+  color: #586173;
+}
+
+.falisha-public-apply-heading-block {
+  margin-bottom: 0;
+}
+
+.falisha-public-apply-form {
+  margin-top: 0.35rem;
+}
+
 .falisha-auth-inline-link {
   border: 0;
   background: transparent;
@@ -1010,6 +1120,62 @@
   .falisha-auth-mobile-support-chip {
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .falisha-public-apply-shell {
+    padding-top: 0.75rem;
+    padding-bottom: 1.5rem;
+    background:
+      radial-gradient(circle at top left, rgba(8, 76, 147, 0.14), transparent 42%),
+      linear-gradient(180deg, #fff7ec 0%, #ffffff 28%);
+  }
+
+  .falisha-public-apply-inner {
+    max-width: none;
+  }
+
+  .falisha-public-apply-hero {
+    padding: 1rem;
+    border-radius: 1.2rem;
+    margin-bottom: 1rem;
+  }
+
+  .falisha-public-apply-brand-row {
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .falisha-public-apply-kicker {
+    font-size: 0.66rem;
+    letter-spacing: 0.15em;
+  }
+
+  .falisha-public-apply-brand-copy {
+    font-size: 0.84rem;
+  }
+
+  .falisha-public-apply-badges {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.7rem;
+  }
+
+  .falisha-public-apply-badge {
+    padding: 0.85rem;
+    border-radius: 1rem;
+  }
+
+  .falisha-public-apply-badge-icon {
+    width: 1.95rem;
+    height: 1.95rem;
+    border-radius: 0.72rem;
+  }
+
+  .falisha-public-apply-badge-title {
+    font-size: 0.82rem;
+  }
+
+  .falisha-public-apply-badge-copy {
+    font-size: 0.74rem;
   }
 
   .falisha-auth-legal-copy {

@@ -13,6 +13,7 @@ type CandidateFormState = {
   countryOfInterest: string;
   position: string;
   experience: string;
+  comments: string;
 };
 
 type EmployerFormState = {
@@ -50,6 +51,7 @@ const candidateDefaults: CandidateFormState = {
   countryOfInterest: 'Saudi Arabia',
   position: '',
   experience: '3-5 Years',
+  comments: '',
 };
 
 const employerDefaults: EmployerFormState = {
@@ -547,38 +549,48 @@ export function PublicApplicationForm() {
   if (activeAudience === 'candidate') {
     return (
       <div
-        className="falisha-auth-shell falisha-auth-form-pane"
+        className="falisha-auth-shell falisha-auth-form-pane falisha-public-apply-shell"
         style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui, sans-serif' }}
       >
-        <div className="falisha-auth-form-inner">
+        <div className="falisha-auth-form-inner falisha-public-apply-inner">
+          <div className="falisha-public-apply-hero">
+            <div className="falisha-public-apply-brand-row">
+              <img src="/logo.png" alt="Falisha" className="h-16 w-16 object-contain" />
+              <div>
+                <p className="falisha-public-apply-kicker">Bridging Talent to Opportunities</p>
+                <p className="falisha-public-apply-brand-copy">Built for fast overseas applications from Pakistan.</p>
+              </div>
+            </div>
 
-          {/* Logo */}
-          <div className="mb-8 flex flex-col items-center">
-            <img src="/logo.png" alt="Falisha" className="h-16 w-16 object-contain" />
-            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">
-              Bridging Talent to Opportunities
-            </p>
+            <div className="falisha-public-apply-badges">
+              <div className="falisha-public-apply-badge falisha-public-apply-badge-primary">
+                <span className="falisha-public-apply-badge-icon">
+                  <Globe2 className="h-4 w-4" />
+                </span>
+                <div>
+                  <p className="falisha-public-apply-badge-title">Pakistan's #1 Overseas Recruitment</p>
+                  <p className="falisha-public-apply-badge-copy">A hiring network focused on verified overseas opportunities.</p>
+                </div>
+              </div>
+
+              <div className="falisha-public-apply-badge falisha-public-apply-badge-secondary">
+                <span className="falisha-public-apply-badge-icon">
+                  <ShieldCheck className="h-4 w-4" />
+                </span>
+                <div>
+                  <p className="falisha-public-apply-badge-title">85,000+ Placed Globally</p>
+                  <p className="falisha-public-apply-badge-copy">Strong placement history across Gulf and international roles.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="falisha-auth-heading-block falisha-public-apply-heading-block">
+              <h1 className="falisha-auth-heading">Apply Now</h1>
+              <p className="falisha-auth-subheading">Submit your profile in a few minutes and we&apos;ll review your CV for the right overseas opportunity.</p>
+            </div>
           </div>
 
-          {/* CTA badges */}
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderRadius: '999px', background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.25)', padding: '0.3rem 0.85rem', fontSize: '0.75rem', fontWeight: 700, color: '#0891b2', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-              <span style={{ width: '0.45rem', height: '0.45rem', borderRadius: '50%', background: '#06b6d4', display: 'inline-block' }} />
-              Pakistan's #1 Overseas Recruitment
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderRadius: '999px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.28)', padding: '0.3rem 0.85rem', fontSize: '0.75rem', fontWeight: 700, color: '#059669' }}>
-              <span style={{ width: '0.45rem', height: '0.45rem', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
-              85,000+ Placed Globally
-            </span>
-          </div>
-
-          {/* Heading */}
-          <div className="falisha-auth-heading-block">
-            <h1 className="falisha-auth-heading">Apply Now</h1>
-            <p className="falisha-auth-subheading">Submit your profile — we'll find the right opportunity for you abroad.</p>
-          </div>
-
-          <form className="falisha-auth-form-fields" onSubmit={handleCandidateSubmit}>
+          <form className="falisha-auth-form-fields falisha-public-apply-form" onSubmit={handleCandidateSubmit}>
 
             {/* Full Name */}
             <div className="falisha-auth-field">
@@ -651,15 +663,12 @@ export function PublicApplicationForm() {
             {/* CV Upload */}
             <CandidateUploadField fileName={candidateCv?.name || null} onFileChange={(f) => setCandidateCv(f)} />
 
-            {/* Privacy */}
-            <label className="flex cursor-pointer items-start gap-2.5">
-              <input type="checkbox" className="falisha-auth-checkbox mt-0.5" />
-              <span style={{ fontSize: '0.9rem', lineHeight: '1.6', color: '#374151' }}>
-                I agree to the{' '}
-                <a className="falisha-auth-link font-semibold" href="/privacy-policy">Privacy Policy</a>
-                {' '}and data processing terms.
-              </span>
-            </label>
+            <TextAreaField
+              label="Comments"
+              value={candidateForm.comments}
+              onChange={(v) => setCandidateForm((c) => ({ ...c, comments: v }))}
+              placeholder="Add any notes or comments about your application"
+            />
 
             {/* Submit */}
             <button type="submit" disabled={submitting} className="falisha-auth-primary flex items-center justify-center gap-2">
@@ -930,7 +939,7 @@ function CandidateUploadField({ fileName, onFileChange }: { fileName: string | n
           <Upload style={{ height: '1rem', width: '1rem', color: '#06b6d4' }} />
         </div>
         <p style={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151' }}>{fileName || 'Drop file here or click to browse'}</p>
-        <p style={{ marginTop: '0.15rem', fontSize: '0.78rem', color: '#9ca3af' }}>PDF, DOC, DOCX · Max 5MB</p>
+        <p style={{ marginTop: '0.15rem', fontSize: '0.78rem', color: '#9ca3af' }}>PDF, DOC, DOCX · Max 30MB</p>
       </label>
     </div>
   );
