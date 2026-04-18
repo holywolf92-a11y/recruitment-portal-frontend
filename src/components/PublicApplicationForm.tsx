@@ -417,6 +417,7 @@ export function PublicApplicationForm() {
     try {
       const result = await apiClient.submitEmployerPortal({
         ...employerForm,
+        city: employerForm.city === '__other__' ? '' : employerForm.city,
         phone: `${employerPhoneCode} ${employerPhoneNumber}`.trim(),
       });
       setEmployerResult(result);
@@ -856,7 +857,7 @@ export function PublicApplicationForm() {
                 <label className="falisha-auth-field-label">City</label>
                 <div className="falisha-auth-input-wrap">
                   <MapPin className="falisha-auth-input-icon" />
-                  {CITIES_BY_COUNTRY[employerForm.country] ? (
+                  {CITIES_BY_COUNTRY[employerForm.country] && employerForm.city !== '__other__' ? (
                     <select
                       value={employerForm.city}
                       onChange={(e) => setEmployerForm((c) => ({ ...c, city: e.target.value }))}
@@ -866,17 +867,25 @@ export function PublicApplicationForm() {
                       {CITIES_BY_COUNTRY[employerForm.country].map((city) => (
                         <option key={city} value={city}>{city}</option>
                       ))}
+                      <option value="__other__">Other (type your city)</option>
                     </select>
                   ) : (
                     <input
                       type="text"
-                      value={employerForm.city}
+                      value={employerForm.city === '__other__' ? '' : employerForm.city}
                       onChange={(e) => setEmployerForm((c) => ({ ...c, city: e.target.value }))}
                       className="falisha-auth-input"
-                      placeholder="Enter city"
+                      placeholder="Enter your city"
+                      autoFocus={employerForm.city === '__other__'}
                     />
                   )}
                 </div>
+                {CITIES_BY_COUNTRY[employerForm.country] && employerForm.city === '__other__' && (
+                  <button type="button" onClick={() => setEmployerForm((c) => ({ ...c, city: '' }))}
+                    className="mt-1 text-xs text-blue-600 hover:underline">
+                    ← Back to city list
+                  </button>
+                )}
               </div>
               <InputField label="Professions Required" value={employerForm.professions} onChange={(v) => setEmployerForm((c) => ({ ...c, professions: v }))} icon={Briefcase} />
               <InputField label="Quantity Needed" value={employerForm.quantity} onChange={(v) => setEmployerForm((c) => ({ ...c, quantity: v }))} icon={Users} />
