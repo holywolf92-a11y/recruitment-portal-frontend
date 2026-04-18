@@ -3,7 +3,7 @@ import {
   Briefcase, Building2, CheckCircle2, ChevronDown, Clock, Globe2, LayoutDashboard,
   LogOut, Mail, MapPin, Menu, Phone, Plus, RefreshCw, Search, Settings, ShieldCheck,
   Sparkles, Users, X, FileText, Banknote, CalendarDays, Star, BriefcaseBusiness,
-  Lock, MessageCircle, Award,
+  Lock, MessageCircle, Award, ExternalLink, Download,
 } from 'lucide-react';
 import { apiClient, type EmployerLeadProfile, type PortalProfileResponse, type JobRecommendation } from '../lib/apiClient';
 
@@ -1005,6 +1005,11 @@ const EMPLOYER_STATUS_LABELS: Record<string, { label: string; color: string }> =
   rejected: { label: 'Rejected', color: 'bg-red-100 text-red-600' },
 };
 
+function profileLinkForCandidate(id: string, name: string): string {
+  const slug = (name || 'candidate').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  return `https://falishajobs.up.railway.app/profile/${id}/${slug}`;
+}
+
 function CandidatesModal({
   job,
   onClose,
@@ -1015,6 +1020,30 @@ function CandidatesModal({
   const [recommendations, setRecommendations] = useState<JobRecommendation[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [downloadingCvId, setDownloadingCvId] = useState<string | null>(null);
+
+  const handleDownloadCV = async (candidateId: string, candidateName: string) => {
+    if (downloadingCvId) return;
+    setDownloadingCvId(candidateId);
+    try {
+      const result = await apiClient.generateCandidateCV(candidateId, 'employer-safe', false);
+      const response = await fetch(result.cv_url);
+      if (!response.ok) throw new Error('Download failed');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${candidateName || 'Candidate'}_Employer_CV.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      alert('Failed to download CV. Please try again.');
+    } finally {
+      setDownloadingCvId(null);
+    }
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -1103,8 +1132,8 @@ function CandidatesModal({
                   <span className="text-[10px] text-gray-400">match</span>
                 </div>
 
-                {/* Employer status */}
-                <div className="flex-shrink-0">
+                {/* Actions + status */}
+                <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
                   <select
                     value={rec.employer_status}
                     disabled={updatingId === rec.id}
@@ -1116,6 +1145,29 @@ function CandidatesModal({
                     <option value="selected">Selected</option>
                     <option value="rejected">Rejected</option>
                   </select>
+                  <div className="flex items-center gap-1">
+                    <a
+                      href={profileLinkForCandidate(c.id!, c.name || '')}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 hover:underline px-1.5 py-0.5 rounded"
+                      title="View full profile"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Profile
+                    </a>
+                    <span className="text-gray-200">|</span>
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadCV(c.id!, c.name || '')}
+                      disabled={downloadingCvId === c.id}
+                      className="flex items-center gap-1 text-[10px] text-purple-600 hover:text-purple-800 hover:underline px-1.5 py-0.5 rounded disabled:opacity-50"
+                      title="Download employer-safe CV"
+                    >
+                      <Download className="h-3 w-3" />
+                      {downloadingCvId === c.id ? 'Generating…' : 'Download CV'}
+                    </button>
+                  </div>
                 </div>
               </div>
             );
