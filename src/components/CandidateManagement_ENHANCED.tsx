@@ -1054,7 +1054,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
             <Search className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
             <input
               type="search"
-              placeholder="Search by name, email, phone or profession..."
+              placeholder="Search by name, email, phone, profession or skills..."
               value={searchInput}
               onChange={(e) => {
                 setCurrentPage(1);
