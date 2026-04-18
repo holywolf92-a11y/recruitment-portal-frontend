@@ -561,20 +561,9 @@ export function PublicApplicationForm() {
             </p>
           </div>
 
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderRadius: '999px', background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.25)', padding: '0.3rem 0.85rem', fontSize: '0.75rem', fontWeight: 700, color: '#0891b2', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-              <span style={{ width: '0.45rem', height: '0.45rem', borderRadius: '50%', background: '#06b6d4', display: 'inline-block' }} />
-              Pakistan's #1 Overseas Recruitment
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderRadius: '999px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.28)', padding: '0.3rem 0.85rem', fontSize: '0.75rem', fontWeight: 700, color: '#059669' }}>
-              <span style={{ width: '0.45rem', height: '0.45rem', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
-              85,000+ Placed Globally
-            </span>
-          </div>
-
           <div className="falisha-auth-heading-block">
             <h1 className="falisha-auth-heading">Apply Now</h1>
-            <p className="falisha-auth-subheading">Submit your profile — we'll find the right opportunity for you abroad.</p>
+            <p className="falisha-auth-subheading">Our consultants will review your profile within 48 hours.</p>
           </div>
 
           <form className="falisha-auth-form-fields" onSubmit={handleCandidateSubmit}>
