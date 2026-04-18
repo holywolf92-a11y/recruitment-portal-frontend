@@ -20,6 +20,7 @@ import { CandidateBrowserExcel } from './components/CandidateBrowserExcel';
 import { PublicCandidateProfile } from './components/PublicCandidateProfile';
 import { EmployeesModule } from './components/EmployeesModule';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
+import { JoinLanding } from './components/JoinLanding';
 import { ReviewPage } from './components/ReviewPage';
 import { ReviewsDashboard } from './components/ReviewsDashboard';
 import { CandidateOnboardingPage } from './components/CandidateOnboardingPage';
@@ -946,6 +947,10 @@ export default function App() {
 
     if (pathname === '/privacy') {
       return <PrivacyPolicy />;
+    }
+
+    if (pathname === '/join') {
+      return <JoinLanding />;
     }
 
     if (pathname === '/apply' || pathname.startsWith('/apply/')) {
