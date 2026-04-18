@@ -2016,6 +2016,53 @@ class ApiClient {
   async getMatchingMetrics(): Promise<MatchingMetrics> {
     return this.request('/candidates/matching-metrics');
   }
+
+  // ─── Recommendations ─────────────────────────────────────────────────────
+
+  /** Loose pool count for a job (used in locked card state). Never < 15. */
+  async getRecommendationPoolCount(jobId: string): Promise<{ count: number }> {
+    return this.request(`/recommendations/pool-count/${jobId}`);
+  }
+
+  /** Admin: get candidates matching a job for the Find & Recommend panel. */
+  async getAdminCandidatePool(
+    jobId: string,
+    search?: string,
+  ): Promise<{ candidates: RecommendationCandidate[]; job: any }> {
+    const qs = search ? `?search=${encodeURIComponent(search)}` : '';
+    return this.request(`/recommendations/job/${jobId}/candidates${qs}`);
+  }
+
+  /** Get all recommendations for a job (admin + employer use this). */
+  async getJobRecommendations(jobId: string): Promise<{ recommendations: JobRecommendation[] }> {
+    return this.request(`/recommendations/job/${jobId}`);
+  }
+
+  /** Admin: push selected candidates as recommendations for a job. */
+  async pushRecommendations(
+    jobId: string,
+    candidates: Array<{ candidate_id: string; match_score: number; admin_notes?: string }>,
+  ): Promise<{ recommended: number; recommendations: any[] }> {
+    return this.post(`/recommendations/job/${jobId}/recommend`, { candidates });
+  }
+
+  /** Admin: update match score for a recommendation. */
+  async updateRecommendationScore(recId: string, match_score: number): Promise<{ recommendation: any }> {
+    return this.patch(`/recommendations/${recId}/score`, { match_score });
+  }
+
+  /** Employer: update their review status for a recommended candidate. */
+  async updateEmployerStatus(
+    recId: string,
+    employer_status: 'unreviewed' | 'shortlisted' | 'selected' | 'rejected',
+  ): Promise<{ recommendation: any }> {
+    return this.patch(`/recommendations/${recId}/employer-status`, { employer_status });
+  }
+
+  /** Admin: remove a recommendation. */
+  async deleteRecommendation(recId: string): Promise<{ success: boolean }> {
+    return this.request(`/recommendations/${recId}`, { method: 'DELETE' });
+  }
 }
 
 export interface MatchingMetrics {
@@ -2035,6 +2082,39 @@ export interface MatchingMetrics {
     withConfidenceData: number;
   };
   signals: Record<string, number>;
+}
+
+export interface RecommendationCandidate {
+  id: string;
+  name: string;
+  position?: string | null;
+  skills?: string | null;
+  experience_years?: number | null;
+  country_of_interest?: string | null;
+  profile_photo_url?: string | null;
+  candidate_code?: string | null;
+  professional_summary?: string | null;
+  match_score: number;
+  already_recommended: boolean;
+}
+
+export interface JobRecommendation {
+  id: string;
+  match_score: number;
+  employer_status: 'unreviewed' | 'shortlisted' | 'selected' | 'rejected';
+  admin_notes?: string | null;
+  recommended_at: string;
+  candidates: {
+    id: string;
+    name: string;
+    position?: string | null;
+    skills?: string | null;
+    experience_years?: number | null;
+    country_of_interest?: string | null;
+    profile_photo_url?: string | null;
+    candidate_code?: string | null;
+    professional_summary?: string | null;
+  } | null;
 }
 
 export const apiClient = new ApiClient();

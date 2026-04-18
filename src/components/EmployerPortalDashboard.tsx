@@ -3,8 +3,9 @@ import {
   Briefcase, Building2, CheckCircle2, ChevronDown, Clock, Globe2, LayoutDashboard,
   LogOut, Mail, MapPin, Menu, Phone, Plus, RefreshCw, Search, Settings, ShieldCheck,
   Sparkles, Users, X, FileText, Banknote, CalendarDays, Star, BriefcaseBusiness,
+  Lock, MessageCircle, Award,
 } from 'lucide-react';
-import { apiClient, type EmployerLeadProfile, type PortalProfileResponse } from '../lib/apiClient';
+import { apiClient, type EmployerLeadProfile, type PortalProfileResponse, type JobRecommendation } from '../lib/apiClient';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -940,73 +941,347 @@ export function EmployerPortalDashboard({
   );
 }
 
+// ─── Contact popup ────────────────────────────────────────────────────────────
+
+const ADMIN_WHATSAPP = '+9203303333335';
+const ADMIN_EMAIL = 'support@falishajobs.com';
+const WHATSAPP_URL = `https://wa.me/${ADMIN_WHATSAPP.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hello, I am interested in your candidate recruitment services. I have a job requirement I would like to discuss.')}`;
+
+function ContactPopup({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 relative">
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-4 right-4 p-1 rounded-lg text-gray-400 hover:bg-gray-100"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-50">
+            <MessageCircle className="h-5 w-5 text-cyan-600" />
+          </div>
+          <div>
+            <p className="font-semibold text-gray-900 text-sm">Contact Our Team</p>
+            <p className="text-xs text-gray-500">We'll unlock candidates for your role</p>
+          </div>
+        </div>
+        <p className="text-sm text-gray-600 mb-5">
+          Our recruitment consultants are ready to present verified candidates for your requirement. Reach us to get started.
+        </p>
+        <div className="space-y-3">
+          <a
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 w-full rounded-xl bg-green-500 text-white px-4 py-3 text-sm font-semibold hover:bg-green-600 transition"
+          >
+            <svg className="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+              <path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.555 4.122 1.527 5.855L0 24l6.335-1.506A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.803 9.803 0 0 1-5.007-1.374l-.36-.213-3.72.885.934-3.61-.234-.372A9.784 9.784 0 0 1 2.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/>
+            </svg>
+            WhatsApp: {ADMIN_WHATSAPP}
+          </a>
+          <a
+            href={`mailto:${ADMIN_EMAIL}?subject=Job Requirement Enquiry`}
+            className="flex items-center gap-3 w-full rounded-xl border border-gray-200 text-gray-700 px-4 py-3 text-sm font-medium hover:bg-gray-50 transition"
+          >
+            <Mail className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            {ADMIN_EMAIL}
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Candidate Status Modal ───────────────────────────────────────────────────
+
+const EMPLOYER_STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  unreviewed: { label: 'Unreviewed', color: 'bg-gray-100 text-gray-600' },
+  shortlisted: { label: 'Shortlisted', color: 'bg-blue-100 text-blue-700' },
+  selected: { label: 'Selected', color: 'bg-green-100 text-green-700' },
+  rejected: { label: 'Rejected', color: 'bg-red-100 text-red-600' },
+};
+
+function CandidatesModal({
+  job,
+  onClose,
+}: {
+  job: EmployerLeadProfile;
+  onClose: () => void;
+}) {
+  const [recommendations, setRecommendations] = useState<JobRecommendation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    apiClient.getJobRecommendations(job.id!)
+      .then(r => setRecommendations(r.recommendations))
+      .catch(() => setRecommendations([]))
+      .finally(() => setLoading(false));
+  }, [job.id]);
+
+  const handleStatusChange = async (recId: string, status: 'unreviewed' | 'shortlisted' | 'selected' | 'rejected') => {
+    setUpdatingId(recId);
+    try {
+      await apiClient.updateEmployerStatus(recId, status);
+      setRecommendations(prev => prev.map(r => r.id === recId ? { ...r, employer_status: status } : r));
+    } catch {
+      // ignore
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-start justify-between p-5 border-b border-gray-200">
+          <div>
+            <p className="font-bold text-gray-900">{job.professions || 'Role'}</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {[job.city, job.country].filter(Boolean).join(', ')}
+              {recommendations.length > 0 && ` · ${recommendations.length} candidate${recommendations.length !== 1 ? 's' : ''} shortlisted`}
+            </p>
+          </div>
+          <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-3">
+          {loading && <p className="text-center py-8 text-sm text-gray-400">Loading candidates…</p>}
+          {!loading && recommendations.length === 0 && (
+            <p className="text-center py-8 text-sm text-gray-400">No candidates assigned yet. Our team is working on it.</p>
+          )}
+          {!loading && recommendations.map(rec => {
+            const c = rec.candidates;
+            if (!c) return null;
+            const st = EMPLOYER_STATUS_LABELS[rec.employer_status] ?? EMPLOYER_STATUS_LABELS.unreviewed;
+            return (
+              <div key={rec.id} className="flex items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-cyan-200 transition">
+                {/* Photo */}
+                {c.profile_photo_url ? (
+                  <img src={c.profile_photo_url} alt={c.name || ''} className="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 border-gray-100" />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center flex-shrink-0 text-lg font-bold text-white">
+                    {(c.name || '?')[0]}
+                  </div>
+                )}
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900 text-sm">{c.name}</p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {c.position || '—'}
+                    {c.experience_years != null && <> · {c.experience_years} yrs exp</>}
+                    {c.country_of_interest && <> · prefers {c.country_of_interest}</>}
+                  </p>
+                  {c.skills && (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {c.skills.split(/[,;]/).slice(0, 4).map(s => s.trim()).filter(Boolean).map(skill => (
+                        <span key={skill} className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{skill}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Match score */}
+                <div className="flex-shrink-0 flex flex-col items-center gap-1">
+                  <span className={`text-sm font-bold px-2.5 py-1 rounded-full ${
+                    rec.match_score >= 80 ? 'bg-green-100 text-green-700' :
+                    rec.match_score >= 65 ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-gray-100 text-gray-600'
+                  }`}>
+                    {rec.match_score}%
+                  </span>
+                  <span className="text-[10px] text-gray-400">match</span>
+                </div>
+
+                {/* Employer status */}
+                <div className="flex-shrink-0">
+                  <select
+                    value={rec.employer_status}
+                    disabled={updatingId === rec.id}
+                    onChange={e => handleStatusChange(rec.id, e.target.value as any)}
+                    className={`text-xs font-semibold rounded-full px-3 py-1.5 border-0 cursor-pointer appearance-none focus:ring-2 focus:ring-cyan-300 outline-none ${st.color} ${updatingId === rec.id ? 'opacity-60' : ''}`}
+                  >
+                    <option value="unreviewed">Unreviewed</option>
+                    <option value="shortlisted">Shortlisted</option>
+                    <option value="selected">Selected</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer CTA */}
+        <div className="border-t border-gray-100 px-5 py-4 flex items-center justify-between text-sm">
+          <span className="text-gray-400 text-xs">Mark candidates to track your interest</span>
+          <a
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-xs font-medium text-green-600 hover:underline"
+          >
+            <MessageCircle className="h-4 w-4" />
+            Contact recruiter on WhatsApp
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Requirement Card ─────────────────────────────────────────────────────────
 
 function RequirementCard({ req }: { req: EmployerLeadProfile }) {
   const [expanded, setExpanded] = useState(false);
+  const [recCount, setRecCount] = useState<number | null>(null);
+  const [poolCount, setPoolCount] = useState<number>(30);
+  const [showContactPopup, setShowContactPopup] = useState(false);
+  const [showCandidates, setShowCandidates] = useState(false);
+
+  const isClosed = ['closed', 'fulfilled'].includes((req.status || '').toLowerCase());
+
+  useEffect(() => {
+    if (!req.id || isClosed) return;
+    // Fetch actual recommendation count
+    apiClient.getJobRecommendations(req.id)
+      .then(r => setRecCount(r.recommendations.length))
+      .catch(() => setRecCount(0));
+    // Fetch loose pool count for locked state
+    apiClient.getRecommendationPoolCount(req.id)
+      .then(r => setPoolCount(r.count))
+      .catch(() => setPoolCount(30));
+  }, [req.id, isClosed]);
+
+  const hasRecommendations = recCount !== null && recCount > 0;
 
   return (
-    <article className="rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md">
-      <div className="p-5">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-50">
-            <BriefcaseBusiness className="h-5 w-5 text-cyan-600" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-2">
-              <p className="truncate font-semibold text-gray-900">{req.professions || 'Untitled Role'}</p>
-              <StatusBadge status={req.status} />
+    <>
+      {showContactPopup && <ContactPopup onClose={() => setShowContactPopup(false)} />}
+      {showCandidates && <CandidatesModal job={req} onClose={() => setShowCandidates(false)} />}
+
+      <article className="rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md">
+        <div className="p-5">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-50">
+              <BriefcaseBusiness className="h-5 w-5 text-cyan-600" />
             </div>
-            <p className="mt-0.5 text-xs text-gray-500">
-              {[req.city, req.country].filter(Boolean).join(', ') || 'Location TBD'}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs text-gray-500">
-          {req.quantity && (
-            <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-gray-400" /> {req.quantity} workers</span>
-          )}
-          {req.salary_range && (
-            <span className="flex items-center gap-1.5"><Banknote className="h-3.5 w-3.5 text-gray-400" /> {req.salary_range}</span>
-          )}
-          {req.contract_duration && (
-            <span className="flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5 text-gray-400" /> {req.contract_duration}</span>
-          )}
-          {req.duty_hours && (
-            <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5 text-gray-400" /> {req.duty_hours}</span>
-          )}
-        </div>
-
-        {(req.benefits_included || req.comments) && (
-          <>
-            <button
-              type="button"
-              onClick={() => setExpanded((v) => !v)}
-              className="mt-3 flex items-center gap-1 text-xs font-medium text-cyan-600 hover:underline"
-            >
-              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} />
-              {expanded ? 'Hide details' : 'View details'}
-            </button>
-            {expanded && (
-              <div className="mt-2 space-y-1.5 rounded-xl bg-gray-50 p-3 text-xs text-gray-600">
-                {req.benefits_included && (
-                  <p><span className="font-semibold text-gray-700">Benefits: </span>{req.benefits_included}</p>
-                )}
-                {req.comments && (
-                  <p><span className="font-semibold text-gray-700">Notes: </span>{req.comments}</p>
-                )}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-2">
+                <p className="truncate font-semibold text-gray-900">{req.professions || 'Untitled Role'}</p>
+                <StatusBadge status={req.status} />
               </div>
-            )}
-          </>
-        )}
-      </div>
+              <p className="mt-0.5 text-xs text-gray-500">
+                {[req.city, req.country].filter(Boolean).join(', ') || 'Location TBD'}
+              </p>
+            </div>
+          </div>
 
-      <div className="border-t border-gray-100 px-5 py-2.5 text-xs text-gray-400">
-        Posted {req.created_at
-          ? new Date(req.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-          : '—'}
-      </div>
-    </article>
+          <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs text-gray-500">
+            {req.quantity && (
+              <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-gray-400" /> {req.quantity} workers</span>
+            )}
+            {req.salary_range && (
+              <span className="flex items-center gap-1.5"><Banknote className="h-3.5 w-3.5 text-gray-400" /> {req.salary_range}</span>
+            )}
+            {req.contract_duration && (
+              <span className="flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5 text-gray-400" /> {req.contract_duration}</span>
+            )}
+            {req.duty_hours && (
+              <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5 text-gray-400" /> {req.duty_hours}</span>
+            )}
+          </div>
+
+          {(req.benefits_included || req.comments) && (
+            <>
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                className="mt-3 flex items-center gap-1 text-xs font-medium text-cyan-600 hover:underline"
+              >
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+                {expanded ? 'Hide details' : 'View details'}
+              </button>
+              {expanded && (
+                <div className="mt-2 space-y-1.5 rounded-xl bg-gray-50 p-3 text-xs text-gray-600">
+                  {req.benefits_included && (
+                    <p><span className="font-semibold text-gray-700">Benefits: </span>{req.benefits_included}</p>
+                  )}
+                  {req.comments && (
+                    <p><span className="font-semibold text-gray-700">Notes: </span>{req.comments}</p>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* ── Candidates Section ──────────────────────────────────────────── */}
+        <div className="border-t border-gray-100 px-5 py-3">
+          {isClosed ? (
+            /* Closed state */
+            <div className="flex items-center gap-3 text-gray-400">
+              <Lock className="h-4 w-4 flex-shrink-0" />
+              <span className="text-xs">This requirement is closed</span>
+            </div>
+          ) : hasRecommendations ? (
+            /* Unlocked: recommendations available */
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Award className="h-4 w-4 text-cyan-600" />
+                <div>
+                  <p className="text-sm font-bold text-gray-900">{recCount}</p>
+                  <p className="text-[10px] text-gray-500 leading-none">Candidates<br />shortlisted</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCandidates(true)}
+                className="flex items-center gap-2 rounded-xl bg-cyan-600 text-white px-4 py-2 text-xs font-semibold hover:bg-cyan-700 transition"
+              >
+                View Profiles →
+              </button>
+            </div>
+          ) : (
+            /* Locked: no recommendations yet */
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Lock className="h-4 w-4 text-amber-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-900">{poolCount}+</p>
+                  <p className="text-[10px] text-gray-500 leading-none">Candidates<br />available</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowContactPopup(true)}
+                className="flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 text-amber-700 px-3 py-2 text-xs font-semibold hover:bg-amber-100 transition"
+              >
+                <MessageCircle className="h-3.5 w-3.5" />
+                Contact Us
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="border-t border-gray-100 px-5 py-2 text-[11px] text-gray-400">
+          Posted {req.created_at
+            ? new Date(req.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+            : '—'}
+        </div>
+      </article>
+    </>
   );
 }
