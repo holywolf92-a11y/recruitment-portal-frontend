@@ -131,6 +131,116 @@ const WORLD_COUNTRIES = [
 ];
 
 const COUNTRY_INTEREST_OPTIONS = WORLD_COUNTRIES;
+
+/* ── Cities by country (employer form auto-city) ── */
+const CITIES_BY_COUNTRY: Record<string, string[]> = {
+  'Afghanistan': ['Kabul','Kandahar','Herat','Mazar-i-Sharif','Jalalabad'],
+  'Albania': ['Tirana','Durrës','Vlorë','Shkodër','Fier'],
+  'Algeria': ['Algiers','Oran','Constantine','Annaba','Blida','Tlemcen','Sétif','Batna'],
+  'Angola': ['Luanda','Huambo','Lobito','Benguela','Lubango'],
+  'Argentina': ['Buenos Aires','Córdoba','Rosario','Mendoza','La Plata','San Miguel de Tucumán','Mar del Plata'],
+  'Armenia': ['Yerevan','Gyumri','Vanadzor'],
+  'Australia': ['Sydney','Melbourne','Brisbane','Perth','Adelaide','Gold Coast','Canberra','Newcastle','Hobart','Darwin'],
+  'Austria': ['Vienna','Graz','Linz','Salzburg','Innsbruck','Klagenfurt'],
+  'Azerbaijan': ['Baku','Ganja','Sumqayit','Mingachevir','Nakhchivan'],
+  'Bahrain': ['Manama','Riffa','Muharraq','Hamad Town','Isa Town','Sitra','Budaiya'],
+  'Bangladesh': ['Dhaka','Chittagong','Sylhet','Rajshahi','Khulna','Comilla','Mymensingh','Narayanganj'],
+  'Belgium': ['Brussels','Antwerp','Ghent','Charleroi','Liège','Bruges','Namur','Leuven'],
+  'Bolivia': ['La Paz','Santa Cruz de la Sierra','Cochabamba','Sucre','Oruro'],
+  'Bosnia and Herzegovina': ['Sarajevo','Banja Luka','Tuzla','Zenica','Mostar'],
+  'Brazil': ['São Paulo','Rio de Janeiro','Brasília','Salvador','Fortaleza','Belo Horizonte','Manaus','Curitiba','Porto Alegre','Recife','Belém','Goiânia'],
+  'Bulgaria': ['Sofia','Plovdiv','Varna','Burgas','Ruse','Stara Zagora'],
+  'Cambodia': ['Phnom Penh','Siem Reap','Battambang','Sihanoukville'],
+  'Cameroon': ['Yaoundé','Douala','Bamenda','Bafoussam'],
+  'Canada': ['Toronto','Montreal','Vancouver','Calgary','Edmonton','Ottawa','Winnipeg','Quebec City','Hamilton','Kitchener','Halifax','Victoria','Regina','Saskatoon'],
+  'Chile': ['Santiago','Valparaíso','Concepción','Antofagasta','Temuco','La Serena'],
+  'China': ['Beijing','Shanghai','Guangzhou','Shenzhen','Chengdu','Chongqing','Wuhan','Xi\'an','Hangzhou','Nanjing','Tianjin','Suzhou','Dongguan','Qingdao','Zhengzhou'],
+  'Colombia': ['Bogotá','Medellín','Cali','Barranquilla','Cartagena','Cúcuta','Bucaramanga'],
+  'Congo (Kinshasa)': ['Kinshasa','Lubumbashi','Mbuji-Mayi','Kisangani','Kananga'],
+  'Croatia': ['Zagreb','Split','Rijeka','Osijek','Zadar','Pula'],
+  'Cuba': ['Havana','Santiago de Cuba','Camagüey','Holguín','Guantánamo'],
+  'Cyprus': ['Nicosia','Limassol','Larnaca','Famagusta','Paphos'],
+  'Czech Republic': ['Prague','Brno','Ostrava','Plzeň','Liberec','Olomouc'],
+  'Denmark': ['Copenhagen','Aarhus','Odense','Aalborg','Frederiksberg','Esbjerg'],
+  'Ecuador': ['Quito','Guayaquil','Cuenca','Manta','Ambato'],
+  'Egypt': ['Cairo','Alexandria','Giza','Shubra El Kheima','Port Said','Suez','Luxor','Aswan','Mansoura','Tanta','Asyut','Ismailia'],
+  'Ethiopia': ['Addis Ababa','Dire Dawa','Mekelle','Gondar','Hawassa','Bahir Dar'],
+  'Finland': ['Helsinki','Espoo','Tampere','Vantaa','Oulu','Turku','Jyväskylä'],
+  'France': ['Paris','Marseille','Lyon','Toulouse','Nice','Nantes','Strasbourg','Montpellier','Bordeaux','Lille','Rennes','Reims','Le Havre','Saint-Étienne'],
+  'Georgia': ['Tbilisi','Kutaisi','Batumi','Rustavi','Gori'],
+  'Germany': ['Berlin','Hamburg','Munich','Cologne','Frankfurt','Stuttgart','Düsseldorf','Leipzig','Dortmund','Essen','Bremen','Dresden','Hanover','Nuremberg','Duisburg','Bochum','Wuppertal','Bielefeld','Bonn','Münster'],
+  'Ghana': ['Accra','Kumasi','Tamale','Sekondi-Takoradi','Ashaiman'],
+  'Greece': ['Athens','Thessaloniki','Patras','Heraklion','Larissa','Volos','Rhodes','Ioannina','Chania'],
+  'Hungary': ['Budapest','Debrecen','Miskolc','Szeged','Pécs','Győr'],
+  'India': ['Mumbai','Delhi','Bangalore','Hyderabad','Ahmedabad','Chennai','Kolkata','Surat','Pune','Jaipur','Lucknow','Kanpur','Nagpur','Patna','Indore','Thane','Bhopal','Visakhapatnam','Pimpri-Chinchwad','Vadodara','Coimbatore','Amritsar','Chandigarh','Kochi','Ludhiana'],
+  'Indonesia': ['Jakarta','Surabaya','Bandung','Medan','Bekasi','Palembang','Tangerang','Makassar','Semarang','Depok','Yogyakarta','Batam','Pekanbaru'],
+  'Iran': ['Tehran','Mashhad','Isfahan','Karaj','Tabriz','Shiraz','Ahvaz','Qom','Rasht','Kermanshah'],
+  'Iraq': ['Baghdad','Basra','Mosul','Erbil','Sulaymaniyah','Kirkuk','Najaf','Karbala','Nasiriyah'],
+  'Ireland': ['Dublin','Cork','Limerick','Galway','Waterford','Drogheda','Dundalk'],
+  'Israel': ['Jerusalem','Tel Aviv','Haifa','Rishon LeZion','Petah Tikva','Ashdod','Netanya','Beer Sheba'],
+  'Italy': ['Rome','Milan','Naples','Turin','Palermo','Genoa','Bologna','Florence','Bari','Catania','Venice','Verona','Messina','Padua','Trieste','Brescia'],
+  'Japan': ['Tokyo','Yokohama','Osaka','Nagoya','Sapporo','Kobe','Kyoto','Fukuoka','Kawasaki','Saitama','Hiroshima','Sendai','Kitakyushu','Chiba','Sakai'],
+  'Jordan': ['Amman','Zarqa','Irbid','Russeifa','Aqaba','Madaba','Jerash','Karak','Mafraq'],
+  'Kazakhstan': ['Almaty','Nur-Sultan','Shymkent','Karaganda','Aktobe','Taraz','Pavlodar','Ust-Kamenogorsk'],
+  'Kenya': ['Nairobi','Mombasa','Kisumu','Nakuru','Eldoret','Malindi','Thika'],
+  'Kuwait': ['Kuwait City','Hawalli','Al Ahmadi','Al Farwaniyah','Mubarak Al-Kabeer','Al Jahra','As Salimiyah','Salmiya','Rumaithiya'],
+  'Kyrgyzstan': ['Bishkek','Osh','Jalal-Abad','Karakol'],
+  'Lebanon': ['Beirut','Tripoli','Sidon','Tyre','Jounieh','Baalbek'],
+  'Libya': ['Tripoli','Benghazi','Misrata','Al Bayda','Sabha'],
+  'Malaysia': ['Kuala Lumpur','Petaling Jaya','Johor Bahru','Ipoh','Shah Alam','Penang','Klang','Kota Kinabalu','Kuching','Subang Jaya','Malacca'],
+  'Maldives': ['Malé','Addu City','Fuvahmulah'],
+  'Malta': ['Valletta','Birkirkara','Qormi','Mosta','Żabbar'],
+  'Mexico': ['Mexico City','Guadalajara','Monterrey','Puebla','Toluca','Tijuana','León','Ciudad Juárez','Mérida','Cancún','Querétaro','Acapulco'],
+  'Morocco': ['Casablanca','Rabat','Fez','Marrakesh','Agadir','Tangier','Meknès','Oujda','Kenitra','Tetouan'],
+  'Mozambique': ['Maputo','Matola','Nampula','Beira','Quelimane'],
+  'Myanmar': ['Yangon','Mandalay','Naypyidaw','Mawlamyine','Bago'],
+  'Nepal': ['Kathmandu','Pokhara','Lalitpur','Bharatpur','Biratnagar','Birgunj','Dharan'],
+  'Netherlands': ['Amsterdam','Rotterdam','The Hague','Utrecht','Eindhoven','Tilburg','Groningen','Almere','Breda','Nijmegen','Leiden','Maastricht'],
+  'New Zealand': ['Auckland','Wellington','Christchurch','Hamilton','Tauranga','Napier','Dunedin'],
+  'Nigeria': ['Lagos','Abuja','Kano','Ibadan','Port Harcourt','Benin City','Maiduguri','Zaria','Aba','Kaduna','Enugu'],
+  'Norway': ['Oslo','Bergen','Trondheim','Stavanger','Drammen','Fredrikstad','Kristiansand'],
+  'Oman': ['Muscat','Seeb','Salalah','Sohar','Nizwa','Sur','Rustaq','Barka','Ibri','Khasab'],
+  'Pakistan': ['Karachi','Lahore','Islamabad','Rawalpindi','Faisalabad','Multan','Hyderabad','Peshawar','Quetta','Gujranwala','Sialkot','Sargodha','Bahawalpur','Sukkur','Larkana','Sheikhupura','Rahim Yar Khan','Jhang','Mardan','Gujrat','Kasur','Dera Ghazi Khan','Mingora','Nawabshah','Okara'],
+  'Palestine': ['Gaza','Ramallah','Nablus','Hebron','Jenin','Jericho'],
+  'Peru': ['Lima','Arequipa','Trujillo','Chiclayo','Iquitos','Piura','Cusco'],
+  'Philippines': ['Manila','Quezon City','Davao','Cebu City','Zamboanga','Antipolo','Pasig','Cagayan de Oro','Taguig','Valenzuela','Makati','Dasmariñas'],
+  'Poland': ['Warsaw','Kraków','Łódź','Wrocław','Poznań','Gdańsk','Szczecin','Bydgoszcz','Lublin','Katowice','Białystok'],
+  'Portugal': ['Lisbon','Porto','Amadora','Braga','Setúbal','Coimbra','Funchal','Almada','Agualva-Cacém'],
+  'Qatar': ['Doha','Al Rayyan','Umm Salal','Al Wakrah','Al Khor','Dukhan','Mesaieed','Al Shamal'],
+  'Romania': ['Bucharest','Cluj-Napoca','Timișoara','Iași','Constanța','Craiova','Brașov','Galați'],
+  'Russia': ['Moscow','Saint Petersburg','Novosibirsk','Yekaterinburg','Kazan','Nizhny Novgorod','Chelyabinsk','Omsk','Samara','Rostov-on-Don','Ufa','Krasnoyarsk'],
+  'Rwanda': ['Kigali','Butare','Gisenyi','Ruhengeri'],
+  'Saudi Arabia': ['Riyadh','Jeddah','Mecca','Medina','Dammam','Al Khobar','Dhahran','Tabuk','Buraidah','Khamis Mushait','Hail','Abha','Najran','Yanbu','Al Jubayl','Al Qatif','Ta\'if','Hofuf'],
+  'Senegal': ['Dakar','Thiès','Saint-Louis','Kaolack','Ziguinchor'],
+  'Serbia': ['Belgrade','Novi Sad','Niš','Kragujevac','Subotica','Zrenjanin'],
+  'Singapore': ['Singapore','Jurong East','Woodlands','Tampines','Sengkang','Punggol','Bukit Batok'],
+  'South Africa': ['Johannesburg','Cape Town','Durban','Pretoria','Port Elizabeth','Bloemfontein','East London','Nelspruit','Polokwane','Kimberley'],
+  'South Korea': ['Seoul','Busan','Incheon','Daegu','Daejeon','Gwangju','Suwon','Ulsan','Changwon','Goyang','Yongin'],
+  'Spain': ['Madrid','Barcelona','Valencia','Seville','Zaragoza','Málaga','Murcia','Palma','Bilbao','Alicante','Córdoba','Valladolid','Vigo','Gijón','Granada'],
+  'Sri Lanka': ['Colombo','Dehiwala','Moratuwa','Kandy','Negombo','Jaffna','Galle','Trincomalee'],
+  'Sudan': ['Khartoum','Omdurman','Port Sudan','Kassala','El Obeid','Wad Madani'],
+  'Sweden': ['Stockholm','Gothenburg','Malmö','Uppsala','Västerås','Örebro','Linköping','Helsingborg','Norrköping','Jönköping'],
+  'Switzerland': ['Zurich','Geneva','Basel','Bern','Lausanne','Winterthur','Lucerne','St. Gallen','Lugano','Biel/Bienne'],
+  'Syria': ['Damascus','Aleppo','Homs','Latakia','Hama','Raqqa','Deir ez-Zor'],
+  'Taiwan': ['Taipei','Kaohsiung','Taichung','Tainan','Taoyuan','Hsinchu'],
+  'Tajikistan': ['Dushanbe','Khujand','Kulob','Qurghonteppa'],
+  'Tanzania': ['Dar es Salaam','Mwanza','Arusha','Dodoma','Mbeya','Tanga','Zanzibar City'],
+  'Thailand': ['Bangkok','Chiang Mai','Nonthaburi','Pak Kret','Hat Yai','Udon Thani','Chon Buri','Nakhon Ratchasima','Phuket'],
+  'Tunisia': ['Tunis','Sfax','Sousse','Kairouan','Bizerte','Gabès','Ariana'],
+  'Turkey': ['Istanbul','Ankara','Izmir','Bursa','Adana','Gaziantep','Konya','Antalya','Mersin','Kayseri','Trabzon','Diyarbakır','Eskişehir','Samsun','Denizli'],
+  'Turkmenistan': ['Ashgabat','Türkmenabat','Daşoguz','Mary','Balkanabat'],
+  'Uganda': ['Kampala','Gulu','Lira','Mbarara','Jinja','Entebbe'],
+  'Ukraine': ['Kyiv','Kharkiv','Odessa','Dnipro','Donetsk','Zaporizhzhia','Lviv','Kryvyi Rih','Mykolaiv','Mariupol'],
+  'United Arab Emirates': ['Dubai','Abu Dhabi','Sharjah','Al Ain','Ajman','Ras Al Khaimah','Fujairah','Umm Al Quwain','Khor Fakkan','Kalba','Dhaid','Madinat Zayed'],
+  'United Kingdom': ['London','Birmingham','Manchester','Leeds','Sheffield','Liverpool','Bristol','Leicester','Edinburgh','Glasgow','Bradford','Cardiff','Coventry','Nottingham','Belfast','Newcastle','Southampton','Derby','Portsmouth','Plymouth','Brighton','Reading','Milton Keynes','Aberdeen'],
+  'United States': ['New York','Los Angeles','Chicago','Houston','Phoenix','Philadelphia','San Antonio','San Diego','Dallas','San Jose','Austin','Jacksonville','Fort Worth','Columbus','Charlotte','Indianapolis','San Francisco','Seattle','Denver','Washington DC','Nashville','Oklahoma City','El Paso','Boston','Las Vegas','Memphis','Portland','Louisville','Baltimore','Milwaukee','Albuquerque','Atlanta','Miami','Minneapolis','Tampa'],
+  'Uzbekistan': ['Tashkent','Samarkand','Namangan','Andijan','Nukus','Fergana','Bukhara'],
+  'Venezuela': ['Caracas','Maracaibo','Valencia','Barquisimeto','Maracay','Ciudad Guayana'],
+  'Vietnam': ['Ho Chi Minh City','Hanoi','Da Nang','Haiphong','Can Tho','Bien Hoa','Nha Trang','Hue'],
+  'Yemen': ['Sana\'a','Aden','Taiz','Hodeidah','Ibb','Dhamar','Mukalla'],
+  'Zambia': ['Lusaka','Kitwe','Ndola','Kabwe','Chingola','Livingstone'],
+  'Zimbabwe': ['Harare','Bulawayo','Chitungwiza','Mutare','Gweru','Kwekwe'],
+};
 const EXPERIENCE_OPTIONS = ['Fresher', '1-3 Years', '3-5 Years', '5-10 Years', '10+ Years'];
 const PHONE_CODE_OPTIONS = [
   // South Asia
@@ -706,7 +816,7 @@ export function PublicApplicationForm() {
           <form className="falisha-auth-form-fields" onSubmit={handleEmployerSubmit}>
             <div className="grid gap-4 sm:grid-cols-2">
               <InputField label="Company Name" value={employerForm.companyName} onChange={(v) => setEmployerForm((c) => ({ ...c, companyName: v }))} required icon={Building2} />
-              <InputField label="Contact Name" value={employerForm.contactName} onChange={(v) => setEmployerForm((c) => ({ ...c, contactName: v }))} required icon={User2} />
+              <InputField label="Employer Name" value={employerForm.contactName} onChange={(v) => setEmployerForm((c) => ({ ...c, contactName: v }))} required icon={User2} />
               <div className="sm:col-span-2">
                 <InputField label="Email" type="email" value={employerForm.email} onChange={(v) => setEmployerForm((c) => ({ ...c, email: v }))} required icon={Mail} />
               </div>
@@ -728,13 +838,46 @@ export function PublicApplicationForm() {
                 <label className="falisha-auth-field-label">Country</label>
                 <div className="falisha-auth-input-wrap">
                   <Globe2 className="falisha-auth-input-icon" />
-                  <select value={employerForm.country} onChange={(e) => setEmployerForm((c) => ({ ...c, country: e.target.value }))} className="falisha-auth-input falisha-auth-select">
-                    <option value="">Select country…</option>
-                    {WORLD_COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                  <input
+                    type="text"
+                    list="employer-countries-list"
+                    value={employerForm.country}
+                    onChange={(e) => setEmployerForm((c) => ({ ...c, country: e.target.value, city: '' }))}
+                    className="falisha-auth-input"
+                    placeholder="Type to search country…"
+                    autoComplete="off"
+                  />
+                  <datalist id="employer-countries-list">
+                    {WORLD_COUNTRIES.map((c) => <option key={c} value={c} />)}
+                  </datalist>
                 </div>
               </div>
-              <InputField label="City" value={employerForm.city} onChange={(v) => setEmployerForm((c) => ({ ...c, city: v }))} icon={MapPin} />
+              <div className="falisha-auth-field">
+                <label className="falisha-auth-field-label">City</label>
+                <div className="falisha-auth-input-wrap">
+                  <MapPin className="falisha-auth-input-icon" />
+                  {CITIES_BY_COUNTRY[employerForm.country] ? (
+                    <select
+                      value={employerForm.city}
+                      onChange={(e) => setEmployerForm((c) => ({ ...c, city: e.target.value }))}
+                      className="falisha-auth-input falisha-auth-select"
+                    >
+                      <option value="">Select city…</option>
+                      {CITIES_BY_COUNTRY[employerForm.country].map((city) => (
+                        <option key={city} value={city}>{city}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={employerForm.city}
+                      onChange={(e) => setEmployerForm((c) => ({ ...c, city: e.target.value }))}
+                      className="falisha-auth-input"
+                      placeholder="Enter city"
+                    />
+                  )}
+                </div>
+              </div>
               <InputField label="Professions Required" value={employerForm.professions} onChange={(v) => setEmployerForm((c) => ({ ...c, professions: v }))} icon={Briefcase} />
               <InputField label="Quantity Needed" value={employerForm.quantity} onChange={(v) => setEmployerForm((c) => ({ ...c, quantity: v }))} icon={Users} />
               <InputField label="Salary Range" value={employerForm.salaryRange} onChange={(v) => setEmployerForm((c) => ({ ...c, salaryRange: v }))} icon={Briefcase} />
