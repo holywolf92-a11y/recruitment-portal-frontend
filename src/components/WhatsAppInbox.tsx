@@ -707,22 +707,43 @@ export function WhatsAppInbox() {
                     const isAudio = m.message_type === 'audio';
                     const isVideo = m.message_type === 'video';
                     const isInteractive = m.message_type === 'interactive';
+                    const isMedia = isDocument || isImage || isAudio || isVideo;
+                    // Bodies like "[document]", "[image]" etc. are placeholders, not real captions
+                    const isPlaceholderBody = /^\[.*\]$/.test((m.body || '').trim());
+                    const realBody = !isPlaceholderBody && m.body ? m.body : null;
 
                     return (
                       <div key={m.id} className={`flex ${isInbound ? 'justify-start' : 'justify-end'}`}>
                         <div className={`max-w-[88%] sm:max-w-[72%] rounded-2xl px-3 py-2 text-sm shadow-sm ${bubbleStyle}`}>
                           {isDocument && (
-                            <div className="flex items-center gap-2 py-1 px-1 rounded-lg bg-accent/30 mb-1">
+                            <div className="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-accent/30 mb-1">
                               <FileText className="w-5 h-5 text-primary flex-shrink-0" />
-                              <span className="text-xs truncate flex-1 text-foreground">{m.file_name || 'Document'}</span>
+                              <span className="text-xs truncate flex-1 text-foreground font-medium">{m.file_name || 'Document'}</span>
+                              <button
+                                type="button"
+                                title="Download"
+                                onClick={async () => {
+                                  const url = await fetchMediaUrl(m.id);
+                                  if (url) window.open(url, '_blank');
+                                  else alert('File not yet available in storage.\n\nNote: Only documents received after the storage pipeline was set up can be downloaded.');
+                                }}
+                                className="p-1 rounded hover:bg-accent/60 transition-colors flex-shrink-0"
+                              >
+                                <Download className="w-3.5 h-3.5 text-primary" />
+                              </button>
+                            </div>
+                          )}
+                          {isImage && (
+                            <div className="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-accent/30 mb-1">
+                              <span className="text-xs text-muted-foreground flex-1">{m.message_type === 'sticker' ? '🖼 Sticker' : '📷 Image'}{m.file_name ? ` · ${m.file_name}` : ''}</span>
                               {m.media_id && (
                                 <button
                                   type="button"
-                                  title="Download"
+                                  title="View"
                                   onClick={async () => {
                                     const url = await fetchMediaUrl(m.id);
                                     if (url) window.open(url, '_blank');
-                                    else alert('File not available in storage yet');
+                                    else alert('Image not yet available in storage.');
                                   }}
                                   className="p-1 rounded hover:bg-accent/60 transition-colors flex-shrink-0"
                                 >
@@ -731,36 +752,20 @@ export function WhatsAppInbox() {
                               )}
                             </div>
                           )}
-                          {isImage && !m.body && (
-                            <div className="flex items-center gap-2 py-1 px-1 rounded-lg bg-accent/30 mb-1">
-                              <span className="text-xs text-muted-foreground">{m.message_type === 'sticker' ? '🖼 Sticker' : '📷 Image'}</span>
-                              {m.media_id && (
-                                <button
-                                  type="button"
-                                  title="View"
-                                  onClick={async () => {
-                                    const url = await fetchMediaUrl(m.id);
-                                    if (url) window.open(url, '_blank');
-                                    else alert('Image not available in storage');
-                                  }}
-                                  className="ml-auto p-1 rounded hover:bg-accent/60 transition-colors"
-                                >
-                                  <Download className="w-3.5 h-3.5 text-primary" />
-                                </button>
-                              )}
-                            </div>
-                          )}
-                          {isAudio && !m.body && (
+                          {isAudio && (
                             <div className="text-xs text-muted-foreground italic py-0.5">🎤 Voice message</div>
                           )}
-                          {isVideo && !m.body && (
+                          {isVideo && (
                             <div className="text-xs text-muted-foreground italic py-0.5">🎥 Video</div>
                           )}
-                          {isInteractive && !m.body && (
+                          {isInteractive && (
                             <div className="text-xs text-muted-foreground italic py-0.5">📋 Interactive response</div>
                           )}
-                          {m.body && (
-                            <div className="whitespace-pre-wrap break-words leading-5">{m.body}</div>
+                          {!isMedia && !isInteractive && !realBody && (
+                            <div className="text-xs text-muted-foreground italic py-0.5">[{m.message_type || 'message'}]</div>
+                          )}
+                          {realBody && (
+                            <div className="whitespace-pre-wrap break-words leading-5">{realBody}</div>
                           )}
                           <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-muted-foreground">
                             <span>{formatBubbleTime(m.created_at)}</span>
