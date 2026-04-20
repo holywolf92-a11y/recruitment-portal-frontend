@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { API_BASE_URL } from '../lib/apiClient';
 import { useAuth, supabase } from '../lib/authContext';
-import { ArrowLeft, CheckCheck, MoreVertical, Phone, Search, Send, Smile, Paperclip, Video, Smartphone, Download } from 'lucide-react';
+import { ArrowLeft, CheckCheck, MoreVertical, Phone, Search, Send, Smile, Paperclip, Video, Smartphone, Download, FileText, X } from 'lucide-react';
 
 // APK download URL — Falisha Agent Android App (built via EAS)
 const AGENT_APK_URL = 'https://expo.dev/artifacts/eas/4UHM4fr7khi7epQohrvcHL.apk';
@@ -31,6 +31,9 @@ type Message = {
   message_type: string;
   status: string;
   created_at: string;
+  media_id: string | null;
+  mime_type: string | null;
+  file_name: string | null;
 };
 
 function formatListTime(value: string | null) {
@@ -51,6 +54,25 @@ function initialsFromName(value: string) {
   const first = parts[0]?.[0] ?? '?';
   const second = parts.length > 1 ? parts[parts.length - 1]?.[0] : '';
   return (first + second).toUpperCase();
+}
+
+function playNotificationBeep() {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.6);
+    setTimeout(() => ctx.close(), 1000);
+  } catch {}
 }
 
 async function fetchJson(url: string, options: RequestInit) {
@@ -78,6 +100,12 @@ export function WhatsAppInbox() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [modeError, setModeError] = useState<string | null>(null);
   const [modeLoading, setModeLoading] = useState(false);
+
+  const [conversationOffset, setConversationOffset] = useState(0);
+  const [hasMoreConversations, setHasMoreConversations] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -122,25 +150,60 @@ export function WhatsAppInbox() {
     return (sendError || '').toLowerCase().includes('template');
   }, [sendError]);
 
-  async function loadConversations() {
+  const filteredConversations = useMemo(() => {
+    if (!searchQuery.trim()) return conversations;
+    const q = searchQuery.toLowerCase().trim();
+    return conversations.filter((c) => {
+      const title = (c.candidate_name || c.display_name || c.phone_number || '').toLowerCase();
+      return title.includes(q) || (c.phone_number || '').includes(q);
+    });
+  }, [conversations, searchQuery]);
+
+  async function loadConversations(opts?: { offset?: number; append?: boolean }) {
     if (!authHeader) return;
-    setLoadingConversations(true);
+    const off = opts?.offset ?? 0;
+    const isAppend = opts?.append ?? false;
+    if (isAppend) setLoadingMore(true);
+    else setLoadingConversations(true);
     setLoadError(null);
     try {
-      const data = await fetchJson(`${API_BASE_URL}/whatsapp-inbox/conversations`, {
+      const data = await fetchJson(`${API_BASE_URL}/whatsapp-inbox/conversations?limit=50&offset=${off}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           ...authHeader,
         },
       });
-      setConversations((data?.conversations ?? []) as Conversation[]);
+      const convs = (data?.conversations ?? []) as Conversation[];
+      const total = (data?.total ?? 0) as number;
+      if (isAppend) {
+        setConversations((prev) => [...prev, ...convs]);
+      } else {
+        setConversations(convs);
+      }
+      const newOffset = off + convs.length;
+      setConversationOffset(newOffset);
+      setHasMoreConversations(newOffset < total);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setLoadError(msg);
-      setConversations([]);
+      if (!isAppend) setConversations([]);
     } finally {
-      setLoadingConversations(false);
+      if (isAppend) setLoadingMore(false);
+      else setLoadingConversations(false);
+    }
+  }
+
+  async function fetchMediaUrl(messageId: string): Promise<string | null> {
+    if (!authHeader) return null;
+    try {
+      const data = await fetchJson(`${API_BASE_URL}/whatsapp-inbox/messages/${messageId}/media-url`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...authHeader },
+      });
+      return data?.url ?? null;
+    } catch {
+      return null;
     }
   }
 
@@ -279,7 +342,7 @@ export function WhatsAppInbox() {
   }
 
   useEffect(() => {
-    loadConversations();
+    loadConversations({ offset: 0 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authHeader]);
 
@@ -319,6 +382,11 @@ export function WhatsAppInbox() {
         (payload) => {
           const newMsg = payload.new as any;
           const convId = String(newMsg?.conversation_id || '');
+
+          // Play notification sound for new inbound messages
+          if (newMsg?.direction === 'inbound') {
+            playNotificationBeep();
+          }
 
           // Refresh list + open thread if affected.
           scheduleRefresh(convId);
@@ -370,10 +438,10 @@ export function WhatsAppInbox() {
                   {loadingConversations && <span className="text-xs text-muted-foreground">Loading...</span>}
                   <button
                     type="button"
-                    className="p-2.5 rounded-lg hover:bg-accent/60 transition-colors disabled:opacity-50"
+                    className={`p-2.5 rounded-lg hover:bg-accent/60 transition-colors ${showSearch ? 'bg-accent/60' : ''}`}
                     aria-label="Search"
-                    disabled
-                    title="Search (not implemented)"
+                    title="Search conversations"
+                    onClick={() => { setShowSearch((v) => !v); setSearchQuery(''); }}
                   >
                     <Search className="w-5 h-5 text-muted-foreground" />
                   </button>
@@ -389,6 +457,24 @@ export function WhatsAppInbox() {
                 </div>
               </div>
               {loadError && <div className="mt-2 text-xs text-destructive break-words">{loadError}</div>}
+
+              {showSearch && (
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    autoFocus
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by name or number..."
+                    className="flex-1 bg-input-background border border-border/60 rounded-full px-4 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring/60"
+                  />
+                  <button
+                    onClick={() => { setShowSearch(false); setSearchQuery(''); }}
+                    className="p-1.5 rounded-full hover:bg-accent/60 transition-colors"
+                  >
+                    <X className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                </div>
+              )}
 
               {/* ── Agent Android App Banner ────────────────────── */}
               {AGENT_APK_URL && (
@@ -418,7 +504,7 @@ export function WhatsAppInbox() {
                 <div className="p-6 text-sm text-muted-foreground">No conversations yet.</div>
               ) : (
                 <div className="divide-y divide-border/40">
-                  {conversations.map((c) => {
+                  {filteredConversations.map((c) => {
                     const title = c.candidate_name || c.display_name || c.phone_number;
                     const avatar = initialsFromName(title);
                     return (
@@ -468,6 +554,16 @@ export function WhatsAppInbox() {
                       </button>
                     );
                   })}
+                  {hasMoreConversations && !searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => loadConversations({ offset: conversationOffset, append: true })}
+                      disabled={loadingMore}
+                      className="w-full py-3 text-sm text-primary hover:bg-accent/40 transition-colors disabled:opacity-50"
+                    >
+                      {loadingMore ? 'Loading...' : `Load more conversations`}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -606,10 +702,66 @@ export function WhatsAppInbox() {
                     const showTicks = !isInbound && m.direction !== 'ai';
                     const tickColor = m.status === 'read' ? 'text-primary' : 'text-muted-foreground';
 
+                    const isDocument = m.message_type === 'document';
+                    const isImage = m.message_type === 'image' || m.message_type === 'sticker';
+                    const isAudio = m.message_type === 'audio';
+                    const isVideo = m.message_type === 'video';
+                    const isInteractive = m.message_type === 'interactive';
+
                     return (
                       <div key={m.id} className={`flex ${isInbound ? 'justify-start' : 'justify-end'}`}>
                         <div className={`max-w-[88%] sm:max-w-[72%] rounded-2xl px-3 py-2 text-sm shadow-sm ${bubbleStyle}`}>
-                          <div className="whitespace-pre-wrap break-words leading-5">{m.body || ''}</div>
+                          {isDocument && (
+                            <div className="flex items-center gap-2 py-1 px-1 rounded-lg bg-accent/30 mb-1">
+                              <FileText className="w-5 h-5 text-primary flex-shrink-0" />
+                              <span className="text-xs truncate flex-1 text-foreground">{m.file_name || 'Document'}</span>
+                              {m.media_id && (
+                                <button
+                                  type="button"
+                                  title="Download"
+                                  onClick={async () => {
+                                    const url = await fetchMediaUrl(m.id);
+                                    if (url) window.open(url, '_blank');
+                                    else alert('File not available in storage yet');
+                                  }}
+                                  className="p-1 rounded hover:bg-accent/60 transition-colors flex-shrink-0"
+                                >
+                                  <Download className="w-3.5 h-3.5 text-primary" />
+                                </button>
+                              )}
+                            </div>
+                          )}
+                          {isImage && !m.body && (
+                            <div className="flex items-center gap-2 py-1 px-1 rounded-lg bg-accent/30 mb-1">
+                              <span className="text-xs text-muted-foreground">{m.message_type === 'sticker' ? '🖼 Sticker' : '📷 Image'}</span>
+                              {m.media_id && (
+                                <button
+                                  type="button"
+                                  title="View"
+                                  onClick={async () => {
+                                    const url = await fetchMediaUrl(m.id);
+                                    if (url) window.open(url, '_blank');
+                                    else alert('Image not available in storage');
+                                  }}
+                                  className="ml-auto p-1 rounded hover:bg-accent/60 transition-colors"
+                                >
+                                  <Download className="w-3.5 h-3.5 text-primary" />
+                                </button>
+                              )}
+                            </div>
+                          )}
+                          {isAudio && !m.body && (
+                            <div className="text-xs text-muted-foreground italic py-0.5">🎤 Voice message</div>
+                          )}
+                          {isVideo && !m.body && (
+                            <div className="text-xs text-muted-foreground italic py-0.5">🎥 Video</div>
+                          )}
+                          {isInteractive && !m.body && (
+                            <div className="text-xs text-muted-foreground italic py-0.5">📋 Interactive response</div>
+                          )}
+                          {m.body && (
+                            <div className="whitespace-pre-wrap break-words leading-5">{m.body}</div>
+                          )}
                           <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-muted-foreground">
                             <span>{formatBubbleTime(m.created_at)}</span>
                             {showTicks && <CheckCheck className={`w-3.5 h-3.5 ${tickColor}`} />}
