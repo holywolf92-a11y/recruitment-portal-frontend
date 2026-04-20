@@ -424,8 +424,8 @@ export function WhatsAppInbox() {
   }, [selectedConversationId, authHeader]);
 
   return (
-    <div className="rounded-xl border border-border/60 bg-background/60 dark:bg-background/40 backdrop-blur-xl overflow-hidden shadow-sm">
-      <div className="h-[calc(100vh-73px-48px)] min-h-[440px] sm:min-h-[520px] flex flex-col">
+    <div className="flex-1 min-h-0 flex flex-col rounded-xl border border-border/60 bg-background/60 dark:bg-background/40 backdrop-blur-xl overflow-hidden shadow-sm">
+      <div className="flex-1 min-h-0 flex flex-col">
         {view === 'list' ? (
           <div className="flex-1 flex flex-col bg-background/40 dark:bg-background/20">
             <div className="px-4 py-3 border-b border-border/60 bg-background/60 dark:bg-background/40 backdrop-blur-xl sticky top-0 z-10">

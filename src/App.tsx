@@ -918,7 +918,7 @@ const AppContent = () => {
           </>
         )}
 
-        <main className="flex-1 min-w-0 min-h-0 overflow-y-auto bg-gradient-to-b from-slate-50 to-white">
+        <main className={`flex-1 min-w-0 min-h-0 bg-gradient-to-b from-slate-50 to-white ${activeTab === 'whatsapp-inbox' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}>
           {isBrowserView && (
             <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-3">
               <button
@@ -931,7 +931,7 @@ const AppContent = () => {
             </div>
           )}
 
-          <div className={isBrowserView ? '' : 'p-3 sm:p-4 md:p-6'}>
+          <div className={activeTab === 'whatsapp-inbox' ? 'flex-1 min-h-0 flex flex-col' : isBrowserView ? '' : 'p-3 sm:p-4 md:p-6'}>
             {renderContent()}
           </div>
         </main>
