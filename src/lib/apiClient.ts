@@ -1121,6 +1121,14 @@ class ApiClient {
     });
   }
 
+  async getPartners(accessToken: string): Promise<{ partners: Array<AppUserProfile & { candidateCount: number }> }> {
+    return this.get<{ partners: Array<AppUserProfile & { candidateCount: number }> }>('/auth/partners', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+  }
+
   async updateAdminUser(
     userId: string,
     payload: Partial<Pick<AppUserProfile, 'name' | 'email' | 'role' | 'phone' | 'department' | 'status'>>,

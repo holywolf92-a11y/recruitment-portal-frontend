@@ -98,39 +98,31 @@ export function PartnerManagement() {
   const { session } = useAuth();
   const accessToken = session?.access_token;
   const [partners, setPartners] = useState<PartnerWithStats[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [selectedPartner, setSelectedPartner] = useState<PartnerWithStats | null>(null);
 
-  // ── Fetch partners + their candidate counts ──────────────────────────────
+  // ── Fetch partners with candidate counts (single round-trip) ────────────
 
   useEffect(() => {
-    if (!accessToken) return;
+    if (!accessToken) {
+      // Still waiting for session to load — keep loading state
+      return;
+    }
     let cancelled = false;
 
     async function load() {
       setLoading(true);
       setError(null);
       try {
-        const { users } = await apiClient.getAdminUsers(accessToken!);
-        const partnerUsers = users.filter((u) => u.role === 'partner');
-
-        // Fetch candidate counts in parallel
-        const withCounts = await Promise.all(
-          partnerUsers.map(async (u): Promise<PartnerWithStats> => {
-            try {
-              const res = await apiClient.getCandidates({ partner_id: u.id, limit: 1 });
-              return { ...u, candidateCount: res.total ?? 0 };
-            } catch {
-              return { ...u, candidateCount: 0 };
-            }
-          })
-        );
-
+        const { partners: data } = await apiClient.getPartners(accessToken!);
         if (!cancelled) {
-          // Sort by most candidates first
-          setPartners(withCounts.sort((a, b) => (b.candidateCount ?? 0) - (a.candidateCount ?? 0)));
+          setPartners(
+            (data || [])
+              .map((p) => ({ ...p, candidateCount: p.candidateCount ?? 0 }))
+              .sort((a, b) => (b.candidateCount ?? 0) - (a.candidateCount ?? 0))
+          );
         }
       } catch (e: any) {
         if (!cancelled) setError(e?.message || 'Failed to load partners');
