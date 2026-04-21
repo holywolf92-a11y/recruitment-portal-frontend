@@ -1877,9 +1877,96 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
           </div>
         )
       ) : (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <p className="text-gray-600 text-center">Table view coming soon...</p>
-        </div>
+        filteredCandidates.length === 0 ? (
+          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No candidates found</h3>
+            <p className="text-gray-600">Try adjusting your search or filters.</p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600 whitespace-nowrap">ID</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600 whitespace-nowrap">Name</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600 whitespace-nowrap">Profession</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600 whitespace-nowrap">Phone</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600 whitespace-nowrap">Nationality</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600 whitespace-nowrap">Country</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600 whitespace-nowrap">Status</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600 whitespace-nowrap">Exp (yrs)</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600 whitespace-nowrap">Source</th>
+                    <th className="px-4 py-3 text-center font-semibold text-gray-600 whitespace-nowrap">CV</th>
+                    <th className="px-4 py-3 text-center font-semibold text-gray-600 whitespace-nowrap">Photo</th>
+                    <th className="px-4 py-3 text-center font-semibold text-gray-600 whitespace-nowrap">Passport</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600 whitespace-nowrap">Partner</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600 whitespace-nowrap">Added</th>
+                    <th className="px-4 py-3 text-center font-semibold text-gray-600 whitespace-nowrap">View</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredCandidates.map((c, idx) => {
+                    const statusLabel = normalizeCandidateStatus(c.status);
+                    const statusCls = getCandidateStatusClasses(c.status as CandidateStatus);
+                    const addedDate = c.created_at ? new Date(c.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : '—';
+                    return (
+                      <tr
+                        key={c.id}
+                        className={`hover:bg-blue-50 cursor-pointer transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}
+                        onClick={() => { setSelectedCandidate(c); setDetailsInitialTab('details'); setShowDetailsModal(true); }}
+                      >
+                        <td className="px-4 py-2.5 font-mono text-xs text-blue-700 whitespace-nowrap">{c.candidate_code || '—'}</td>
+                        <td className="px-4 py-2.5 font-medium text-gray-900 whitespace-nowrap max-w-[180px] truncate">
+                          <div>{c.name}</div>
+                          {c.father_name && <div className="text-xs text-gray-400">{c.father_name}</div>}
+                        </td>
+                        <td className="px-4 py-2.5 text-gray-700 whitespace-nowrap max-w-[150px] truncate">{c.position || '—'}</td>
+                        <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">{c.phone || '—'}</td>
+                        <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">{c.nationality || '—'}</td>
+                        <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">{c.country_of_interest || '—'}</td>
+                        <td className="px-4 py-2.5 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusCls}`}>{statusLabel}</span>
+                        </td>
+                        <td className="px-4 py-2.5 text-center text-gray-600">{c.experience_years ?? '—'}</td>
+                        <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap text-xs">{c.source || '—'}</td>
+                        <td className="px-4 py-2.5 text-center">
+                          {c.cv_received
+                            ? <CheckCircle className="w-4 h-4 text-green-500 mx-auto" />
+                            : <span className="text-gray-300 text-xs">—</span>}
+                        </td>
+                        <td className="px-4 py-2.5 text-center">
+                          {c.photo_received
+                            ? <CheckCircle className="w-4 h-4 text-green-500 mx-auto" />
+                            : <span className="text-gray-300 text-xs">—</span>}
+                        </td>
+                        <td className="px-4 py-2.5 text-center">
+                          {c.passport_received
+                            ? <CheckCircle className="w-4 h-4 text-green-500 mx-auto" />
+                            : <span className="text-gray-300 text-xs">—</span>}
+                        </td>
+                        <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap text-xs max-w-[120px] truncate">{c.partner_name || '—'}</td>
+                        <td className="px-4 py-2.5 text-gray-400 whitespace-nowrap text-xs">{addedDate}</td>
+                        <td className="px-4 py-2.5 text-center">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setSelectedCandidate(c); setDetailsInitialTab('details'); setShowDetailsModal(true); }}
+                            className="p-1.5 rounded-lg hover:bg-blue-100 text-blue-600 transition-colors"
+                            title="View details"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
       )}
 
       {/* Candidate Details Modal - Portalled to document body to avoid z-index/stacking issues */}
