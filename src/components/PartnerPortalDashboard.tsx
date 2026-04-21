@@ -316,17 +316,36 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
     setUploading(true);
     setUploadError(null);
     try {
-      const { candidate } = await apiClient.createPartnerCandidate({
+      const result = await apiClient.createPartnerCandidate({
         name: uploadForm.name.trim(),
         father_name: uploadForm.father_name.trim() || undefined,
         position: uploadForm.profession.trim() || undefined,
         phone: uploadForm.phone.trim(),
         email: uploadForm.email.trim() || undefined,
       }, accessToken);
+      const candidate = result.candidate;
+      const alreadyExisted = result.created === false;
+
+      // Add to list immediately — before document uploads so the candidate always appears
+      setCandidates((prev) => {
+        const exists = prev.some((c) => c.id === candidate.id);
+        return exists ? prev.map((c) => c.id === candidate.id ? candidate : c) : [candidate, ...prev];
+      });
+
+      if (alreadyExisted) {
+        setUploadForm(EMPTY_UPLOAD_FORM);
+        setUploadSuccess(`Candidate already exists in the system. Any new documents have been attached to their profile.`);
+        setView('candidates');
+        // still try to upload docs in background
+        if (uploadForm.cvFile) apiClient.uploadPartnerCandidateDocument(uploadForm.cvFile, candidate.id, accessToken, 'cv').catch(() => {});
+        if (uploadForm.passportFile) apiClient.uploadPartnerCandidateDocument(uploadForm.passportFile, candidate.id, accessToken, 'passport_cnic').catch(() => {});
+        if (uploadForm.photoFile) apiClient.uploadCandidatePhoto(candidate.id, uploadForm.photoFile).catch(() => {});
+        return;
+      }
+
       if (uploadForm.cvFile) await apiClient.uploadPartnerCandidateDocument(uploadForm.cvFile, candidate.id, accessToken, 'cv');
       if (uploadForm.passportFile) await apiClient.uploadPartnerCandidateDocument(uploadForm.passportFile, candidate.id, accessToken, 'passport_cnic');
       if (uploadForm.photoFile) await apiClient.uploadCandidatePhoto(candidate.id, uploadForm.photoFile);
-      setCandidates((prev) => [candidate, ...prev]);
       setUploadForm(EMPTY_UPLOAD_FORM);
       setUploadSuccess(`${candidate.name} saved successfully.`);
       setView('candidates');
@@ -568,7 +587,7 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
           {!loading && view === 'candidates' && (
             <div className="space-y-4">
               {uploadSuccess && (
-                <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                <div className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm ${uploadSuccess.startsWith('Candidate already exists') ? 'border-yellow-200 bg-yellow-50 text-yellow-800' : 'border-green-200 bg-green-50 text-green-700'}`}>
                   <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
                   {uploadSuccess}
                   <button className="ml-auto" onClick={() => setUploadSuccess(null)}><X className="h-3.5 w-3.5" /></button>

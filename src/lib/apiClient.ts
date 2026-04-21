@@ -1052,8 +1052,8 @@ class ApiClient {
     });
   }
 
-  async createPartnerCandidate(payload: PartnerCandidatePayload, accessToken: string): Promise<{ candidate: Candidate }> {
-    return this.post<{ candidate: Candidate }>('/auth/partner/candidates', payload, {
+  async createPartnerCandidate(payload: PartnerCandidatePayload, accessToken: string): Promise<{ candidate: Candidate; created: boolean; matchedBy: string | null }> {
+    return this.post<{ candidate: Candidate; created: boolean; matchedBy: string | null }>('/auth/partner/candidates', payload, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
