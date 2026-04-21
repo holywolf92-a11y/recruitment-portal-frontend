@@ -95,9 +95,10 @@ function PartnerCard({ partner, onClick }: { partner: PartnerWithStats; onClick:
 // ─── Main component ──────────────────────────────────────────────────────────
 
 export function PartnerManagement() {
-  const { accessToken } = useAuth();
+  const { session } = useAuth();
+  const accessToken = session?.access_token;
   const [partners, setPartners] = useState<PartnerWithStats[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [selectedPartner, setSelectedPartner] = useState<PartnerWithStats | null>(null);
