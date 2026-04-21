@@ -1362,6 +1362,14 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
 
                   {/* Card Content */}
                   <div className="pt-20 px-4 pb-4 sm:px-6 sm:pb-6">
+                    {/* Candidate ID badge — shown just below photo */}
+                    {c.candidate_code && (
+                      <div className="mb-3 flex">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-mono font-semibold text-gray-500 border border-gray-200 select-all" title="Candidate ID">
+                          ID: {c.candidate_code}
+                        </span>
+                      </div>
+                    )}
                     {/* Name and Title */}
                     <div className="mb-4">
                       <div className="flex flex-wrap items-center gap-2 mb-2">

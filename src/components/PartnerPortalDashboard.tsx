@@ -646,8 +646,8 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
                   <thead>
                     <tr className="border-b border-gray-200 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                       <th className="px-4 py-3">Name</th>
+                      <th className="px-4 py-3">Candidate ID</th>
                       <th className="px-4 py-3">CNIC / Passport</th>
-                      <th className="px-4 py-3">Phone</th>
                       <th className="px-4 py-3">Status</th>
                       <th className="px-4 py-3">Uploaded Date</th>
                       <th className="px-4 py-3">Actions</th>
@@ -669,8 +669,12 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
                               <span className="font-medium text-gray-900">{c.name}</span>
                             </div>
                           </td>
+                          <td className="px-4 py-3">
+                            {c.candidate_code ? (
+                              <span className="font-mono text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-0.5 rounded select-all">{c.candidate_code}</span>
+                            ) : '—'}
+                          </td>
                           <td className="px-4 py-3 text-gray-600">{c.cnic || c.passport || '—'}</td>
-                          <td className="px-4 py-3 text-gray-600">{c.phone || '—'}</td>
                           <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
                           <td className="px-4 py-3 text-gray-500">{formatDate(c.created_at)}</td>
                           <td className="px-4 py-3">
