@@ -45,6 +45,8 @@ import { analyzeDocumentHealth, getHealthBadgeInfo, analyzeDocumentError } from 
 
 interface CandidateManagementProps {
   initialProfessionFilter?: string;
+  /** When set, only shows candidates belonging to this partner (admin Partners tab) */
+  partnerIdFilter?: string;
   candidateIdToOpen?: string | null;
   candidateInitialTabToOpen?: 'details' | 'documents' | 'missing-data' | null;
   onCandidateOpened?: () => void;
@@ -157,7 +159,7 @@ function ProgressDots() {
   );
 }
 
-export function CandidateManagement({ initialProfessionFilter = 'all', candidateIdToOpen, candidateInitialTabToOpen, onCandidateOpened }: CandidateManagementProps) {
+export function CandidateManagement({ initialProfessionFilter = 'all', partnerIdFilter, candidateIdToOpen, candidateInitialTabToOpen, onCandidateOpened }: CandidateManagementProps) {
   // Use shared candidate context
   const { 
     candidates, 
@@ -211,6 +213,11 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
     setFilters(f => f.position === next ? f : { ...f, position: next });
     setCurrentPage(1);
   }, [initialProfessionFilter]);
+
+  // Reset page when partner filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [partnerIdFilter]);
 
   // Track if we've already processed this candidateIdToOpen to prevent reopening
   const processedCandidateIdRef = useRef<string | null>(null);
@@ -375,6 +382,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', candidate
       position: filters.position === 'all' ? undefined : filters.position,
       country_of_interest: filters.country === 'all' ? undefined : filters.country,
       status: filters.status === 'all' ? undefined : filters.status,
+      partner_id: partnerIdFilter || undefined,
       limit: pageSize,
       offset: (currentPage - 1) * pageSize,
     });

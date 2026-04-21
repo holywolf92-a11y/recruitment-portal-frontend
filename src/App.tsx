@@ -1,6 +1,7 @@
 import { useEffect, useState, type MouseEvent } from 'react';
 import { Dashboard } from './components/Dashboard';
 import { CandidateManagement } from './components/CandidateManagement_ENHANCED';
+import { PartnerManagement } from './components/PartnerManagement';
 import { EmployerManagement } from './components/EmployerManagement';
 import { JobOrderManagement } from './components/JobOrderManagement';
 import { Reports } from './components/Reports';
@@ -85,6 +86,7 @@ const NAV_SECTIONS: NavSectionConfig[] = [
       { tab: 'inbox-ui', label: 'Inbox Manager', icon: Mail },
       { tab: 'candidate-excel-browser', label: 'Excel Browser', icon: FolderTree },
       { tab: 'candidates', label: 'Candidates', icon: Users, badge: 'candidate-count' },
+      { tab: 'partners', label: 'Partners', icon: Building2 },
     ],
   },
   {
@@ -219,6 +221,7 @@ const AppContent = () => {
     'whatsapp-bridge': `${portalBasePath}/whatsapp-bridge`,
     'candidate-excel-browser': `${portalBasePath}/excel-browser`,
     candidates: `${portalBasePath}/candidates`,
+    partners: `${portalBasePath}/partners`,
     employers: `${portalBasePath}/employers`,
     jobs: `${portalBasePath}/jobs`,
     employees: `${portalBasePath}/employees`,
@@ -600,6 +603,8 @@ const AppContent = () => {
             }}
           />
         );
+      case 'partners':
+        return <PartnerManagement />;
       case 'employers':
         return <EmployerManagement />;
       case 'jobs':

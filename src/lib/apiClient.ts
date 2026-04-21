@@ -435,6 +435,8 @@ export interface CandidateFilters {
   position?: string;
   country_of_interest?: string;
   documents?: 'complete' | 'missing' | string;
+  /** Filter by partner user ID (admin Partners tab) */
+  partner_id?: string;
   applied_from?: string; // ISO date string (YYYY-MM-DD or full ISO datetime)
   applied_to?: string; // ISO date string (YYYY-MM-DD or full ISO datetime)
   sort_by?: string; // Column name to sort by
@@ -1164,6 +1166,7 @@ class ApiClient {
     if (filters.position && filters.position !== 'all') params.append('position', filters.position);
     if (filters.country_of_interest && filters.country_of_interest !== 'all') params.append('country_of_interest', filters.country_of_interest);
     if (filters.documents && filters.documents !== 'all') params.append('documents', filters.documents);
+    if (filters.partner_id) params.append('partner_id', filters.partner_id);
     if (filters.applied_from) params.append('applied_from', filters.applied_from);
     if (filters.applied_to) params.append('applied_to', filters.applied_to);
     if (filters.sort_by) params.append('sort_by', filters.sort_by);
