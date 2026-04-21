@@ -410,7 +410,7 @@ export function UserManagement() {
                         <button
                           onClick={() => handleSendCredentials(user)}
                           disabled={sendingCredentials === user.id}
-                          className="rounded-lg p-2 text-green-600 hover:bg-green-50 disabled:text-gray-300 disabled:hover:bg-transparent"
+                          className={`rounded-lg p-2 hover:bg-green-50 disabled:text-gray-300 disabled:hover:bg-transparent ${['candidate', 'partner', 'employer'].includes(user.role) ? 'text-green-600' : 'hidden'}`}
                           title="Send credentials (email + WhatsApp)"
                         >
                           <Send className="h-4 w-4" />
