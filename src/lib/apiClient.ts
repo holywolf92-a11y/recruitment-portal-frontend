@@ -227,6 +227,25 @@ export const api = {
       body: JSON.stringify({ candidateId }),
     });
   },
+
+  async autoLinkUnmatchedDocuments(params: {
+    dryRun: boolean;
+    minConfidence?: number;
+    limit?: number;
+  }) {
+    return request<{
+      dryRun: boolean;
+      total: number;
+      matched: number;
+      linked: number;
+      errors: number;
+      minConfidence: number;
+      results: AutoLinkResult[];
+    }>('/documents/unmatched/auto-link', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  },
 };
 
 export interface UnmatchedDocument {
@@ -240,6 +259,15 @@ export interface UnmatchedDocument {
   needs_manual_review: boolean;
   review_reasons?: string[];
   downloadUrl?: string | null;
+}
+
+export interface AutoLinkResult {
+  docId: string;
+  fileName: string;
+  candidateId: string;
+  candidateName: string;
+  confidence: number;
+  signal: string;
 }
 
 export interface MergeResult {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { AlertTriangle, Link2, Download, RefreshCw, Search, CheckCircle, X, FileText, Mail, MessageSquare } from 'lucide-react';
-import { api, apiClient, UnmatchedDocument } from '../lib/apiClient';
+import { AlertTriangle, Link2, Download, RefreshCw, Search, CheckCircle, X, FileText, Mail, MessageSquare, Zap } from 'lucide-react';
+import { api, apiClient, UnmatchedDocument, AutoLinkResult } from '../lib/apiClient';
 
 interface UnmatchedDocumentsQueueProps {
   /** Called whenever a document is successfully linked so parent can refresh stats */
@@ -33,6 +33,13 @@ export function UnmatchedDocumentsQueue({ onLinked }: UnmatchedDocumentsQueuePro
   const [candidateSearchLoading, setCandidateSearchLoading] = useState(false);
   const [linking, setLinking] = useState(false);
   const [linkSuccess, setLinkSuccess] = useState<string | null>(null);
+
+  // Auto-link modal state
+  const [autoLinkOpen, setAutoLinkOpen] = useState(false);
+  const [autoLinkRunning, setAutoLinkRunning] = useState(false);
+  const [autoLinkPreview, setAutoLinkPreview] = useState<AutoLinkResult[] | null>(null);
+  const [autoLinkStats, setAutoLinkStats] = useState<{ total: number; matched: number; linked: number; errors: number; minConfidence: number } | null>(null);
+  const [autoLinkPhase, setAutoLinkPhase] = useState<'idle' | 'preview' | 'done'>('idle');
 
   const loadDocuments = useCallback(async () => {
     setLoading(true);
@@ -117,6 +124,41 @@ export function UnmatchedDocumentsQueue({ onLinked }: UnmatchedDocumentsQueuePro
     setLinkSuccess(null);
   }
 
+  async function runAutoLinkPreview() {
+    setAutoLinkRunning(true);
+    setAutoLinkPreview(null);
+    setAutoLinkStats(null);
+    setAutoLinkPhase('idle');
+    setAutoLinkOpen(true);
+    try {
+      const res = await api.autoLinkUnmatchedDocuments({ dryRun: true, minConfidence: 0.92, limit: 2000 });
+      setAutoLinkPreview(res.results);
+      setAutoLinkStats({ total: res.total, matched: res.matched, linked: res.linked, errors: res.errors, minConfidence: res.minConfidence });
+      setAutoLinkPhase('preview');
+    } catch (e: any) {
+      setError(e?.message || 'Auto-link preview failed');
+      setAutoLinkOpen(false);
+    } finally {
+      setAutoLinkRunning(false);
+    }
+  }
+
+  async function confirmAutoLink() {
+    if (!autoLinkPreview?.length) return;
+    setAutoLinkRunning(true);
+    try {
+      const res = await api.autoLinkUnmatchedDocuments({ dryRun: false, minConfidence: 0.92, limit: 2000 });
+      setAutoLinkStats(s => s ? { ...s, linked: res.linked, errors: res.errors } : null);
+      setAutoLinkPhase('done');
+      onLinked?.();
+      loadDocuments();
+    } catch (e: any) {
+      setError(e?.message || 'Auto-link failed');
+    } finally {
+      setAutoLinkRunning(false);
+    }
+  }
+
   function closeModal() {
     if (linking) return;
     setLinkingDoc(null);
@@ -154,14 +196,25 @@ export function UnmatchedDocumentsQueue({ onLinked }: UnmatchedDocumentsQueuePro
             Documents that couldn't be automatically linked to a candidate — manually assign them below.
           </p>
         </div>
-        <button
-          onClick={loadDocuments}
-          disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={runAutoLinkPreview}
+            disabled={loading || autoLinkRunning}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+            title="Automatically link documents to candidates using name/email matching"
+          >
+            <Zap size={14} className={autoLinkRunning ? 'animate-pulse' : ''} />
+            Smart Auto-Link
+          </button>
+          <button
+            onClick={loadDocuments}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Filter tabs */}
@@ -405,6 +458,156 @@ export function UnmatchedDocumentsQueue({ onLinked }: UnmatchedDocumentsQueuePro
                 </>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Auto-Link modal */}
+      {autoLinkOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden flex flex-col max-h-[85vh]">
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
+              <div>
+                <h4 className="font-semibold text-gray-800 text-base flex items-center gap-2">
+                  <Zap size={16} className="text-indigo-500" />
+                  Smart Auto-Link
+                </h4>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Automatically matches documents to candidates using name & email similarity (≥92% confidence)
+                </p>
+              </div>
+              {autoLinkPhase !== 'idle' && !autoLinkRunning && (
+                <button
+                  onClick={() => { setAutoLinkOpen(false); setAutoLinkPhase('idle'); setAutoLinkPreview(null); }}
+                  className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              )}
+            </div>
+
+            {/* Modal body */}
+            <div className="px-6 py-5 overflow-y-auto flex-1 space-y-4">
+              {autoLinkRunning && (
+                <div className="flex flex-col items-center gap-3 py-10">
+                  <RefreshCw size={32} className="animate-spin text-indigo-400" />
+                  <p className="text-gray-600 font-medium">
+                    {autoLinkPhase === 'idle' ? 'Scanning for matches…' : 'Linking documents…'}
+                  </p>
+                  <p className="text-xs text-gray-400">This may take a few seconds for large queues</p>
+                </div>
+              )}
+
+              {!autoLinkRunning && autoLinkPhase === 'preview' && autoLinkStats && (
+                <>
+                  {/* Summary stats */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="p-3 bg-gray-50 rounded-xl text-center">
+                      <p className="text-2xl font-bold text-gray-800">{autoLinkStats.total.toLocaleString()}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Docs scanned</p>
+                    </div>
+                    <div className="p-3 bg-indigo-50 rounded-xl text-center">
+                      <p className="text-2xl font-bold text-indigo-700">{autoLinkStats.matched.toLocaleString()}</p>
+                      <p className="text-xs text-indigo-500 mt-0.5">Matches found (≥{autoLinkStats.minConfidence}%)</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-xl text-center">
+                      <p className="text-2xl font-bold text-gray-800">{autoLinkStats.total - autoLinkStats.matched}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Below threshold</p>
+                    </div>
+                  </div>
+
+                  {autoLinkStats.matched === 0 ? (
+                    <div className="text-center py-8 text-gray-400">
+                      <CheckCircle size={32} className="mx-auto mb-2 text-gray-300" />
+                      <p>No documents met the {autoLinkStats.minConfidence}% confidence threshold.</p>
+                      <p className="text-sm mt-1">Try lowering the threshold or link manually.</p>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-sm text-gray-600 font-medium">Preview of matches to be linked:</p>
+                      <div className="border border-gray-200 rounded-xl overflow-hidden">
+                        <table className="w-full text-xs">
+                          <thead className="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                              <th className="text-left px-3 py-2 font-medium text-gray-600">Document</th>
+                              <th className="text-left px-3 py-2 font-medium text-gray-600">→ Candidate</th>
+                              <th className="text-left px-3 py-2 font-medium text-gray-600">Signal</th>
+                              <th className="text-right px-3 py-2 font-medium text-gray-600">Confidence</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {(autoLinkPreview || []).slice(0, 50).map(r => (
+                              <tr key={r.docId} className="hover:bg-gray-50">
+                                <td className="px-3 py-2 max-w-[200px] truncate text-gray-700" title={r.fileName}>{r.fileName}</td>
+                                <td className="px-3 py-2 font-medium text-gray-800">{r.candidateName}</td>
+                                <td className="px-3 py-2">
+                                  <span className={`px-1.5 py-0.5 rounded text-xs ${r.signal === 'email' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
+                                    {r.signal}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2 text-right">
+                                  <span className={`font-bold ${r.confidence >= 97 ? 'text-green-600' : r.confidence >= 94 ? 'text-indigo-600' : 'text-amber-600'}`}>
+                                    {r.confidence}%
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        {(autoLinkPreview || []).length > 50 && (
+                          <p className="px-3 py-2 text-xs text-gray-400 bg-gray-50 border-t border-gray-100">
+                            …and {(autoLinkPreview || []).length - 50} more
+                          </p>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+
+              {!autoLinkRunning && autoLinkPhase === 'done' && autoLinkStats && (
+                <div className="flex flex-col items-center gap-4 py-8">
+                  <CheckCircle size={48} className="text-green-500" />
+                  <div className="text-center">
+                    <p className="text-xl font-bold text-gray-800">{autoLinkStats.linked} documents linked!</p>
+                    {autoLinkStats.errors > 0 && (
+                      <p className="text-sm text-amber-600 mt-1">{autoLinkStats.errors} errors — check logs</p>
+                    )}
+                    <p className="text-sm text-gray-500 mt-2">The unmatched queue has been updated.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal footer */}
+            {!autoLinkRunning && autoLinkPhase === 'preview' && (autoLinkStats?.matched ?? 0) > 0 && (
+              <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between shrink-0">
+                <button
+                  onClick={() => { setAutoLinkOpen(false); setAutoLinkPhase('idle'); setAutoLinkPreview(null); }}
+                  className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmAutoLink}
+                  className="flex items-center gap-2 px-5 py-2 text-sm text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 font-medium"
+                >
+                  <Zap size={14} />
+                  Confirm & Link {autoLinkStats?.matched} Documents
+                </button>
+              </div>
+            )}
+            {!autoLinkRunning && autoLinkPhase === 'done' && (
+              <div className="px-6 py-4 border-t border-gray-100 flex justify-end shrink-0">
+                <button
+                  onClick={() => { setAutoLinkOpen(false); setAutoLinkPhase('idle'); setAutoLinkPreview(null); }}
+                  className="px-4 py-2 text-sm text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 font-medium"
+                >
+                  Done
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
