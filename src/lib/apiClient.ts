@@ -373,6 +373,7 @@ export interface Candidate {
 
 export interface PartnerCandidatePayload {
   name: string;
+  father_name?: string;
   cnic?: string;
   passport?: string;
   email?: string;

@@ -12,7 +12,8 @@ type View = 'dashboard' | 'candidates' | 'upload' | 'bulk-upload';
 
 interface UploadForm {
   name: string;
-  cnic: string;
+  father_name: string;
+  profession: string;
   phone: string;
   email: string;
   cvFile: File | null;
@@ -21,7 +22,7 @@ interface UploadForm {
 }
 
 const EMPTY_UPLOAD_FORM: UploadForm = {
-  name: '', cnic: '', phone: '', email: '',
+  name: '', father_name: '', profession: '', phone: '', email: '',
   cvFile: null, passportFile: null, photoFile: null,
 };
 
@@ -179,6 +180,19 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
     });
   }, [account?.email, account?.name, account?.phone, partnerApplication?.city_country, partnerApplication?.company_name, partnerApplication?.partner_type, partnerApplication?.phone_number, user.email, user.name]);
 
+  // Pre-fill phone/email with partner's own contact info when opening upload form
+  useEffect(() => {
+    if (view === 'upload') {
+      const partnerPhone = account?.phone || partnerApplication?.phone_number || '';
+      const partnerEmail = account?.email || user.email || '';
+      setUploadForm((f) => ({
+        ...f,
+        phone: f.phone || partnerPhone,
+        email: f.email || partnerEmail,
+      }));
+    }
+  }, [view, account?.phone, account?.email, partnerApplication?.phone_number, user.email]);
+
   useEffect(() => {
     if (!showAccountMenu) {
       return undefined;
@@ -298,14 +312,14 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
   // ── Upload candidate handler
   async function handleUpload() {
     if (!uploadForm.name.trim()) { setUploadError('Full Name is required'); return; }
-    if (!uploadForm.cnic.trim()) { setUploadError('CNIC / Passport is required'); return; }
     if (!uploadForm.phone.trim()) { setUploadError('Phone is required'); return; }
     setUploading(true);
     setUploadError(null);
     try {
       const { candidate } = await apiClient.createPartnerCandidate({
         name: uploadForm.name.trim(),
-        cnic: uploadForm.cnic.trim(),
+        father_name: uploadForm.father_name.trim() || undefined,
+        position: uploadForm.profession.trim() || undefined,
         phone: uploadForm.phone.trim(),
         email: uploadForm.email.trim() || undefined,
       }, accessToken);
@@ -672,11 +686,20 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
                       />
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-sm font-medium text-gray-700">CNIC / Passport <span className="text-red-500">*</span></label>
+                      <label className="mb-1.5 block text-sm font-medium text-gray-700">Father Name <span className="text-red-500">*</span></label>
                       <input
-                        value={uploadForm.cnic}
-                        onChange={(e) => { setUploadForm((f) => ({ ...f, cnic: e.target.value })); setUploadError(null); }}
-                        placeholder="42101-1234567-8"
+                        value={uploadForm.father_name}
+                        onChange={(e) => { setUploadForm((f) => ({ ...f, father_name: e.target.value })); setUploadError(null); }}
+                        placeholder="Enter father name"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-gray-700">Profession <span className="text-red-500">*</span></label>
+                      <input
+                        value={uploadForm.profession}
+                        onChange={(e) => { setUploadForm((f) => ({ ...f, profession: e.target.value })); setUploadError(null); }}
+                        placeholder="e.g. AC Technician"
                         className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
                       />
                     </div>
