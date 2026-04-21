@@ -99,7 +99,7 @@ export interface CVInboxItem {
   jobId?: string | null;
   jobStatus?: string | null;
   jobError?: string | null;
-  status: 'queued' | 'processing' | 'extracted' | 'error';
+  status: 'queued' | 'processing' | 'extracted' | 'error' | 'needs_review';
   source: string;
   receivedAt: string;
   senderName?: string | null;
@@ -117,6 +117,7 @@ export interface CVInboxStats {
   total: number;
   extracted: number;
   pending: number;
+  needs_review?: number;
 }
 
 export const api = {

@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useRef, ChangeEvent } from 'react';
-import { Inbox, Upload, FileText, Mail, MessageSquare, Calendar, CheckCircle, Sparkles, Eye, Download, AlertTriangle, Play, Trash, Link2 } from 'lucide-react';
+import { Inbox, Upload, FileText, Mail, MessageSquare, Calendar, CheckCircle, Sparkles, Eye, Download, AlertTriangle, Play, Trash, Link2, AlertOctagon } from 'lucide-react';
 import { api, CVInboxItem, Attachment, InboxMessage } from '../lib/apiClient';
 import { UnmatchedDocumentsQueue } from './UnmatchedDocumentsQueue';
 
@@ -11,7 +11,7 @@ const DEFAULT_DAYS = 30;
 
 export function CVInbox({ onNavigateToCandidate }: Props) {
   const [cvs, setCvs] = useState<CVInboxItem[]>([]);
-  const [stats, setStats] = useState({ total: 0, extracted: 0, processing: 0, queued: 0, errors: 0 });
+  const [stats, setStats] = useState({ total: 0, extracted: 0, processing: 0, queued: 0, errors: 0, needsReview: 0 });
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,12 +61,14 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
         const processing = items.filter(i => i.status === 'processing').length;
         const queued = items.filter(i => i.status === 'queued').length;
         const errors = items.filter(i => i.status === 'error').length;
+        const needsReview = items.filter(i => i.status === 'needs_review').length;
         setStats({
           total: statsResp.total,
           extracted: statsResp.extracted,
           processing,
           queued,
           errors,
+          needsReview: statsResp.needs_review ?? needsReview,
         });
       } else {
         // Fallback: compute from loaded items only
@@ -74,7 +76,8 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
         const processing = items.filter(i => i.status === 'processing').length;
         const queued = items.filter(i => i.status === 'queued').length;
         const errors = items.filter(i => i.status === 'error').length;
-        setStats({ total: result.total, extracted, processing, queued, errors });
+        const needsReview = items.filter(i => i.status === 'needs_review').length;
+        setStats({ total: result.total, extracted, processing, queued, errors, needsReview });
       }
 
     } catch (e: any) {
@@ -120,7 +123,11 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
         try {
           const job = await api.getParsingJobByAttachment(cv.id);
           if (!job) return cv;
-          return { ...cv, jobId: job.id, status: job.status as CVInboxItem['status'] };
+          // If job finished but no candidate was linked → needs_review
+          const resolvedStatus = job.status === 'extracted'
+            ? 'needs_review'
+            : (job.status as CVInboxItem['status']);
+          return { ...cv, jobId: job.id, status: resolvedStatus };
         } catch { return cv; }
       })
     );
@@ -132,6 +139,7 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
       processing: hydrated.filter(i => i.status === 'processing').length,
       queued: hydrated.filter(i => i.status === 'queued').length,
       errors: hydrated.filter(i => i.status === 'error').length,
+      needsReview: hydrated.filter(i => i.status === 'needs_review').length,
     });
   }
 
@@ -323,6 +331,8 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
     ? cvs
     : filterStatus === 'processing'
     ? cvs.filter(cv => cv.status === 'processing' || cv.status === 'queued')
+    : filterStatus === 'needs_review'
+    ? cvs.filter(cv => cv.status === 'needs_review')
     : cvs.filter(cv => cv.status === filterStatus);
 
   const displayStats = {
@@ -330,6 +340,7 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
     processing: stats.processing + stats.queued,
     extracted: stats.extracted,
     errors: stats.errors,
+    needsReview: stats.needsReview,
   };
 
   return (
@@ -433,6 +444,23 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
               <div className="text-3xl font-bold">{displayStats.errors}</div>
               <div className="text-xs opacity-75 mt-2">Need manual fix</div>
             </div>
+            <div
+              className={`min-w-[200px] flex-1 rounded-xl p-5 shadow-lg text-white transform transition-all hover:scale-105 cursor-pointer ${
+                displayStats.needsReview > 0
+                  ? 'bg-gradient-to-br from-amber-500 to-orange-600 ring-2 ring-amber-300'
+                  : 'bg-gradient-to-br from-amber-400 to-amber-500'
+              }`}
+              onClick={() => setFilterStatus('needs_review')}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm opacity-90">Needs Review</span>
+                <AlertOctagon className="w-6 h-6 opacity-80" />
+              </div>
+              <div className="text-3xl font-bold">{displayStats.needsReview}</div>
+              <div className="text-xs opacity-75 mt-2">
+                {displayStats.needsReview > 0 ? 'Action required → click to view' : 'All clear'}
+              </div>
+            </div>
           </div>
 
           {/* Filter Tabs */}
@@ -442,6 +470,7 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
                 { key: 'all', label: 'All', count: cvs.length },
                 { key: 'processing', label: 'Processing / Queued', count: cvs.filter(c => c.status === 'processing' || c.status === 'queued').length },
                 { key: 'extracted', label: 'Extracted', count: cvs.filter(c => c.status === 'extracted').length },
+                { key: 'needs_review', label: 'Needs Review', count: cvs.filter(c => c.status === 'needs_review').length },
                 { key: 'error', label: 'Errors', count: cvs.filter(c => c.status === 'error').length },
               ].map(tab => (
                 <button
@@ -451,7 +480,10 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
                     filterStatus === tab.key
                       ? tab.key === 'extracted' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg'
                         : tab.key === 'error' ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg'
+                        : tab.key === 'needs_review' ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg'
                         : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
+                      : tab.key === 'needs_review' && tab.count > 0
+                      ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 font-semibold ring-1 ring-amber-400'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -482,20 +514,27 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {filteredCVs.map((cv) => (
-                    <tr key={cv.id} className="hover:bg-gray-50">
+                    <tr key={cv.id} className={`${cv.status === 'needs_review' ? 'bg-amber-50 hover:bg-amber-100' : 'hover:bg-gray-50'}`}>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                             (cv.status === 'processing' || cv.status === 'queued') ? 'bg-blue-100 animate-pulse' :
-                            cv.status === 'extracted' ? 'bg-green-100' : 'bg-red-100'
+                            cv.status === 'extracted' ? 'bg-green-100' :
+                            cv.status === 'needs_review' ? 'bg-amber-100' :
+                            'bg-red-100'
                           }`}>
                             <FileText className={`w-5 h-5 ${
                               (cv.status === 'processing' || cv.status === 'queued') ? 'text-blue-600' :
-                              cv.status === 'extracted' ? 'text-green-600' : 'text-red-600'
+                              cv.status === 'extracted' ? 'text-green-600' :
+                              cv.status === 'needs_review' ? 'text-amber-600' :
+                              'text-red-600'
                             }`} />
                           </div>
                           <div>
                             <p className="font-medium text-gray-900">{cv.fileName}</p>
+                            {cv.status === 'needs_review' && (
+                              <p className="text-xs text-amber-700 mt-1">Parsed but no candidate created — missing contact info</p>
+                            )}
                             {cv.status === 'error' && cv.jobError && (
                               <p className="text-xs text-red-600 mt-1">{cv.jobError}</p>
                             )}
@@ -543,6 +582,12 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
                             Extracted
                           </span>
                         )}
+                        {cv.status === 'needs_review' && (
+                          <span className="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-semibold flex items-center gap-1 w-fit ring-1 ring-amber-400">
+                            <AlertOctagon className="w-3 h-3" />
+                            Needs Review
+                          </span>
+                        )}
                         {cv.status === 'error' && (
                           <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium flex items-center gap-1 w-fit">
                             <AlertTriangle className="w-3 h-3" />
@@ -559,6 +604,15 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
                             >
                               <Eye className="w-4 h-4" />
                               View Candidate
+                            </button>
+                          )}
+                          {cv.status === 'needs_review' && (
+                            <button
+                              onClick={() => handleProcess(cv.id)}
+                              className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors flex items-center gap-2 text-sm font-medium"
+                            >
+                              <Play className="w-4 h-4" />
+                              Re-process
                             </button>
                           )}
                           {(cv.status === 'queued' || cv.status === 'error') && (
