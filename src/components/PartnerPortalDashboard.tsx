@@ -343,11 +343,17 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
         return;
       }
 
-      if (uploadForm.cvFile) await apiClient.uploadPartnerCandidateDocument(uploadForm.cvFile, candidate.id, accessToken, 'cv');
+      let cvDuplicate = false;
+      if (uploadForm.cvFile) {
+        const cvResult = await apiClient.uploadPartnerCandidateDocument(uploadForm.cvFile, candidate.id, accessToken, 'cv');
+        if ((cvResult as any).duplicate) cvDuplicate = true;
+      }
       if (uploadForm.passportFile) await apiClient.uploadPartnerCandidateDocument(uploadForm.passportFile, candidate.id, accessToken, 'passport_cnic');
       if (uploadForm.photoFile) await apiClient.uploadCandidatePhoto(candidate.id, uploadForm.photoFile);
       setUploadForm(EMPTY_UPLOAD_FORM);
-      setUploadSuccess(`${candidate.name} saved successfully.`);
+      setUploadSuccess(cvDuplicate
+        ? `${candidate.name} saved. Note: This CV was already on file — no duplicate was created.`
+        : `${candidate.name} saved successfully.`);
       setView('candidates');
     } catch (err: any) {
       setUploadError(err?.message || 'Upload failed');
