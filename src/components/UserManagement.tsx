@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Edit, Mail, Plus, RefreshCcw, Search, Shield, Trash2, UserCheck, Users as UsersIcon, X } from 'lucide-react';
+import { Edit, Mail, Plus, RefreshCcw, Search, Send, Shield, Trash2, UserCheck, Users as UsersIcon, X } from 'lucide-react';
 import { getRoleLabel, rolePermissions, type UserRole } from '../lib/authData';
 import { apiClient, type AdminUsersResponse, type AppUserProfile, type Candidate, type CreateAdminUserPayload } from '../lib/apiClient';
 import { useAuth } from '../lib/authContext';
@@ -95,6 +95,7 @@ export function UserManagement() {
   const [candidateLoading, setCandidateLoading] = useState(false);
   const [deletingUser, setDeletingUser] = useState<AppUserProfile | null>(null);
   const [permissionUser, setPermissionUser] = useState<AppUserProfile | null>(null);
+  const [sendingCredentials, setSendingCredentials] = useState<string | null>(null); // userId
 
   const loadUsers = async () => {
     if (!accessToken) return;
@@ -238,6 +239,20 @@ export function UserManagement() {
       setError(err?.message || 'Failed to delete user');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSendCredentials = async (user: AppUserProfile) => {
+    if (!accessToken) return;
+    setSendingCredentials(user.id);
+    setError(null);
+    try {
+      const result = await apiClient.sendUserCredentials(user.id, accessToken);
+      alert(`Credentials sent!\nEmail: ${result.sentTo.email}${result.sentTo.whatsapp ? `\nWhatsApp: ${result.sentTo.whatsapp}` : ''}`);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to send credentials');
+    } finally {
+      setSendingCredentials(null);
     }
   };
 
@@ -391,6 +406,14 @@ export function UserManagement() {
                         </button>
                         <button onClick={() => setEditingUser(toEditableUser(user))} className="rounded-lg p-2 text-gray-600 hover:bg-gray-100" title="Edit user">
                           <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleSendCredentials(user)}
+                          disabled={sendingCredentials === user.id}
+                          className="rounded-lg p-2 text-green-600 hover:bg-green-50 disabled:text-gray-300 disabled:hover:bg-transparent"
+                          title="Send credentials (email + WhatsApp)"
+                        >
+                          <Send className="h-4 w-4" />
                         </button>
                         <button onClick={() => setDeletingUser(user)} disabled={user.id === currentUserId} className="rounded-lg p-2 text-red-600 hover:bg-red-50 disabled:text-gray-300 disabled:hover:bg-transparent" title="Delete user">
                           <Trash2 className="h-4 w-4" />
