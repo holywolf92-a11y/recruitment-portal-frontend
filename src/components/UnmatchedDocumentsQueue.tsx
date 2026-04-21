@@ -22,6 +22,9 @@ export function UnmatchedDocumentsQueue({ onLinked }: UnmatchedDocumentsQueuePro
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'needs_review' | 'pending'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [needsReviewTotal, setNeedsReviewTotal] = useState<number | null>(null);
 
   // Candidate-link modal state
   const [linkingDoc, setLinkingDoc] = useState<UnmatchedDocument | null>(null);
@@ -36,8 +39,8 @@ export function UnmatchedDocumentsQueue({ onLinked }: UnmatchedDocumentsQueuePro
     setError(null);
     try {
       const result = await api.getUnmatchedDocuments({
-        limit: 50,
-        offset: 0,
+        limit: pageSize,
+        offset: (currentPage - 1) * pageSize,
         status: filterStatus === 'all' ? undefined : filterStatus,
       });
       setDocuments(result.documents);
@@ -47,11 +50,18 @@ export function UnmatchedDocumentsQueue({ onLinked }: UnmatchedDocumentsQueuePro
     } finally {
       setLoading(false);
     }
-  }, [filterStatus]);
+  }, [filterStatus, currentPage, pageSize]);
 
   useEffect(() => {
     loadDocuments();
   }, [loadDocuments]);
+
+  // Fetch needs_review total once for accurate tab badge
+  useEffect(() => {
+    api.getUnmatchedDocuments({ limit: 1, offset: 0, status: 'needs_review' })
+      .then(r => setNeedsReviewTotal(r.total))
+      .catch(() => {});
+  }, []);
 
   async function searchCandidates(query: string) {
     if (!query.trim() || query.trim().length < 2) {
@@ -121,7 +131,10 @@ export function UnmatchedDocumentsQueue({ onLinked }: UnmatchedDocumentsQueuePro
     return <FileText size={14} className="inline mr-1 text-gray-500" />;
   }
 
-  const needsReviewCount = documents.filter(d => d.needs_manual_review).length;
+  const needsReviewCount = needsReviewTotal ?? documents.filter(d => d.needs_manual_review).length;
+  const totalPages = Math.ceil(total / pageSize);
+  const rangeStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const rangeEnd = Math.min(currentPage * pageSize, total);
 
   return (
     <div className="space-y-4">
@@ -156,7 +169,7 @@ export function UnmatchedDocumentsQueue({ onLinked }: UnmatchedDocumentsQueuePro
         {(['all', 'needs_review', 'pending'] as const).map(f => (
           <button
             key={f}
-            onClick={() => setFilterStatus(f)}
+            onClick={() => { setFilterStatus(f); setCurrentPage(1); }}
             className={`px-3 py-1 rounded-full border transition-colors ${
               filterStatus === f
                 ? 'bg-amber-500 text-white border-amber-500'
@@ -257,6 +270,45 @@ export function UnmatchedDocumentsQueue({ onLinked }: UnmatchedDocumentsQueuePro
               ))}
             </tbody>
           </table>
+          {/* Pagination footer */}
+          {total > pageSize && (
+            <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between flex-wrap gap-3 bg-gray-50">
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-gray-500">Per page:</span>
+                <select
+                  value={pageSize}
+                  onChange={e => { setPageSize(parseInt(e.target.value, 10)); setCurrentPage(1); }}
+                  className="border border-gray-200 rounded px-2 py-1 text-xs text-gray-700"
+                >
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span className="text-xs text-gray-500">
+                  {rangeStart}–{rangeEnd} of {total.toLocaleString()} documents
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  disabled={currentPage <= 1 || loading}
+                  onClick={() => setCurrentPage(p => p - 1)}
+                  className="px-3 py-1 text-xs border border-gray-200 rounded-lg hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  ← Prev
+                </button>
+                <span className="px-3 py-1 text-xs text-gray-600">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  disabled={currentPage >= totalPages || loading}
+                  onClick={() => setCurrentPage(p => p + 1)}
+                  className="px-3 py-1 text-xs border border-gray-200 rounded-lg hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
