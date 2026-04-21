@@ -180,12 +180,18 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
     });
   }, [account?.email, account?.name, account?.phone, partnerApplication?.city_country, partnerApplication?.company_name, partnerApplication?.partner_type, partnerApplication?.phone_number, user.email, user.name]);
 
-  // Reset form when navigating to upload view (candidate phone/email are specific to each candidate)
+  // Pre-fill phone/email with partner's contact details when opening upload form
   useEffect(() => {
     if (view === 'upload') {
-      setUploadForm(EMPTY_UPLOAD_FORM);
+      const partnerPhone = account?.phone || partnerApplication?.phone_number || '';
+      const partnerEmail = account?.email || user.email || '';
+      setUploadForm((f) => ({
+        ...f,
+        phone: partnerPhone,
+        email: partnerEmail,
+      }));
     }
-  }, [view]);
+  }, [view, account?.phone, account?.email, partnerApplication?.phone_number, user.email]);
 
   useEffect(() => {
     if (!showAccountMenu) {
@@ -306,6 +312,7 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
   // ── Upload candidate handler
   async function handleUpload() {
     if (!uploadForm.name.trim()) { setUploadError('Full Name is required'); return; }
+    if (!uploadForm.phone.trim()) { setUploadError('Phone is required'); return; }
     setUploading(true);
     setUploadError(null);
     try {
@@ -716,7 +723,7 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
                       />
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-sm font-medium text-gray-700">Phone</label>
+                      <label className="mb-1.5 block text-sm font-medium text-gray-700">Phone <span className="text-red-500">*</span></label>
                       <input
                         value={uploadForm.phone}
                         onChange={(e) => { setUploadForm((f) => ({ ...f, phone: e.target.value })); setUploadError(null); }}
