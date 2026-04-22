@@ -533,7 +533,7 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
                           <div>
                             <p className="font-medium text-gray-900">{cv.fileName}</p>
                             {cv.status === 'needs_review' && (
-                              <p className="text-xs text-amber-700 mt-1">Parsed but no candidate created — missing contact info</p>
+                              <p className="text-xs text-amber-700 mt-1">Parsed but not auto-linked to a candidate. Review extracted identity details.</p>
                             )}
                             {cv.status === 'error' && cv.jobError && (
                               <p className="text-xs text-red-600 mt-1">{cv.jobError}</p>
