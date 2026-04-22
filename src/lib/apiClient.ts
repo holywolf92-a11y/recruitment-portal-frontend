@@ -96,14 +96,17 @@ export interface CVInboxItem {
   fileName: string;
   mimeType?: string | null;
   candidateId?: string | null;
+  candidateCreated?: boolean;
   jobId?: string | null;
   jobStatus?: string | null;
   jobError?: string | null;
   status: 'queued' | 'processing' | 'extracted' | 'error' | 'needs_review';
+  reviewReason?: string | null;
   source: string;
   receivedAt: string;
   senderName?: string | null;
   senderContact?: string | null;
+  senderContactNote?: string | null;
 }
 
 export interface CVInboxItemsResult {

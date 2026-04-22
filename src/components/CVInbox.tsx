@@ -501,7 +501,7 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
             <div className="overflow-x-auto">
               {loading && <div className="p-4 text-sm text-gray-600">Loading inbox...</div>}
               {error && <div className="p-4 text-sm text-red-600">{error}</div>}
-              <table className="w-full min-w-[960px]">
+              <table className="w-full min-w-[1180px]">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-6 py-4 text-left text-xs uppercase tracking-wider text-gray-600">CV Details</th>
@@ -509,6 +509,7 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
                     <th className="px-6 py-4 text-left text-xs uppercase tracking-wider text-gray-600">Sender Info</th>
                     <th className="px-6 py-4 text-left text-xs uppercase tracking-wider text-gray-600">Received</th>
                     <th className="px-6 py-4 text-left text-xs uppercase tracking-wider text-gray-600">Status</th>
+                    <th className="px-6 py-4 text-left text-xs uppercase tracking-wider text-gray-600">Review Reason</th>
                     <th className="px-6 py-4 text-left text-xs uppercase tracking-wider text-gray-600">Actions</th>
                   </tr>
                 </thead>
@@ -532,9 +533,6 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
                           </div>
                           <div>
                             <p className="font-medium text-gray-900">{cv.fileName}</p>
-                            {cv.status === 'needs_review' && (
-                              <p className="text-xs text-amber-700 mt-1">Parsed but not auto-linked to a candidate. Review extracted identity details.</p>
-                            )}
                             {cv.status === 'error' && cv.jobError && (
                               <p className="text-xs text-red-600 mt-1">{cv.jobError}</p>
                             )}
@@ -561,6 +559,9 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
                         <div>
                           <p className="text-sm font-medium text-gray-900">{cv.senderName || 'Unknown'}</p>
                           <p className="text-sm text-gray-500">{cv.senderContact || '-'}</p>
+                          {cv.senderContactNote && (
+                            <p className="text-xs text-amber-700 mt-1">{cv.senderContactNote}</p>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -594,6 +595,11 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
                             Error
                           </span>
                         )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className={`text-sm ${cv.status === 'needs_review' ? 'text-amber-800 font-medium' : 'text-gray-600'}`}>
+                          {cv.reviewReason || '-'}
+                        </p>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
@@ -643,7 +649,7 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
                   ))}
                   {!loading && filteredCVs.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="px-6 py-10 text-center text-gray-400 text-sm">
+                      <td colSpan={7} className="px-6 py-10 text-center text-gray-400 text-sm">
                         No CVs found for the current filter.
                       </td>
                     </tr>
