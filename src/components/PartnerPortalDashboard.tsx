@@ -14,6 +14,7 @@ interface UploadForm {
   name: string;
   father_name: string;
   profession: string;
+  nationality: string;
   phone: string;
   email: string;
   cvFile: File | null;
@@ -22,7 +23,7 @@ interface UploadForm {
 }
 
 const EMPTY_UPLOAD_FORM: UploadForm = {
-  name: '', father_name: '', profession: '', phone: '', email: '',
+  name: '', father_name: '', profession: '', nationality: '', phone: '', email: '',
   cvFile: null, passportFile: null, photoFile: null,
 };
 
@@ -312,6 +313,7 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
   // ── Upload candidate handler
   async function handleUpload() {
     if (!uploadForm.name.trim()) { setUploadError('Full Name is required'); return; }
+    if (!uploadForm.nationality.trim()) { setUploadError('Country / Nationality is required'); return; }
     if (!uploadForm.phone.trim()) { setUploadError('Phone is required'); return; }
     setUploading(true);
     setUploadError(null);
@@ -320,6 +322,7 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
         name: uploadForm.name.trim(),
         father_name: uploadForm.father_name.trim() || undefined,
         position: uploadForm.profession.trim() || undefined,
+        nationality: uploadForm.nationality.trim(),
         phone: uploadForm.phone.trim(),
         email: uploadForm.email.trim() || undefined,
       }, accessToken);
@@ -729,6 +732,15 @@ export function PartnerPortalDashboard({ accessToken, user, portalProfile, loadi
                         value={uploadForm.profession}
                         onChange={(e) => { setUploadForm((f) => ({ ...f, profession: e.target.value })); setUploadError(null); }}
                         placeholder="e.g. AC Technician"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-gray-700">Country / Nationality <span className="text-red-500">*</span></label>
+                      <input
+                        value={uploadForm.nationality}
+                        onChange={(e) => { setUploadForm((f) => ({ ...f, nationality: e.target.value })); setUploadError(null); }}
+                        placeholder="e.g. Pakistan"
                         className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
                       />
                     </div>
