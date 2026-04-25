@@ -17,6 +17,11 @@ import {
   User2,
 } from 'lucide-react';
 import './ApplicationWizard.css';
+import {
+  APPLICATION_COUNTRY_OPTIONS,
+  APPLICATION_NATIONALITY_OPTIONS,
+  APPLICATION_PHONE_CODE_OPTIONS,
+} from '@/constants/applicationOptions';
 import { apiClient } from '@/lib/apiClient';
 import type { PublicCandidatePortalResponse } from '@/lib/apiClient';
 import type { ApplicationFormData, ApplicationStep, ExperienceLevel } from '@/types/application';
@@ -67,7 +72,7 @@ const experienceOptions: ExperienceLevel[] = [
   '10+ Years',
 ];
 
-const countries = [
+const featuredCountries = [
   { name: 'Saudi Arabia', note: 'High-demand trades and technical jobs' },
   { name: 'United Arab Emirates', note: 'Construction, transport, hospitality' },
   { name: 'Qatar', note: 'Infrastructure and maintenance roles' },
@@ -75,8 +80,6 @@ const countries = [
   { name: 'Kuwait', note: 'Mechanical and field worker demand' },
   { name: 'Bahrain', note: 'Specialized technician opportunities' },
 ];
-
-const nationalityOptions = ['Pakistani', 'Indian', 'Bangladeshi', 'Nepali', 'Sri Lankan', 'Other'];
 
 type DraftPayload = {
   currentStep: number;
@@ -191,12 +194,6 @@ export default function ApplicationWizard() {
       nextErrors.experience = 'Please select your experience.';
     }
 
-    if (step === 7 && !cvFile) {
-      nextErrors.cv = form.cvFileName
-        ? 'Draft restored. Please re-upload the CV before continuing.'
-        : 'Please upload your CV before continuing.';
-    }
-
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   }
@@ -248,11 +245,6 @@ export default function ApplicationWizard() {
   }
 
   async function submitApplication() {
-    if (!validateStep(7)) {
-      setCurrentStep(7);
-      return;
-    }
-
     setIsSubmitting(true);
     setErrors({});
 
@@ -401,18 +393,15 @@ export default function ApplicationWizard() {
                 </Field>
 
                 <Field label="Phone / WhatsApp *" error={errors.phoneNumber}>
-                  <div className="application-grid-two">
+                  <div className="application-grid-two application-phone-row">
                     <select
                       className="application-select"
                       value={form.phoneCountryCode}
                       onChange={(event) => updateField('phoneCountryCode', event.target.value)}
                     >
-                      <option value="+92">Pakistan (+92)</option>
-                      <option value="+966">Saudi Arabia (+966)</option>
-                      <option value="+971">UAE (+971)</option>
-                      <option value="+974">Qatar (+974)</option>
-                      <option value="+968">Oman (+968)</option>
-                      <option value="+965">Kuwait (+965)</option>
+                      {APPLICATION_PHONE_CODE_OPTIONS.map((option) => (
+                        <option key={`${option.code}-${option.label}`} value={option.code}>{option.label}</option>
+                      ))}
                     </select>
                     <input
                       className="application-input"
@@ -440,7 +429,7 @@ export default function ApplicationWizard() {
                     value={form.nationality}
                     onChange={(event) => updateField('nationality', event.target.value)}
                   >
-                    {nationalityOptions.map((option) => (
+                    {APPLICATION_NATIONALITY_OPTIONS.map((option) => (
                       <option key={option} value={option}>{option}</option>
                     ))}
                   </select>
@@ -448,7 +437,7 @@ export default function ApplicationWizard() {
 
                 <div className="application-choice-title">Country of interest</div>
                 <div className="application-country-grid">
-                  {countries.map((country) => {
+                  {featuredCountries.map((country) => {
                     const isSelected = form.countryOfInterest === country.name;
                     return (
                       <button
@@ -463,7 +452,17 @@ export default function ApplicationWizard() {
                     );
                   })}
                 </div>
-                {errors.countryOfInterest && <p className="application-error">{errors.countryOfInterest}</p>}
+                <Field label="All countries" error={errors.countryOfInterest}>
+                  <select
+                    className="application-select"
+                    value={form.countryOfInterest}
+                    onChange={(event) => updateField('countryOfInterest', event.target.value)}
+                  >
+                    {APPLICATION_COUNTRY_OPTIONS.map((country) => (
+                      <option key={country} value={country}>{country}</option>
+                    ))}
+                  </select>
+                </Field>
               </div>
 
               <StepActions onBack={goBack} onNext={goNext} />
@@ -527,7 +526,7 @@ export default function ApplicationWizard() {
           )}
 
           {currentStep === 7 && (
-            <StepSection title="Upload your <span>CV</span>" description="Your CV will be sent with this application using the existing backend upload flow.">
+            <StepSection title="Upload your <span>CV</span>" description="Your CV can be uploaded now or later. If you upload it here, it will go through the existing backend upload flow.">
               <label className="application-upload">
                 <input
                   type="file"
@@ -538,7 +537,7 @@ export default function ApplicationWizard() {
                   <UploadCloud />
                 </div>
                 <strong>Tap to choose your CV</strong>
-                <span>PDF, DOC, or DOCX. Maximum file size 30MB.</span>
+                <span>Optional. PDF, DOC, or DOCX. Maximum file size 30MB.</span>
               </label>
 
               {errors.cv && <p className="application-error">{errors.cv}</p>}
@@ -555,7 +554,7 @@ export default function ApplicationWizard() {
 
               {draftRestored && !cvFile && form.cvFileName && (
                 <div className="application-note application-note-warning">
-                  Draft restored: the file name was saved locally, but the browser cannot restore the actual file. Please upload the CV again.
+                  Draft restored: the file name was saved locally, but the browser cannot restore the actual file. Re-upload it only if you want to include it now.
                 </div>
               )}
 

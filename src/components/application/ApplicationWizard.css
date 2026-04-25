@@ -271,6 +271,10 @@
   gap: 12px;
 }
 
+.application-phone-row {
+  grid-template-columns: minmax(132px, 0.9fr) minmax(0, 1.35fr);
+}
+
 .application-field {
   display: grid;
   gap: 10px;
@@ -691,10 +695,13 @@
   .application-trust-row,
   .application-country-grid,
   .application-chip-grid,
-  .application-grid-two,
   .application-actions,
   .application-review-row {
     grid-template-columns: 1fr;
+  }
+
+  .application-phone-row {
+    grid-template-columns: minmax(120px, 0.88fr) minmax(0, 1.12fr);
   }
 
   .application-trust-row {
