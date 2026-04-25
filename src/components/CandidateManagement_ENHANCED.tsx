@@ -274,6 +274,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
     }
   }, [candidateIdToOpen]);
   const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
+  const [brokenPhotoIds, setBrokenPhotoIds] = useState<Record<string, boolean>>({});
   const [documentAction, setDocumentAction] = useState<{ candidateId: string; docType: string } | null>(null);
   const [paymentUpdatingIds, setPaymentUpdatingIds] = useState<Record<string, boolean>>({});
   const [paymentDrafts, setPaymentDrafts] = useState<Record<string, string>>({});
@@ -323,6 +324,22 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
       setDocOpeningIds(prev => { const n = { ...prev }; delete n[candidateId]; return n; });
       toast.error(err?.message || `Failed to open ${label}`);
     }
+  }
+
+  function resolveCandidatePhotoUrl(candidate: Candidate) {
+    const signedUrl = (candidate.profile_photo_signed_url || photoUrls[candidate.id] || '').toString().trim();
+    if (signedUrl) {
+      return signedUrl;
+    }
+
+    const rawUrl = (candidate.profile_photo_url || '').toString().trim();
+    const hasStorageMetadata = !!(candidate.profile_photo_bucket || candidate.profile_photo_path);
+
+    if (hasStorageMetadata) {
+      return '';
+    }
+
+    return rawUrl;
   }
 
   // Fetch signed photo URLs for candidates missing them in list response
@@ -1318,7 +1335,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
               const medicalOk = !!c.medical_received;
               const docCount = [cvOk, passportOk, cnicOk, drivingLicenseOk, policeCharacterOk, certificateOk, photoOk, medicalOk].filter(Boolean).length;
               const allDocsOk = docCount === 8;
-              const resolvedPhotoUrl = (c.profile_photo_signed_url || photoUrls[c.id] || c.profile_photo_url || '').toString();
+              const resolvedPhotoUrl = brokenPhotoIds[c.id] ? '' : resolveCandidatePhotoUrl(c);
               const isPdfPhoto = !!resolvedPhotoUrl && resolvedPhotoUrl.toLowerCase().includes('.pdf');
               const pdfThumb = pdfThumbs[c.id];
 
@@ -1368,12 +1385,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                                 alt={c.name}
                                 className="w-full h-full rounded-full object-cover"
                                 onError={(e) => {
-                                  // Fallback to initials if photo fails to load
-                                  e.currentTarget.style.display = 'none';
-                                  const parent = e.currentTarget.parentElement;
-                                  if (parent) {
-                                    parent.innerHTML = `<div class=\"w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center text-xl font-bold text-blue-600\">${getInitials(c.name)}</div>`;
-                                  }
+                                  console.warn('Candidate photo failed to load', { candidateId: c.id, url: resolvedPhotoUrl });
+                                  setBrokenPhotoIds((prev) => ({ ...prev, [c.id]: true }));
                                 }}
                               />
                             )
