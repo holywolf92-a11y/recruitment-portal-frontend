@@ -75,6 +75,7 @@ function confidenceScore10(confidence?: Record<string, number>) {
 
 export function CandidateManagement({ initialProfessionFilter = 'all' }: CandidateManagementProps) {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
@@ -155,6 +156,56 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
     // NOTE: debouncedSearch fires only after 400 ms quiet time;
     //       discrete selects (position/country/status) fire immediately.
   }, [debouncedSearch, filters.position, filters.country, filters.status]);
+
+  useEffect(() => {
+    const fetchMissingPhotoUrls = async () => {
+      const toFetch = candidates.filter((candidate) =>
+        (candidate.photo_received || candidate.profile_photo_path || candidate.profile_photo_url) &&
+        !candidate.profile_photo_signed_url &&
+        !photoUrls[candidate.id]
+      );
+
+      if (!toFetch.length) {
+        return;
+      }
+
+      const chunkSize = 10;
+      for (let index = 0; index < toFetch.length; index += chunkSize) {
+        const chunk = toFetch.slice(index, index + chunkSize);
+        try {
+          const entries = await Promise.all(
+            chunk.map(async (candidate) => {
+              try {
+                const full = await apiClient.getCandidate(candidate.id);
+                const url = ((full as any).profile_photo_signed_url || '').toString();
+                return [candidate.id, url] as const;
+              } catch {
+                return [candidate.id, ''] as const;
+              }
+            })
+          );
+
+          setPhotoUrls((prev) => {
+            const next = { ...prev };
+            for (const [id, url] of entries) {
+              if (url) {
+                next[id] = url;
+              }
+            }
+            return next;
+          });
+        } catch (fetchError) {
+          console.warn('Failed to fetch candidate photo URLs', fetchError);
+        }
+
+        if (index + chunkSize < toFetch.length) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      }
+    };
+
+    fetchMissingPhotoUrls();
+  }, [candidates, photoUrls]);
 
   // Client-side guard filter: mirrors the server filter so the list stays
   // consistent during the 400 ms debounce window while the user is still
@@ -511,6 +562,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
               const docCount = [cvOk, passportOk, certificateOk, photoOk, medicalOk].filter(Boolean).length;
               const allDocsOk = docCount === 5;
               const selected = selectedIds.has(c.id);
+              const resolvedPhotoUrl = ((c.profile_photo_signed_url || photoUrls[c.id] || '').toString());
 
               return (
                 <div
@@ -525,7 +577,17 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                     {/* Avatar row — pulled up over the banner, checkbox top-right */}
                     <div className="-mt-10 mb-2 flex items-end justify-between">
                       <div className="w-16 h-16 rounded-full bg-white p-1 shadow flex-shrink-0">
-                        <div className="w-full h-full rounded-full bg-blue-50 flex items-center justify-center">
+                        {resolvedPhotoUrl ? (
+                          <img
+                            src={resolvedPhotoUrl}
+                            alt={c.name}
+                            className="w-full h-full rounded-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        ) : null}
+                        <div className={`w-full h-full rounded-full bg-blue-50 items-center justify-center ${resolvedPhotoUrl ? 'hidden' : 'flex'}`}>
                           <span className="text-blue-700 font-bold text-xl">{getInitials(c.name)}</span>
                         </div>
                       </div>
@@ -754,11 +816,22 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                   <tr key={c.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                          <span className="text-blue-600 font-semibold text-xs">
-                            {c.name.substring(0, 2).toUpperCase()}
-                          </span>
-                        </div>
+                        {((c.profile_photo_signed_url || photoUrls[c.id] || '').toString()) ? (
+                          <img
+                            src={((c.profile_photo_signed_url || photoUrls[c.id] || '').toString())}
+                            alt={c.name}
+                            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                            <span className="text-blue-600 font-semibold text-xs">
+                              {c.name.substring(0, 2).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
                         <div>
                           <p className="font-medium text-gray-900 text-sm">{c.name}</p>
                           <p className="text-xs text-gray-500 font-mono">{c.candidate_code}</p>
