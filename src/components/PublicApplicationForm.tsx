@@ -3,6 +3,7 @@ import { ArrowRight, Briefcase, Building2, ChevronDown, Globe2, Mail, MapPin, Ph
 import { apiClient } from '../lib/apiClient';
 import type { PublicCandidatePortalResponse, PublicEmployerPortalResponse, PublicPartnerPortalResponse } from '../lib/apiClient';
 import { useAuth } from '../lib/authContext';
+import ApplicationWizard from './application/ApplicationWizard';
 
 type IntakeAudience = 'candidate' | 'employer' | 'partner';
 
@@ -810,126 +811,7 @@ export function PublicApplicationForm() {
   // ──────────────────── FORMS ────────────────────
 
   if (activeAudience === 'candidate') {
-    return (
-      <div
-        className="falisha-auth-shell falisha-auth-form-pane"
-        style={{ fontFamily: 'Manrope, ui-sans-serif, system-ui, sans-serif' }}
-      >
-        <div className="falisha-auth-form-inner">
-
-          <div className="mb-8 flex flex-col items-center">
-            <img src="/logo.png" alt="Falisha" className="h-16 w-16 object-contain" />
-            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">
-              Bridging Talent to Opportunities
-            </p>
-          </div>
-
-          <div className="falisha-auth-heading-block">
-            <h1 className="falisha-auth-heading">Apply Now</h1>
-            <p className="falisha-auth-subheading">Our consultants will review your profile within 48 hours.</p>
-          </div>
-
-          <form className="falisha-auth-form-fields" onSubmit={handleCandidateSubmit}>
-
-            {/* Full Name */}
-            <div className="falisha-auth-field">
-              <label className="falisha-auth-field-label">Full Name <span className="text-red-500">*</span></label>
-              <div className="falisha-auth-input-wrap">
-                <User2 className="falisha-auth-input-icon" />
-                <input type="text" value={candidateForm.fullName} onChange={(e) => setCandidateForm((c) => ({ ...c, fullName: e.target.value }))} className="falisha-auth-input" placeholder="Muhammad Ahmed" required />
-              </div>
-            </div>
-
-            {/* Email */}
-            <div className="falisha-auth-field">
-              <label className="falisha-auth-field-label">Email Address <span className="text-red-500">*</span></label>
-              <div className="falisha-auth-input-wrap">
-                <Mail className="falisha-auth-input-icon" />
-                <input type="email" value={candidateForm.email} onChange={(e) => setCandidateForm((c) => ({ ...c, email: e.target.value }))} className="falisha-auth-input" placeholder="ahmed@example.com" required />
-              </div>
-            </div>
-
-            {/* Phone */}
-            <div className="falisha-auth-field">
-              <label className="falisha-auth-field-label">Phone / WhatsApp <span className="text-red-500">*</span></label>
-              <div className="flex gap-2">
-                <div className="falisha-auth-input-wrap w-44 shrink-0">
-                  <select value={candidatePhoneCode} onChange={(e) => setCandidatePhoneCode(e.target.value)} className="falisha-auth-input falisha-auth-select" style={{ paddingLeft: '0.75rem' }}>
-                    {PHONE_CODE_OPTIONS.map((o) => <option key={o.code} value={o.code}>{o.label}</option>)}
-                  </select>
-                </div>
-                <div className="falisha-auth-input-wrap flex-1">
-                  <Phone className="falisha-auth-input-icon" />
-                  <input type="tel" value={candidatePhoneNumber} onChange={(e) => setCandidatePhoneNumber(e.target.value)} className="falisha-auth-input" placeholder="300 1234567" required />
-                </div>
-              </div>
-            </div>
-
-            {/* Nationality + Country */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="falisha-auth-field">
-                <label className="falisha-auth-field-label">Nationality</label>
-                <div className="falisha-auth-input-wrap">
-                  <Globe2 className="falisha-auth-input-icon" />
-                  <select value={candidateForm.nationality} onChange={(e) => setCandidateForm((c) => ({ ...c, nationality: e.target.value }))} className="falisha-auth-input falisha-auth-select">
-                    {NATIONALITY_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="falisha-auth-field">
-                <label className="falisha-auth-field-label">Country of Interest</label>
-                <div className="falisha-auth-input-wrap">
-                  <MapPin className="falisha-auth-input-icon" />
-                  <select value={candidateForm.countryOfInterest} onChange={(e) => setCandidateForm((c) => ({ ...c, countryOfInterest: e.target.value }))} className="falisha-auth-input falisha-auth-select">
-                    {COUNTRY_INTEREST_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Preferred Role */}
-            <div className="falisha-auth-field">
-              <label className="falisha-auth-field-label">Preferred Role <span className="text-red-500">*</span></label>
-              <div className="falisha-auth-input-wrap">
-                <Briefcase className="falisha-auth-input-icon" />
-                <input type="text" value={candidateForm.position} onChange={(e) => setCandidateForm((c) => ({ ...c, position: e.target.value }))} className="falisha-auth-input" placeholder="e.g. Civil Engineer, HVAC Tech" required />
-              </div>
-            </div>
-
-            {/* Experience chips */}
-            <ChoiceChips label="Years of Experience" value={candidateForm.experience} options={EXPERIENCE_OPTIONS} onChange={(v) => setCandidateForm((c) => ({ ...c, experience: v }))} />
-
-            {/* CV Upload */}
-            <CandidateUploadField fileName={candidateCv?.name || null} onFileChange={(f) => setCandidateCv(f)} />
-
-            <TextAreaField
-              label="Comments"
-              value={candidateForm.comments}
-              onChange={(v) => setCandidateForm((c) => ({ ...c, comments: v }))}
-              placeholder="Add any notes or comments about your application"
-            />
-
-            {/* Submit */}
-            <button type="submit" disabled={submitting} className="falisha-auth-primary flex items-center justify-center gap-2">
-              {submitting ? 'Submitting…' : 'Submit Application'}
-              <ArrowRight className="h-4 w-4" />
-            </button>
-
-            {error && (
-              <div className="falisha-auth-notice falisha-auth-notice-error">
-                <span>{error}</span>
-              </div>
-            )}
-          </form>
-
-          <p className="mt-6 text-center" style={{ fontSize: '0.82rem', color: '#9ca3af' }}>
-            © 2024 Falisha Jobs ·{' '}
-            <a className="falisha-auth-link" href="/privacy-policy">Privacy</a> ·{' '}
-            <a className="falisha-auth-link" href="#">Terms</a>
-          </p>
-        </div>
-      </div>
-    );
+    return <ApplicationWizard />;
   }
 
   // ── EMPLOYER ──

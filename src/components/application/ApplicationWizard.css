@@ -1,0 +1,716 @@
+.application-shell {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 32px 16px;
+  background:
+    radial-gradient(circle at top, rgba(9, 142, 79, 0.14), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(6, 182, 212, 0.12), transparent 28%),
+    linear-gradient(180deg, #f4fbf7 0%, #eef8f4 100%);
+}
+
+.application-frame {
+  width: 100%;
+  max-width: 560px;
+  min-height: calc(100vh - 64px);
+  border-radius: 34px;
+  padding: 28px 24px 20px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(250, 255, 252, 0.98) 100%);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.12);
+  position: relative;
+  overflow: hidden;
+}
+
+.application-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(8, 132, 74, 0.07), transparent 35%),
+    linear-gradient(315deg, rgba(8, 145, 178, 0.06), transparent 36%);
+  pointer-events: none;
+}
+
+.application-header,
+.application-body,
+.application-footer {
+  position: relative;
+  z-index: 1;
+}
+
+.application-header {
+  margin-bottom: 24px;
+}
+
+.application-brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.application-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.application-brand-badge {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #078b45, #0aa35d);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 1.05rem;
+  box-shadow: 0 16px 30px rgba(7, 139, 69, 0.24);
+}
+
+.application-brand-copy {
+  display: flex;
+  flex-direction: column;
+}
+
+.application-brand-copy strong {
+  font-size: 1.1rem;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+}
+
+.application-brand-copy span {
+  font-size: 0.76rem;
+  color: #5b6575;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+.application-step-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(7, 139, 69, 0.09);
+  color: #0d6b3c;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.application-step-chip strong {
+  font-size: 0.9rem;
+}
+
+.application-progress {
+  margin-top: 8px;
+}
+
+.application-progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.18);
+  overflow: hidden;
+}
+
+.application-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #078b45 0%, #13b65d 55%, #0ea5a6 100%);
+  transition: width 220ms ease;
+}
+
+.application-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  font-size: 0.84rem;
+  color: #5b6575;
+}
+
+.application-progress-meta strong {
+  color: #0f172a;
+}
+
+.application-hero {
+  display: grid;
+  gap: 24px;
+}
+
+.application-hero-card {
+  padding: 26px;
+  border-radius: 28px;
+  background:
+    linear-gradient(160deg, rgba(7, 139, 69, 0.12), rgba(255, 255, 255, 0.96) 52%),
+    linear-gradient(330deg, rgba(14, 165, 166, 0.12), transparent 46%);
+  border: 1px solid rgba(7, 139, 69, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.application-hero-visual {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.application-hero-pill {
+  min-height: 84px;
+  border-radius: 22px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.88);
+  color: #0d6b3c;
+  border: 1px solid rgba(7, 139, 69, 0.08);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+}
+
+.application-hero-pill svg {
+  width: 28px;
+  height: 28px;
+}
+
+.application-title {
+  margin: 0;
+  color: #0f172a;
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: clamp(2.3rem, 8vw, 3.8rem);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+}
+
+.application-title span {
+  color: #0c7c46;
+}
+
+.application-lead {
+  margin: 14px 0 0;
+  color: #526072;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.application-trust-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.application-trust-card {
+  padding: 16px 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 12px 22px rgba(15, 23, 42, 0.05);
+}
+
+.application-trust-card strong {
+  display: block;
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+
+.application-trust-card span {
+  display: block;
+  margin-top: 5px;
+  color: #64748b;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.application-section {
+  animation: application-fade-up 200ms ease;
+}
+
+@keyframes application-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.application-step-title {
+  margin: 0;
+  color: #0f172a;
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: clamp(2rem, 6.8vw, 3.1rem);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.application-step-title span {
+  color: #0c7c46;
+}
+
+.application-step-description {
+  margin: 14px 0 26px;
+  color: #526072;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.application-grid,
+.application-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.application-grid-two {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr);
+  gap: 12px;
+}
+
+.application-field {
+  display: grid;
+  gap: 10px;
+}
+
+.application-field > span,
+.application-choice-title {
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 0.96rem;
+}
+
+.application-input,
+.application-select,
+.application-textarea {
+  width: 100%;
+  min-height: 58px;
+  padding: 0 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(255, 255, 255, 0.98);
+  color: #0f172a;
+  font-size: 1rem;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.application-textarea {
+  min-height: 150px;
+  padding: 16px 18px;
+  resize: vertical;
+}
+
+.application-input:focus,
+.application-select:focus,
+.application-textarea:focus {
+  outline: none;
+  border-color: rgba(7, 139, 69, 0.72);
+  box-shadow: 0 0 0 4px rgba(7, 139, 69, 0.12);
+}
+
+.application-help,
+.application-note,
+.application-alert,
+.application-inline-card,
+.application-success-card,
+.application-reference-card {
+  border-radius: 20px;
+}
+
+.application-help,
+.application-note {
+  padding: 15px 16px;
+  background: rgba(7, 139, 69, 0.08);
+  color: #14532d;
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.application-note-warning {
+  background: rgba(245, 158, 11, 0.1);
+  color: #92400e;
+}
+
+.application-error {
+  margin: 0;
+  color: #dc2626;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.application-country-grid,
+.application-chip-grid,
+.application-experience-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.application-country-grid,
+.application-chip-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.application-country-card,
+.application-chip,
+.application-experience-card,
+.application-upload,
+.application-review-row,
+.application-edit-button,
+.application-primary,
+.application-secondary,
+.application-link-button {
+  font: inherit;
+}
+
+.application-country-card,
+.application-chip,
+.application-experience-card {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(255, 255, 255, 0.94);
+  border-radius: 20px;
+  padding: 16px;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.application-country-card:hover,
+.application-chip:hover,
+.application-experience-card:hover,
+.application-upload:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.07);
+}
+
+.application-country-card.is-selected,
+.application-chip.is-selected,
+.application-experience-card.is-selected {
+  border-color: rgba(7, 139, 69, 0.65);
+  background: rgba(7, 139, 69, 0.07);
+  box-shadow: 0 16px 26px rgba(7, 139, 69, 0.12);
+}
+
+.application-country-card strong,
+.application-chip strong,
+.application-experience-card strong {
+  display: block;
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+
+.application-country-card span,
+.application-chip span,
+.application-experience-card span {
+  display: block;
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.application-upload {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 28px 18px;
+  border: 2px dashed rgba(7, 139, 69, 0.4);
+  background: rgba(251, 255, 253, 0.96);
+  border-radius: 28px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.application-upload input {
+  display: none;
+}
+
+.application-upload-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 24px;
+  display: grid;
+  place-items: center;
+  background: rgba(7, 139, 69, 0.1);
+  color: #0d6b3c;
+}
+
+.application-upload-icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.application-upload strong {
+  color: #0f172a;
+  font-size: 1.02rem;
+}
+
+.application-upload span {
+  color: #64748b;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.application-inline-card,
+.application-alert,
+.application-success-card,
+.application-reference-card {
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.06);
+}
+
+.application-inline-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.application-inline-card strong,
+.application-alert strong,
+.application-reference-card strong {
+  color: #0f172a;
+}
+
+.application-inline-card span,
+.application-alert span,
+.application-reference-card span,
+.application-success-card p {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.application-alert {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  color: #0f172a;
+}
+
+.application-alert svg {
+  width: 18px;
+  height: 18px;
+  color: #dc2626;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.application-strength {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.application-strength-badge {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 4px solid rgba(7, 139, 69, 0.62);
+  color: #0c7c46;
+  font-weight: 800;
+  background: rgba(7, 139, 69, 0.05);
+}
+
+.application-review {
+  display: grid;
+  gap: 12px;
+}
+
+.application-review-row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 15px 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  box-shadow: 0 12px 22px rgba(15, 23, 42, 0.05);
+}
+
+.application-review-row span {
+  color: #64748b;
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.application-review-row strong {
+  color: #0f172a;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.application-edit-button {
+  border: none;
+  background: transparent;
+  color: #0c7c46;
+  font-size: 0.88rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.application-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.18fr);
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.application-primary,
+.application-secondary,
+.application-link-button {
+  min-height: 56px;
+  border-radius: 18px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 1rem;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+}
+
+.application-primary {
+  border: none;
+  color: #ffffff;
+  background: linear-gradient(135deg, #078b45 0%, #11a75b 58%, #0ea5a6 100%);
+  box-shadow: 0 16px 30px rgba(7, 139, 69, 0.23);
+}
+
+.application-primary:hover,
+.application-secondary:hover,
+.application-link-button:hover {
+  transform: translateY(-1px);
+}
+
+.application-primary:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.application-secondary {
+  border: 1px solid rgba(148, 163, 184, 0.34);
+  background: rgba(255, 255, 255, 0.96);
+  color: #0c7c46;
+}
+
+.application-link-button {
+  border: 1px solid rgba(7, 139, 69, 0.18);
+  background: rgba(7, 139, 69, 0.08);
+  color: #0c7c46;
+}
+
+.application-success {
+  display: grid;
+  gap: 18px;
+  text-align: center;
+}
+
+.application-success-mark {
+  width: 112px;
+  height: 112px;
+  margin: 0 auto;
+  border-radius: 34px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, rgba(7, 139, 69, 0.14), rgba(14, 165, 166, 0.12));
+  color: #0c7c46;
+  box-shadow: 0 20px 34px rgba(7, 139, 69, 0.12);
+}
+
+.application-success-mark svg {
+  width: 46px;
+  height: 46px;
+}
+
+.application-success-card {
+  text-align: left;
+}
+
+.application-success-card p {
+  margin: 0;
+  line-height: 1.7;
+}
+
+.application-reference-card {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 255, 250, 0.98));
+  border-color: rgba(7, 139, 69, 0.18);
+}
+
+.application-reference-card span {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.application-reference-card strong {
+  font-size: 1.45rem;
+  color: #0c7c46;
+}
+
+.application-footer {
+  margin-top: 24px;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.application-footer a {
+  color: inherit;
+}
+
+@media (max-width: 640px) {
+  .application-shell {
+    padding: 0;
+  }
+
+  .application-frame {
+    min-height: 100vh;
+    border-radius: 0;
+    padding: 22px 16px 18px;
+  }
+
+  .application-brand-row,
+  .application-progress-meta,
+  .application-trust-row,
+  .application-country-grid,
+  .application-chip-grid,
+  .application-grid-two,
+  .application-actions,
+  .application-review-row {
+    grid-template-columns: 1fr;
+  }
+
+  .application-trust-row {
+    gap: 10px;
+  }
+
+  .application-hero-card {
+    padding: 22px 18px;
+  }
+
+  .application-title,
+  .application-step-title {
+    letter-spacing: -0.03em;
+  }
+
+  .application-review-row {
+    gap: 8px;
+  }
+}
