@@ -1,9 +1,9 @@
 ﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import { CANONICAL_FRONTEND_URL } from '../lib/publicUrl';
+import { GOOGLE_BUSINESS_PROFILE_URL, SOCIAL_LINKS } from '../lib/socialLinks';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
-const GOOGLE_REVIEW_URL =
-  (import.meta as any).env?.VITE_GOOGLE_REVIEW_URL || 'https://g.page/r/CVmpd5dYUfULEBM/review';
+const GOOGLE_REVIEW_URL = GOOGLE_BUSINESS_PROFILE_URL;
 const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || '/api';
 const BUSINESS_NAME = (import.meta as any).env?.VITE_BUSINESS_NAME || 'Falisha Manpower';
 const BUSINESS_LOGO_URL: string = (import.meta as any).env?.VITE_BUSINESS_LOGO_URL || '/logo.png';
@@ -18,46 +18,20 @@ const SOCIAL_ACTIONS = [
     internalHref: GOOGLE_REVIEW_FLOW_PATH,
     description: 'Open the guided Google review flow with emojis and comment help.',
   },
-  {
-    label: 'LinkedIn',
-    icon: 'in',
-    buttonLabel: 'Follow On LinkedIn',
-    accent: '#0A66C2',
-    url: 'https://www.linkedin.com/company/falishaenterprises',
-    description: 'Follow company updates and hiring news.',
-  },
-  {
-    label: 'Facebook',
-    icon: 'f',
-    buttonLabel: 'Follow On Facebook',
-    accent: '#1877F2',
-    url: 'https://www.facebook.com/falishaenterprises.pk/',
-    description: 'See updates, posts, and community activity.',
-  },
-  {
-    label: 'Instagram',
-    icon: '◎',
-    buttonLabel: 'Follow On Instagram',
-    accent: '#E4405F',
-    url: 'https://www.instagram.com/falisha.manpower',
-    description: 'View reels, stories, and daily highlights.',
-  },
-  {
-    label: 'TikTok',
-    icon: '♪',
-    buttonLabel: 'Follow On TikTok',
-    accent: '#111827',
-    url: 'https://www.tiktok.com/@falishamanpower',
-    description: 'Watch short videos and follow new content.',
-  },
-  {
-    label: 'YouTube',
-    icon: '▶',
-    buttonLabel: 'Subscribe On YouTube',
-    accent: '#FF0000',
-    url: 'https://youtube.com/@falishamanpower897?si=-sKB5_wZdoICyLbj',
-    description: 'Watch videos and subscribe for updates.',
-  },
+  ...SOCIAL_LINKS.map((item) => ({
+    label: item.label,
+    icon:
+      item.key === 'linkedin' ? 'in' :
+      item.key === 'facebook' ? 'f' :
+      item.key === 'instagram' ? '◎' :
+      item.key === 'tiktok' ? '♪' :
+      item.key === 'x' ? 'X' :
+      item.key === 'youtube' ? '▶' : '💬',
+    buttonLabel: item.buttonLabel,
+    accent: item.accent,
+    url: item.url,
+    description: item.description,
+  })),
 ] as const;
 
 // ─── Mood options (emoji + label + auto-comment) ─────────────────────────────

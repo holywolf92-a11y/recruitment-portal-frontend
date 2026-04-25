@@ -26,7 +26,14 @@ import {
   GripVertical,
   Settings,
   ExternalLink,
-  LayoutDashboard
+  LayoutDashboard,
+  BookOpen,
+  CreditCard,
+  Heart,
+  Award,
+  GraduationCap,
+  Camera,
+  Car,
 } from 'lucide-react';
 import { API_BASE_URL } from '../lib/apiClient';
 import { getFrontendBaseUrl } from '../lib/publicUrl';
@@ -278,6 +285,7 @@ export function CandidateBrowserExcel() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasLoadedOnceRef = useRef(false);
+  const initializedRef = useRef(false);
   const contentScrollRef = useRef<HTMLDivElement | null>(null);
   const tableWrapRef = useRef<HTMLDivElement | null>(null);
   const floatBarRef = useRef<HTMLDivElement | null>(null);
@@ -290,11 +298,22 @@ export function CandidateBrowserExcel() {
   const [statusUpdatingIds, setStatusUpdatingIds] = useState<Record<string, boolean>>({});
   const [paymentUpdatingIds, setPaymentUpdatingIds] = useState<Record<string, boolean>>({});
   const [paymentDrafts, setPaymentDrafts] = useState<Record<string, string>>({});
+  const [candidateDocCache, setCandidateDocCache] = useState<Record<string, Array<{id: string; category: string; doc_type: string}>>>({});
+  const [docLoadingIds, setDocLoadingIds] = useState<Record<string, boolean>>({});
   const [viewMode, setViewMode] = useState<'basic' | 'detailed'>('detailed');
   const [professionMode, setProfessionMode] = useState<string | null>(null);
-  const [activeMenu, setActiveMenu] = useState<'dashboard' | 'browser'>('dashboard');
+  const [activeMenu, setActiveMenu] = useState<'dashboard' | 'browser'>('browser');
   const [showSendModal, setShowSendModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
+  // Close export dropdown on outside click
+  useEffect(() => {
+    if (!showExportMenu) return;
+    const handler = () => setShowExportMenu(false);
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showExportMenu]);
 
   // ── Enterprise debounce: replaces the old manual setTimeout pattern ──────────
   // One derived value; no extra state, no timer bookkeeping in component body.
@@ -344,6 +363,45 @@ export function CandidateBrowserExcel() {
       }
     }
   }, [debouncedSearchQuery, appliedFrom, appliedTo, sortBy, sortOrder, currentPage, pageSize, selectedFolder, selectedCountry, activeMenu]);
+
+  // Document icon configuration — maps candidate boolean flags to category, icon and styling
+  const DOC_FLAG_CONFIG = [
+    { flag: 'cv_received',               category: 'cv_resume',            Icon: FileText,      color: 'text-blue-500',   bg: 'hover:bg-blue-100',   label: 'CV/Resume' },
+    { flag: 'passport_received',         category: 'passport',             Icon: BookOpen,      color: 'text-green-600',  bg: 'hover:bg-green-100',  label: 'Passport' },
+    { flag: 'cnic_received',             category: 'cnic',                 Icon: CreditCard,    color: 'text-purple-500', bg: 'hover:bg-purple-100', label: 'CNIC' },
+    { flag: 'medical_received',          category: 'medical_reports',      Icon: Heart,         color: 'text-red-500',    bg: 'hover:bg-red-100',    label: 'Medical' },
+    { flag: 'certificate_received',      category: 'certificates',         Icon: Award,         color: 'text-yellow-600', bg: 'hover:bg-yellow-100', label: 'Certificate' },
+    { flag: 'degree_received',           category: 'educational_documents',Icon: GraduationCap, color: 'text-indigo-500', bg: 'hover:bg-indigo-100', label: 'Degree' },
+    { flag: 'photo_received',            category: 'photos',               Icon: Camera,        color: 'text-pink-500',   bg: 'hover:bg-pink-100',   label: 'Photo' },
+    { flag: 'driving_license_received',  category: 'driving_license',      Icon: Car,           color: 'text-orange-500', bg: 'hover:bg-orange-100', label: 'License' },
+    { flag: 'visa_received',             category: 'other_documents',      Icon: Globe,         color: 'text-teal-500',   bg: 'hover:bg-teal-100',   label: 'Visa' },
+  ] as const;
+
+  async function handleDocIconClick(candidateId: string, category: string, label: string) {
+    try {
+      // Use cached docs if available, otherwise fetch once
+      let docs = candidateDocCache[candidateId];
+      if (!docs) {
+        setDocLoadingIds(prev => ({ ...prev, [candidateId]: true }));
+        docs = await apiClient.listCandidateDocumentsNew(candidateId);
+        setCandidateDocCache(prev => ({ ...prev, [candidateId]: docs }));
+        setDocLoadingIds(prev => ({ ...prev, [candidateId]: false }));
+      }
+      // Find the first matching document for this category
+      const doc = docs.find((d: any) => d.category === category || d.doc_type === category);
+      if (!doc) {
+        toast.error(`No ${label} document found`);
+        return;
+      }
+      toast.info(`Opening ${label}…`);
+      const url = await apiClient.getCandidateDocumentDownloadUrl(doc.id);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (err: any) {
+      console.error('Failed to open document:', err);
+      setDocLoadingIds(prev => ({ ...prev, [candidateId]: false }));
+      toast.error(err?.message || `Failed to open ${label}`);
+    }
+  }
 
   async function handleCandidateStatusChange(candidate: Candidate, nextStatus: CandidateStatus) {
     const currentStatus = normalizeCandidateStatus(candidate.status);
@@ -444,16 +502,15 @@ export function CandidateBrowserExcel() {
     return (browseMetadata?.countries || []).map((country) => country.name);
   }, [browseMetadata]);
 
-  // Set default selected folder only when entering browser mode
+  // All professions start collapsed; select first profession's 'All' child
   useEffect(() => {
-    if (activeMenu === 'browser' && folderStructure.length > 0 && !selectedFolder) {
-      const firstFolder = folderStructure[0].children?.[0];
-      if (firstFolder) {
-        setSelectedFolder(firstFolder);
-        setExpandedFolders(new Set([folderStructure[0].id]));
-      }
+    if (folderStructure.length > 0 && !initializedRef.current) {
+      initializedRef.current = true;
+      setExpandedFolders(new Set());
+      const firstAllChild = folderStructure[0].children?.find(c => c.name === 'All');
+      setSelectedFolder(firstAllChild || folderStructure[0]);
     }
-  }, [folderStructure, selectedFolder, activeMenu]);
+  }, [folderStructure]);
 
   const toggleFolder = (folderId: string) => {
     const newExpanded = new Set(expandedFolders);
@@ -619,7 +676,7 @@ export function CandidateBrowserExcel() {
             {folder.name}
           </span>
 
-          {folder.count > 0 && (
+          {folder.count > 0 && folder.type !== 'smart-folder' && (
             <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
               isSelected ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
             }`}>
@@ -711,7 +768,7 @@ export function CandidateBrowserExcel() {
 
   if (loading && !hasLoadedOnceRef.current) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+      <div className="flex items-center justify-center h-screen">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading candidates...</p>
@@ -722,7 +779,7 @@ export function CandidateBrowserExcel() {
 
   if (error && !hasLoadedOnceRef.current) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+      <div className="flex items-center justify-center h-screen">
         <div className="bg-white border border-red-200 rounded-lg p-6 text-center">
           <h3 className="text-lg font-medium text-red-900 mb-2">Failed to load candidates</h3>
           <p className="text-red-700">{error}</p>
@@ -732,7 +789,7 @@ export function CandidateBrowserExcel() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-130px)] overflow-hidden">
+    <div className="flex h-screen overflow-hidden">
       <aside className={`${sidebarOpen ? 'w-72' : 'w-0'} flex-shrink-0 bg-white border-r border-gray-200 overflow-hidden flex flex-col shadow-sm transition-all duration-300`}>
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 flex-shrink-0">
           <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -794,8 +851,12 @@ export function CandidateBrowserExcel() {
         <div className="border-t border-gray-200 p-4 bg-gray-50 flex-shrink-0">
           <div className="text-xs text-gray-600 space-y-1">
             <div className="flex items-center justify-between">
-              <span>Total Candidates:</span>
-              <span className="font-semibold text-gray-900">{browseMetadata?.totalCandidates ?? totalCandidates ?? 0}</span>
+              <span>In selection:</span>
+              <span className="font-semibold text-gray-900">{totalCandidates}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Total in DB:</span>
+              <span className="font-semibold text-gray-500">{browseMetadata?.totalCandidates ?? 0}</span>
             </div>
             <div className="flex items-center justify-between">
               <span>Showing:</span>
@@ -823,28 +884,82 @@ export function CandidateBrowserExcel() {
         <div ref={contentScrollRef} className="flex-1 min-h-0 overflow-y-auto">
         <div className="h-full min-h-0 flex flex-col gap-4 p-4">
       {activeMenu === 'browser' ? (
-        <section className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <button
-              onClick={() => {
-                setActiveMenu('dashboard');
-                setProfessionMode(null);
-                setSelectedFolder(null);
-                scrollContentToTop();
-              }}
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              ← Back to Dashboard
-            </button>
-            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mt-2">{professionMode || 'Candidate Browser'}</h2>
-            <p className="text-sm text-gray-600">Showing {pageStart}-{pageEnd} of {totalCandidates} candidates</p>
+        <section className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0 min-w-0">
+              <h2 className="text-sm font-semibold text-gray-900 truncate">{professionMode || 'Candidates'}</h2>
+              <span className="text-xs text-gray-500 whitespace-nowrap hidden sm:inline">{pageStart}–{pageEnd} of {totalCandidates}</span>
+            </div>
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-3 top-2 w-4 h-4 text-gray-400" />
+              <input
+                type="search"
+                role="searchbox"
+                aria-label="Search candidates"
+                placeholder="Search by name, passport, CNIC, phone, or email"
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+                className="w-full pl-9 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+              />
+              {searchQuery && (
+                <button type="button" aria-label="Clear search" onClick={() => { setSearchQuery(''); setCurrentPage(1); }} className="absolute right-2 top-2 text-gray-400 hover:text-gray-600 transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={() => setShowFilters((current) => !current)}
+                className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${showFilters || hasActiveFilters ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
+              >
+                {showFilters ? 'Hide Filters' : 'Filters'}{hasActiveFilters ? ' •' : ''}
+              </button>
+              {hasActiveFilters && (
+                <button onClick={resetFilters} className="px-3 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Clear</button>
+              )}
+            </div>
           </div>
+          {showFilters && (
+            <div className="mt-3 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 border-t border-gray-100 pt-3">
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-gray-600">Country</label>
+                <select value={selectedCountry} onChange={(e) => { setSelectedCountry(e.target.value); setCurrentPage(1); }} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm">
+                  <option value="all">All Countries</option>
+                  {countryOptions.map((country) => <option key={country} value={country}>{country}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-gray-600">From Date</label>
+                <input type="date" value={appliedFrom} onChange={(e) => { setAppliedFrom(e.target.value); setCurrentPage(1); }} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-gray-600">To Date</label>
+                <input type="date" value={appliedTo} onChange={(e) => { setAppliedTo(e.target.value); setCurrentPage(1); }} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-gray-600">Sort By</label>
+                <select value={sortBy} onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm">
+                  <option value="created_at">Applied Date</option>
+                  <option value="name">Name</option>
+                  <option value="position">Position</option>
+                  <option value="status">Status</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-gray-600">Rows Per Page</label>
+                <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); scrollContentToTop(); }} className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white">
+                  {PAGE_SIZE_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
         </section>
       ) : (
         <section className="bg-white border border-gray-200 rounded-lg p-4 sm:p-5 shadow-sm">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+              <Search className="absolute left-3 top-2 w-4 h-4 text-gray-400" />
               <input
                 type="search"
                 role="searchbox"
@@ -858,7 +973,7 @@ export function CandidateBrowserExcel() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') e.preventDefault();
                 }}
-                className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                className="w-full pl-9 pr-9 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
               />
               {searchQuery && (
                 <button
@@ -868,7 +983,7 @@ export function CandidateBrowserExcel() {
                     setSearchQuery('');
                     setCurrentPage(1);
                   }}
-                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute right-3 top-2 text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -944,6 +1059,22 @@ export function CandidateBrowserExcel() {
               </div>
 
               <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Quick Date</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const today = new Date().toISOString().split('T')[0];
+                    setAppliedFrom(today);
+                    setAppliedTo(today);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full px-4 py-2 border border-green-300 bg-green-50 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors"
+                >
+                  Today
+                </button>
+              </div>
+
+              <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">Sort By</label>
                 <select
                   value={sortBy}
@@ -1016,40 +1147,47 @@ export function CandidateBrowserExcel() {
                 Showing {pageStart}-{pageEnd} of {totalCandidates} candidates
                 {debouncedSearchQuery && ` (filtered by "${debouncedSearchQuery}")`}
               </p>
-
               {selectedCandidates.size > 0 && (
-                <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-3">
-                  <span className="text-sm text-blue-600 font-medium">
-                    {selectedCandidates.size} selected
-                  </span>
-                  <button
-                    onClick={() => setShowSendModal(true)}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center gap-2"
-                  >
-                    <Mail className="w-4 h-4" />
-                    Send to Employer
-                  </button>
-                </div>
+                <span className="text-sm text-blue-600 font-medium mt-1">{selectedCandidates.size} selected</span>
               )}
             </div>
             <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2">
-              <span className="px-3 py-1 text-xs rounded bg-blue-100 text-blue-700 font-medium border border-blue-200">Detailed View</span>
+              {selectedCandidates.size > 0 && (
+                <button
+                  onClick={() => setShowSendModal(true)}
+                  className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center gap-2"
+                >
+                  <Mail className="w-4 h-4" />
+                  Send to Employer
+                </button>
+              )}
               <div className="relative">
                 <button
-                  onClick={() => handleExport('xlsx')}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center justify-center gap-2 w-full sm:w-auto"
+                  onClick={() => setShowExportMenu((prev) => !prev)}
+                  className="p-2 rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors"
+                  title="Export & settings"
                 >
-                  <Download className="w-4 h-4" />
-                  Export Excel
+                  <Settings className="w-4 h-4" />
                 </button>
+                {showExportMenu && (
+                  <div className="absolute right-0 mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                    <button
+                      onClick={() => { handleExport('xlsx'); setShowExportMenu(false); }}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-t-lg"
+                    >
+                      <Download className="w-4 h-4 text-green-600" />
+                      Export Excel
+                    </button>
+                    <button
+                      onClick={() => { handleExport('csv'); setShowExportMenu(false); }}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-b-lg border-t border-gray-100"
+                    >
+                      <Download className="w-4 h-4 text-blue-600" />
+                      Export CSV
+                    </button>
+                  </div>
+                )}
               </div>
-              <button
-                onClick={() => handleExport('csv')}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center justify-center gap-2 w-full sm:w-auto"
-              >
-                <Download className="w-4 h-4" />
-                Export CSV
-              </button>
             </div>
           </div>
         </div>
@@ -1113,6 +1251,12 @@ export function CandidateBrowserExcel() {
                     </div>
                   </th>
                   <th className="border border-gray-300 p-2 text-left text-xs font-semibold text-gray-700 bg-gray-100">AI Score</th>
+                  <th className="border border-gray-300 p-2 text-center text-xs font-semibold text-gray-700 bg-orange-50 min-w-[130px]">
+                    <div className="flex flex-col items-center gap-1">
+                      <FolderOpen className="w-4 h-4 text-orange-600" />
+                      <span>Documents</span>
+                    </div>
+                  </th>
                   
                   {/* Detailed columns */}
                   {viewMode === 'detailed' && (
@@ -1275,6 +1419,33 @@ export function CandidateBrowserExcel() {
                         ) : (
                           'missing'
                         )}
+                      </td>
+                      
+                      {/* Documents column */}
+                      <td className="border border-gray-300 p-2 bg-orange-50">
+                        <div className="flex flex-wrap gap-1 min-w-[120px]">
+                          {DOC_FLAG_CONFIG.filter(cfg => (candidate as any)[cfg.flag]).length === 0 ? (
+                            <span className="text-xs text-gray-400">—</span>
+                          ) : (
+                            DOC_FLAG_CONFIG.filter(cfg => (candidate as any)[cfg.flag]).map(cfg => (
+                              <button
+                                key={cfg.flag}
+                                type="button"
+                                title={cfg.label}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDocIconClick(candidate.id, cfg.category, cfg.label);
+                                }}
+                                className={`p-1 rounded transition-colors ${cfg.bg}`}
+                              >
+                                <cfg.Icon className={`w-4 h-4 ${cfg.color}`} />
+                              </button>
+                            ))
+                          )}
+                          {docLoadingIds[candidate.id] && (
+                            <span className="text-[10px] text-gray-400 animate-pulse self-center">…</span>
+                          )}
+                        </div>
                       </td>
                       
                       {/* Detailed columns */}

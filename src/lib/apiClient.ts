@@ -836,6 +836,8 @@ export interface PublicEmployerPortalResponse {
   createdNewAccount: boolean;
   socialLinks: SocialLinksPayload;
   whatsappNotified: boolean;
+  emailNotified: boolean;
+  autoLoginUrl: string | null;
 }
 
 export interface PublicPartnerPortalResponse {
@@ -847,6 +849,8 @@ export interface PublicPartnerPortalResponse {
   createdNewAccount: boolean;
   socialLinks: SocialLinksPayload;
   whatsappNotified: boolean;
+  emailNotified: boolean;
+  autoLoginUrl: string | null;
 }
 
 export interface PortalProfileResponse {
@@ -2170,3 +2174,89 @@ export interface JobRecommendation {
 }
 
 export const apiClient = new ApiClient();
+
+// ── Databank types ────────────────────────────────────────────────────────────
+
+export interface DatabankFolder {
+  id: string;
+  name: string;
+  parent_id: string | null;
+  created_by: string;
+  created_at: string;
+  file_count?: number;
+}
+
+export interface DatabankFile {
+  id: string;
+  folder_id: string;
+  file_name: string;
+  file_type: string;
+  storage_path: string;
+  file_url: string;
+  file_size: number | null;
+  uploaded_by: string;
+  created_at: string;
+  signed_url?: string | null;
+}
+
+// ── Databank API methods ──────────────────────────────────────────────────────
+
+Object.assign(apiClient, {
+  listDatabankFolders(accessToken: string): Promise<{ folders: DatabankFolder[] }> {
+    return (apiClient as any).request<{ folders: DatabankFolder[] }>('/databank/folders', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  },
+
+  createDatabankFolder(name: string, accessToken: string): Promise<{ folder: DatabankFolder }> {
+    return (apiClient as any).request<{ folder: DatabankFolder }>('/databank/folders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ name }),
+    });
+  },
+
+  deleteDatabankFolder(id: string, accessToken: string): Promise<{ success: boolean }> {
+    return (apiClient as any).request<{ success: boolean }>(`/databank/folders/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  },
+
+  listDatabankFiles(folderId: string, accessToken: string): Promise<{ files: DatabankFile[] }> {
+    return (apiClient as any).request<{ files: DatabankFile[] }>(`/databank/folders/${folderId}/files`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  },
+
+  async uploadDatabankFile(folderId: string, file: File, displayName: string, accessToken: string): Promise<{ file: DatabankFile }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('file_name', displayName);
+    const url = `${API_BASE_URL}/databank/folders/${folderId}/files`;
+    const res = await fetch(url, {
+      method: 'POST',
+      body: formData,
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`Upload failed: ${text || res.statusText}`);
+    }
+    return res.json() as Promise<{ file: DatabankFile }>;
+  },
+
+  deleteDatabankFile(id: string, accessToken: string): Promise<{ success: boolean }> {
+    return (apiClient as any).request<{ success: boolean }>(`/databank/files/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  },
+} satisfies {
+  listDatabankFolders: (accessToken: string) => Promise<{ folders: DatabankFolder[] }>;
+  createDatabankFolder: (name: string, accessToken: string) => Promise<{ folder: DatabankFolder }>;
+  deleteDatabankFolder: (id: string, accessToken: string) => Promise<{ success: boolean }>;
+  listDatabankFiles: (folderId: string, accessToken: string) => Promise<{ files: DatabankFile[] }>;
+  uploadDatabankFile: (folderId: string, file: File, displayName: string, accessToken: string) => Promise<{ file: DatabankFile }>;
+  deleteDatabankFile: (id: string, accessToken: string) => Promise<{ success: boolean }>;
+});

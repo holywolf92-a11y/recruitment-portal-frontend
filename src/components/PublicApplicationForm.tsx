@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react';
-import { ArrowRight, Briefcase, Building2, ChevronDown, Globe2, Handshake, Mail, MapPin, Phone, Share2, ShieldCheck, Upload, User2, Users } from 'lucide-react';
+import { ArrowRight, Briefcase, Building2, ChevronDown, Globe2, Mail, MapPin, Phone, Share2, ShieldCheck, Upload, User2, Users } from 'lucide-react';
 import { apiClient } from '../lib/apiClient';
 import type { PublicCandidatePortalResponse, PublicEmployerPortalResponse, PublicPartnerPortalResponse } from '../lib/apiClient';
+import { useAuth } from '../lib/authContext';
 
 type IntakeAudience = 'candidate' | 'employer' | 'partner';
 
@@ -470,6 +471,7 @@ function audiencePath(audience: IntakeAudience) {
 }
 
 export function PublicApplicationForm() {
+  const { signIn } = useAuth();
   const directAudience = resolveAudienceFromPath();
   const [selectedAudience, setSelectedAudience] = useState<IntakeAudience>(directAudience || 'candidate');
   const [candidateForm, setCandidateForm] = useState(candidateDefaults);
@@ -564,12 +566,29 @@ export function PublicApplicationForm() {
     try {
       const result = await apiClient.submitPartnerPortal({
         ...partnerForm,
+        district: partnerForm.district === '__other__' ? '' : partnerForm.district,
         phone: `${partnerPhoneCode} ${partnerPhoneNumber}`.trim(),
       });
       setPartnerResult(result);
       setPartnerForm(partnerDefaults);
       setPartnerPhoneCode('+92');
       setPartnerPhoneNumber('');
+
+      if (result.autoLoginUrl) {
+        window.location.assign(result.autoLoginUrl);
+        return;
+      }
+
+      if (result.password) {
+        try {
+          await signIn(result.email, result.password);
+          window.location.assign(result.dashboardUrl || '/partner/dashboard');
+          return;
+        } catch {
+          setError('Your account was created, but automatic sign-in failed. Use the credentials below or the link sent to your WhatsApp/email.');
+        }
+      }
+
       setSubmittedAudience('partner');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
@@ -724,10 +743,20 @@ export function PublicApplicationForm() {
             Your partner portal is ready. Log in to start referring candidates and earning commissions.
           </p>
 
-          {partnerResult?.whatsappNotified ? (
+          {partnerResult?.whatsappNotified && partnerResult?.emailNotified ? (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '12px', padding: '0.55rem 1rem', fontSize: '0.85rem', color: '#16a34a', fontWeight: 600 }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+              Credentials sent to your WhatsApp and email
+            </div>
+          ) : partnerResult?.whatsappNotified ? (
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '12px', padding: '0.55rem 1rem', fontSize: '0.85rem', color: '#16a34a', fontWeight: 600 }}>
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
               Credentials sent to your WhatsApp
+            </div>
+          ) : partnerResult?.emailNotified ? (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '12px', padding: '0.55rem 1rem', fontSize: '0.85rem', color: '#16a34a', fontWeight: 600 }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+              Credentials sent to your email
             </div>
           ) : (
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '12px', padding: '0.55rem 1rem', fontSize: '0.82rem', color: '#c2410c', fontWeight: 500 }}>
@@ -1070,7 +1099,7 @@ export function PublicApplicationForm() {
 
         <form className="falisha-auth-form-fields" onSubmit={handlePartnerSubmit}>
           <div className="grid gap-4 sm:grid-cols-2">
-            <InputField label="Applicant Name" value={partnerForm.applicantName} onChange={(v) => setPartnerForm((c) => ({ ...c, applicantName: v }))} required icon={User2} />
+            <InputField label="Name" value={partnerForm.applicantName} onChange={(v) => setPartnerForm((c) => ({ ...c, applicantName: v }))} required icon={User2} />
             <InputField label="Company / Agency Name" value={partnerForm.companyName} onChange={(v) => setPartnerForm((c) => ({ ...c, companyName: v }))} icon={Building2} />
             <div className="sm:col-span-2">
               <InputField label="Email" type="email" value={partnerForm.email} onChange={(v) => setPartnerForm((c) => ({ ...c, email: v }))} required icon={Mail} />
@@ -1089,10 +1118,59 @@ export function PublicApplicationForm() {
                 </div>
               </div>
             </div>
-            <InputField label="City / Country" value={partnerForm.cityCountry} onChange={(v) => setPartnerForm((c) => ({ ...c, cityCountry: v }))} icon={MapPin} />
-            <InputField label="District" value={partnerForm.district} onChange={(v) => setPartnerForm((c) => ({ ...c, district: v }))} icon={MapPin} />
+            <div className="sm:col-span-2 falisha-auth-field">
+              <label className="falisha-auth-field-label">Country</label>
+              <div className="falisha-auth-input-wrap">
+                <Globe2 className="falisha-auth-input-icon" />
+                <input
+                  type="text"
+                  list="partner-countries-list"
+                  value={partnerForm.cityCountry}
+                  onChange={(e) => setPartnerForm((c) => ({ ...c, cityCountry: e.target.value, district: '' }))}
+                  className="falisha-auth-input"
+                  placeholder="Type to search country…"
+                  autoComplete="off"
+                />
+                <datalist id="partner-countries-list">
+                  {WORLD_COUNTRIES.map((cn) => <option key={cn} value={cn} />)}
+                </datalist>
+              </div>
+            </div>
+            <div className="sm:col-span-2 falisha-auth-field">
+              <label className="falisha-auth-field-label">City</label>
+              <div className="falisha-auth-input-wrap">
+                <MapPin className="falisha-auth-input-icon" />
+                {CITIES_BY_COUNTRY[partnerForm.cityCountry] && partnerForm.district !== '__other__' ? (
+                  <select
+                    value={partnerForm.district}
+                    onChange={(e) => setPartnerForm((c) => ({ ...c, district: e.target.value }))}
+                    className="falisha-auth-input falisha-auth-select"
+                  >
+                    <option value="">Select city…</option>
+                    {CITIES_BY_COUNTRY[partnerForm.cityCountry].map((city) => (
+                      <option key={city} value={city}>{city}</option>
+                    ))}
+                    <option value="__other__">Other (type your city)</option>
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={partnerForm.district === '__other__' ? '' : partnerForm.district}
+                    onChange={(e) => setPartnerForm((c) => ({ ...c, district: e.target.value }))}
+                    className="falisha-auth-input"
+                    placeholder="Enter your city"
+                    autoFocus={partnerForm.district === '__other__'}
+                  />
+                )}
+              </div>
+              {CITIES_BY_COUNTRY[partnerForm.cityCountry] && partnerForm.district === '__other__' && (
+                <button type="button" onClick={() => setPartnerForm((c) => ({ ...c, district: '' }))}
+                  className="mt-1 text-xs text-blue-600 hover:underline">
+                  ← Back to city list
+                </button>
+              )}
+            </div>
             <InputField label="CNIC" value={partnerForm.cnic} onChange={(v) => setPartnerForm((c) => ({ ...c, cnic: v }))} icon={User2} />
-            <InputField label="Partner Type" value={partnerForm.partnerType} onChange={(v) => setPartnerForm((c) => ({ ...c, partnerType: v }))} icon={Handshake} />
           </div>
           <button type="submit" disabled={submitting} className="falisha-auth-primary flex items-center justify-center gap-2">
             {submitting ? 'Submitting…' : 'Submit Registration'}

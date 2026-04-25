@@ -5,9 +5,11 @@ import {
   AlertTriangle,
   AlertCircle,
   Award,
+  BookOpen,
   Briefcase,
   Calendar,
   Camera,
+  Car,
   CheckCircle,
   Download,
   Eye,
@@ -283,6 +285,45 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
     startTime: number;
     lastUpdate: number;
   }>>(new Map());
+
+  // Document open/download state (cache to avoid N+1 fetches)
+  const [candidateDocCache, setCandidateDocCache] = useState<Record<string, Array<any>>>({});
+  const [docOpeningIds, setDocOpeningIds] = useState<Record<string, boolean>>({});
+
+  // Document type config — shared by card and table views
+  const DOC_TYPES_CONFIG = [
+    { key: 'cv',                          flag: 'cv_received',                category: 'cv_resume',                     label: 'CV',       Icon: FileText, iconColorOk: 'text-blue-600',   color: 'text-blue-500',   bg: 'hover:bg-blue-100'   },
+    { key: 'passport',                    flag: 'passport_received',          category: 'passport',                      label: 'Passport', Icon: BookOpen, iconColorOk: 'text-purple-600',  color: 'text-green-600',  bg: 'hover:bg-green-100'  },
+    { key: 'cnic',                        flag: 'cnic_received',              category: 'cnic',                          label: 'CNIC',     Icon: Shield,   iconColorOk: 'text-indigo-600',  color: 'text-purple-500', bg: 'hover:bg-purple-100' },
+    { key: 'driving_license',             flag: 'driving_license_received',   category: 'driving_license',               label: 'License',  Icon: Car,      iconColorOk: 'text-cyan-600',    color: 'text-orange-500', bg: 'hover:bg-orange-100' },
+    { key: 'police_character_certificate',flag: 'police_character_received',  category: 'police_character_certificate',  label: 'PCC',      Icon: Shield,   iconColorOk: 'text-teal-600',    color: 'text-teal-500',   bg: 'hover:bg-teal-100'   },
+    { key: 'certificate',                 flag: 'certificate_received',       category: 'certificates',                  label: 'Cert',     Icon: Award,    iconColorOk: 'text-amber-600',   color: 'text-yellow-600', bg: 'hover:bg-yellow-100' },
+    { key: 'photo',                       flag: 'photo_received',             category: 'photos',                        label: 'Photo',    Icon: Camera,   iconColorOk: 'text-pink-600',    color: 'text-pink-500',   bg: 'hover:bg-pink-100'   },
+    { key: 'medical',                     flag: 'medical_received',           category: 'medical_reports',               label: 'Medical',  Icon: File,     iconColorOk: 'text-green-600',   color: 'text-red-500',    bg: 'hover:bg-red-100'    },
+  ] as const;
+
+  async function openCandidateDocument(candidateId: string, category: string, label: string) {
+    try {
+      let docs = candidateDocCache[candidateId];
+      if (!docs) {
+        setDocOpeningIds(prev => ({ ...prev, [candidateId]: true }));
+        docs = await apiClient.listCandidateDocumentsNew(candidateId);
+        setCandidateDocCache(prev => ({ ...prev, [candidateId]: docs }));
+        setDocOpeningIds(prev => { const n = { ...prev }; delete n[candidateId]; return n; });
+      }
+      const doc = docs.find((d: any) => d.category === category || d.doc_type === category || d.document_type === category);
+      if (!doc) {
+        toast.error(`No ${label} document found`);
+        return;
+      }
+      toast.info(`Opening ${label}…`);
+      const url = await apiClient.getCandidateDocumentDownloadUrl(doc.id);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (err: any) {
+      setDocOpeningIds(prev => { const n = { ...prev }; delete n[candidateId]; return n; });
+      toast.error(err?.message || `Failed to open ${label}`);
+    }
+  }
 
   // Fetch signed photo URLs for candidates missing them in list response
   useEffect(() => {
@@ -1289,10 +1330,17 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                   }`}
                 >
                   {/* Card Header with Profile Picture */}
-                  <div className="relative bg-gradient-to-br from-blue-500 to-purple-600 h-32 rounded-t-xl">
-                    <div className="absolute -bottom-16 left-6">
+                  <div className="relative bg-gradient-to-br from-blue-500 to-purple-600 h-16 rounded-t-xl">
+                    {/* Date Applied badge in ribbon */}
+                    {c.created_at && (
+                      <div className="absolute bottom-1.5 left-[76px] flex items-center gap-1 text-white/90">
+                        <Calendar className="w-3 h-3" />
+                        <span className="text-[11px] font-medium">{new Date(c.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })}</span>
+                      </div>
+                    )}
+                    <div className="absolute -bottom-7 left-4">
                       <div className="relative">
-                        <div className="w-32 h-32 bg-white rounded-full p-2 shadow-xl">
+                        <div className="w-14 h-14 bg-white rounded-full p-1 shadow-xl">
                           { resolvedPhotoUrl ? (
                             isPdfPhoto ? (
                               pdfThumb ? (
@@ -1310,8 +1358,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                                   title="Click to open PDF"
                                   style={{ cursor: 'pointer' }}
                                 >
-                                  <div className="text-4xl font-bold text-blue-600">{getInitials(c.name)}</div>
-                                  <div className="mt-1 text-[10px] px-2 py-0.5 rounded-full bg-white/70 text-gray-700">PDF</div>
+                                  <div className="text-lg font-bold text-blue-600">{getInitials(c.name)}</div>
+                                  <div className="text-[8px] px-1 py-0.5 rounded bg-white/70 text-gray-700">PDF</div>
                                 </div>
                               )
                             ) : (
@@ -1324,18 +1372,18 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                                   e.currentTarget.style.display = 'none';
                                   const parent = e.currentTarget.parentElement;
                                   if (parent) {
-                                    parent.innerHTML = `<div class=\"w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center text-4xl font-bold text-blue-600\">${getInitials(c.name)}</div>`;
+                                    parent.innerHTML = `<div class=\"w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center text-xl font-bold text-blue-600\">${getInitials(c.name)}</div>`;
                                   }
                                 }}
                               />
                             )
                           ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center text-4xl font-bold text-blue-600">
+                            <div className="w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center text-xl font-bold text-blue-600">
                               {getInitials(c.name)}
                             </div>
                           )}
                         </div>
-                        <button className="absolute bottom-0 right-0 w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white hover:bg-blue-700 transition-colors shadow-lg"
+                        <button className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white hover:bg-blue-700 transition-colors shadow-lg"
                           onClick={(e) => {
                             e.stopPropagation();
                             handlePhotoUpload(c.id);
@@ -1343,9 +1391,9 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                           disabled={uploadingPhoto === c.id}
                         >
                           {uploadingPhoto === c.id ? (
-                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
                           ) : (
-                            <Camera className="w-5 h-5" />
+                            <Camera className="w-3 h-3" />
                           )}
                         </button>
                       </div>
@@ -1361,187 +1409,130 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                   </div>
 
                   {/* Card Content */}
-                  <div className="pt-20 px-4 pb-4 sm:px-6 sm:pb-6">
-                    {/* Candidate ID badge — shown just below photo */}
-                    {c.candidate_code && (
-                      <div className="mb-3 flex">
-                        <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-mono font-semibold text-gray-500 border border-gray-200 select-all" title="Candidate ID">
-                          ID: {c.candidate_code}
+                  <div className="pt-10 px-4 pb-3">
+                    {/* ID + badges row */}
+                    <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+                      {c.candidate_code && (
+                        <span className="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 text-[11px] font-mono font-semibold text-gray-500 border border-gray-200 select-all" title="Candidate ID">
+                          {c.candidate_code}
                         </span>
-                      </div>
-                    )}
-                    {/* Name and Title */}
-                    <div className="mb-4">
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <h3 className="text-xl sm:text-2xl font-semibold text-gray-900 break-words">{c.name}</h3>
-                        {partnerAttribution?.label && (
-                          <span className="px-3 py-1 bg-cyan-100 text-cyan-700 rounded-full text-xs font-medium">
-                            Agent: {partnerAttribution.label}
-                          </span>
-                        )}
-                        {c.needs_review && (
-                          <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium flex items-center gap-1">
-                            <AlertTriangle className="w-3 h-3" />
-                            Review
-                          </span>
-                        )}
-                        {c.auto_extracted && !c.needs_review && (
-                          <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium flex items-center gap-1">
-                            <Sparkles className="w-3 h-3" />
-                            Auto
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-start gap-2 text-gray-600 mb-1">
-                        <Briefcase className="w-5 h-5" />
-                        <span className="text-base sm:text-lg break-words">{c.position || '—'}</span>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 text-gray-500">
-                        <span className="text-sm">{c.nationality || '—'}</span>
-                        <span className="text-gray-400">→</span>
-                        <MapPin className="w-4 h-4" />
-                        <span className="text-sm font-medium text-blue-600">{c.country_of_interest || '—'}</span>
+                      )}
+                      {partnerAttribution?.label && (
+                        <span className="px-2 py-0.5 bg-cyan-100 text-cyan-700 rounded-full text-[10px] font-medium">
+                          Agent: {partnerAttribution.label}
+                        </span>
+                      )}
+                      {c.needs_review && (
+                        <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-[10px] font-medium flex items-center gap-0.5">
+                          <AlertTriangle className="w-2.5 h-2.5" />Review
+                        </span>
+                      )}
+                      {c.auto_extracted && !c.needs_review && (
+                        <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-[10px] font-medium flex items-center gap-0.5">
+                          <Sparkles className="w-2.5 h-2.5" />Auto
+                        </span>
+                      )}
+                    </div>
+                    {/* Name + position + nationality */}
+                    <div className="mb-2">
+                      <h3 className="text-base font-semibold text-gray-900 leading-tight mb-0.5">{c.name}</h3>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500">
+                        <span className="flex items-center gap-1"><Briefcase className="w-3 h-3" />{c.position || '—'}</span>
+                        <span className="text-gray-300">·</span>
+                        <span>{c.nationality || '—'}</span>
+                        <span className="text-gray-300">→</span>
+                        <span className="flex items-center gap-0.5 font-medium text-blue-600"><MapPin className="w-3 h-3" />{c.country_of_interest || '—'}</span>
                       </div>
                     </div>
 
-                    {/* Status and Score Row */}
-                    <div className="flex flex-wrap items-center gap-2 mb-4 pb-4 border-b border-gray-200">
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* Status · Score · Exp · Payment — compact row */}
+                    <div className="flex flex-wrap items-center gap-1.5 mb-2 pb-2 border-b border-gray-200">
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         <select
                           value={statusLabel}
                           onChange={(event) => handleCandidateStatusChange(c, event.target.value as CandidateStatus)}
                           disabled={!!statusUpdatingIds[c.id]}
-                          className={`rounded-lg border border-transparent px-4 py-2 text-sm font-medium ${getCandidateStatusClasses(statusLabel)} ${statusUpdatingIds[c.id] ? 'cursor-wait opacity-70' : 'cursor-pointer'}`}
+                          className={`rounded border border-transparent px-2 py-1 text-xs font-medium ${getCandidateStatusClasses(statusLabel)} ${statusUpdatingIds[c.id] ? 'cursor-wait opacity-70' : 'cursor-pointer'}`}
                         >
                           {CANDIDATE_STATUS_VALUES.map((statusOption) => (
-                            <option key={statusOption} value={statusOption}>
-                              {statusOption}
-                            </option>
+                            <option key={statusOption} value={statusOption}>{statusOption}</option>
                           ))}
                         </select>
-                        {statusUpdatingIds[c.id] && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
+                        {statusUpdatingIds[c.id] && <Loader2 className="h-3 w-3 animate-spin text-gray-400" />}
                       </div>
                       {score != null && (
-                        <div className="flex items-center gap-2 bg-yellow-50 px-4 py-2 rounded-lg flex-shrink-0">
-                          <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                          <span className="text-lg font-bold text-gray-900">{score.toFixed(1)}</span>
-                          <span className="text-xs text-gray-500">/10</span>
+                        <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded flex-shrink-0">
+                          <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                          <span className="text-xs font-bold text-gray-900">{score.toFixed(1)}</span>
                         </div>
                       )}
                       {c.experience_years != null && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600 flex-shrink-0">
-                          <Briefcase className="w-4 h-4" />
-                          <span className="font-medium">{c.experience_years}y exp</span>
-                        </div>
+                        <span className="text-xs text-gray-500 flex-shrink-0">{c.experience_years}y exp</span>
                       )}
                     </div>
 
-                    <div className="mb-4 rounded-2xl border border-emerald-100 bg-emerald-50/80 p-4">
-                      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                        <div>
-                          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Payment Received</div>
-                          <div className="mt-1 text-2xl font-semibold text-emerald-900">{formatCandidatePaymentAmount(c.payment_amount)}</div>
-                          <div className="text-xs text-emerald-700">Default is 0 PKR until collected.</div>
-                        </div>
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                          <div className="flex items-center rounded-xl border border-emerald-200 bg-white shadow-sm">
-                            <span className="px-3 text-sm font-semibold text-emerald-700">PKR</span>
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              value={getPaymentDraft(c)}
-                              onChange={(event) => handlePaymentDraftChange(c.id, event.target.value)}
-                              onKeyDown={(event) => {
-                                if (event.key === 'Enter') {
-                                  event.preventDefault();
-                                  handleCandidatePaymentSave(c);
-                                }
-                              }}
-                              disabled={!!paymentUpdatingIds[c.id]}
-                              className="w-36 rounded-r-xl border-0 bg-transparent px-3 py-2 text-sm font-medium text-gray-900 outline-none"
-                              placeholder="0"
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleCandidatePaymentSave(c)}
-                            disabled={!!paymentUpdatingIds[c.id]}
-                            className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-70"
-                          >
-                            {paymentUpdatingIds[c.id] ? 'Saving...' : 'Save Payment'}
-                          </button>
-                        </div>
+                    {/* Payment — compact inline row */}
+                    <div className="flex items-center gap-1.5 mb-2 pb-2 border-b border-gray-100">
+                      <span className="text-[11px] font-semibold text-emerald-700 whitespace-nowrap min-w-[3rem]">{formatCandidatePaymentAmount(c.payment_amount)}</span>
+                      <div className="flex items-center rounded border border-emerald-200 bg-emerald-50">
+                        <span className="px-1.5 text-[11px] font-semibold text-emerald-700">PKR</span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={getPaymentDraft(c)}
+                          onChange={(event) => handlePaymentDraftChange(c.id, event.target.value)}
+                          onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); handleCandidatePaymentSave(c); } }}
+                          disabled={!!paymentUpdatingIds[c.id]}
+                          className="w-20 border-0 bg-transparent px-1.5 py-1 text-xs text-gray-900 outline-none"
+                          placeholder="0"
+                        />
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCandidatePaymentSave(c)}
+                        disabled={!!paymentUpdatingIds[c.id]}
+                        className="rounded bg-emerald-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-70"
+                      >
+                        {paymentUpdatingIds[c.id] ? '…' : 'Save'}
+                      </button>
                     </div>
 
-                    {/* Contact Information */}
-                    <div className="space-y-3 mb-4 pb-4 border-b border-gray-200">
+                    {/* Contact — compact chips */}
+                    <div className="flex flex-wrap gap-1.5 mb-2 pb-2 border-b border-gray-100">
                       {c.phone && (
-                        <div className="flex items-center gap-3 text-sm">
-                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Phone className="w-4 h-4 text-blue-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs text-gray-500">Phone</div>
-                            <div className="text-gray-900 font-medium truncate">{c.phone}</div>
-                          </div>
-                        </div>
+                        <a href={`tel:${c.phone}`} className="flex items-center gap-1 text-[11px] text-blue-700 bg-blue-50 hover:bg-blue-100 rounded px-2 py-0.5 truncate max-w-[160px]" title={c.phone}>
+                          <Phone className="w-3 h-3 flex-shrink-0" />{c.phone}
+                        </a>
                       )}
                       {c.email && (
-                        <div className="flex items-center gap-3 text-sm">
-                          <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Mail className="w-4 h-4 text-green-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs text-gray-500">Email</div>
-                            <div className="text-gray-900 font-medium truncate">{c.email}</div>
-                          </div>
-                        </div>
-                      )}
-                      {c.created_at && (
-                        <div className="flex items-center gap-3 text-sm">
-                          <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Calendar className="w-4 h-4 text-purple-600" />
-                          </div>
-                          <div className="flex-1">
-                            <div className="text-xs text-gray-500">Applied Date</div>
-                            <div className="text-gray-900 font-medium">{new Date(c.created_at).toLocaleDateString()}</div>
-                          </div>
-                        </div>
+                        <a href={`mailto:${c.email}`} className="flex items-center gap-1 text-[11px] text-green-700 bg-green-50 hover:bg-green-100 rounded px-2 py-0.5 truncate max-w-[180px]" title={c.email}>
+                          <Mail className="w-3 h-3 flex-shrink-0" />{c.email}
+                        </a>
                       )}
                     </div>
 
                     {/* Skills */}
                     {skills.length > 0 && (
-                      <div className="mb-4 pb-4 border-b border-gray-200">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Award className="w-4 h-4 text-gray-600" />
-                          <span className="text-sm font-semibold text-gray-700">Top Skills</span>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {skills.slice(0, 4).map((skill, index) => (
-                            <span
-                              key={index}
-                              className="px-3 py-1.5 bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 rounded-lg text-xs font-medium border border-blue-200"
-                            >
+                      <div className="mb-2 pb-2 border-b border-gray-100">
+                        <div className="flex flex-wrap gap-1">
+                          {skills.slice(0, 3).map((skill, index) => (
+                            <span key={index} className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-[11px] font-medium border border-blue-100">
                               {skill}
                             </span>
                           ))}
-                          {skills.length > 4 && (
-                            <span className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-medium">
-                              +{skills.length - 4} more
-                            </span>
+                          {skills.length > 3 && (
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-[11px] font-medium">+{skills.length - 3}</span>
                           )}
                         </div>
                       </div>
                     )}
 
                     {/* Documents - Smart Display */}
-                    <div className="mb-4 pb-4 border-b border-gray-200">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <FileText className="w-4 h-4 text-gray-600" />
-                          <span className="text-sm font-semibold text-gray-700">Document List</span>
+                    <div className="mb-2 pb-2 border-b border-gray-100">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <FileText className="w-3.5 h-3.5 text-gray-500" />
+                          <span className="text-xs font-semibold text-gray-700">Docs</span>
                           {processingDocuments.get(c.id)?.isProcessing ? (
                             <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 flex items-center gap-1.5">
                               <ProgressDots />
@@ -1602,214 +1593,55 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                         </div>
                       ) : docCount > 0 ? (
                         <>
+                          {/* Dynamic document icon grid — green=clickable, red=disabled */}
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        {/* CV */}
-                        <div 
-                          onClick={() => handleDocumentClick(c.id, 'cv', cvOk)}
-                          className={`relative group cursor-pointer ${
-                            cvOk ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
-                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md hover:scale-105 animate-fade-in`}
-                        >
-                          <FileText className={`w-5 h-5 mb-1 ${
-                            cvOk ? 'text-green-600' : 'text-red-600'
-                          }`} />
-                          <span className="text-xs font-semibold">CV</span>
-                          {cvOk ? (
-                            <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
-                          ) : (
-                            <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
-                          )}
-                          {!cvOk && (
-                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50">
-                              <div className="bg-gray-900 text-white text-xs rounded-md px-2 py-1 whitespace-nowrap">
-                                Missing or invalid CV
-                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                            {(() => {
+                              const docFlagMap: Record<string, boolean> = {
+                                cv: cvOk, passport: passportOk, cnic: cnicOk,
+                                driving_license: drivingLicenseOk,
+                                police_character_certificate: policeCharacterOk,
+                                certificate: certificateOk, photo: photoOk, medical: medicalOk,
+                              };
+                              return DOC_TYPES_CONFIG.map(({ key, category, label, Icon, iconColorOk }) => {
+                                const isOk = docFlagMap[key as keyof typeof docFlagMap];
+                                return (
+                                  <div
+                                    key={key}
+                                    onClick={isOk ? (e) => { e.stopPropagation(); openCandidateDocument(c.id, category, label); } : undefined}
+                                    title={isOk ? `View ${label}` : `${label} not uploaded`}
+                                    className={`relative group ${isOk ? 'cursor-pointer' : 'cursor-not-allowed'} ${
+                                      isOk ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
+                                    } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all ${isOk ? 'hover:shadow-md hover:scale-105 hover:bg-green-100' : 'opacity-70'} animate-fade-in`}
+                                  >
+                                    <Icon className={`w-5 h-5 mb-1 ${isOk ? iconColorOk : 'text-red-400'}`} />
+                                    <span className="text-xs font-semibold">{label}</span>
+                                    {isOk ? (
+                                      <>
+                                        <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
+                                        <div className="absolute inset-0 rounded-lg bg-green-600/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                                          <Eye className="w-4 h-4 text-green-700" />
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <XCircle className="w-5 h-5 text-red-400 absolute top-1 right-1" strokeWidth={2.5} />
+                                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50">
+                                          <div className="bg-gray-900 text-white text-xs rounded-md px-2 py-1 whitespace-nowrap">
+                                            {label} not uploaded
+                                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                                          </div>
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                );
+                              });
+                            })()}
+                            {docOpeningIds[c.id] && (
+                              <div className="col-span-4 flex items-center justify-center gap-1 text-xs text-gray-500 py-1">
+                                <Loader2 className="w-3 h-3 animate-spin" /> Opening document…
                               </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Passport */}
-                        <div 
-                          onClick={() => handleDocumentClick(c.id, 'passport', passportOk)}
-                          className={`relative group cursor-pointer ${
-                            passportOk ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
-                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md hover:scale-105`}
-                        >
-                          <File className={`w-5 h-5 mb-1 ${
-                            passportOk ? 'text-purple-600' : 'text-red-600'
-                          }`} />
-                          <span className="text-xs font-semibold">Passport</span>
-                          {passportOk ? (
-                            <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
-                          ) : (
-                            <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
-                          )}
-                          {!passportOk && (
-                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50">
-                              <div className="bg-gray-900 text-white text-xs rounded-md px-2 py-1 whitespace-nowrap">
-                                Passport needs review
-                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* CNIC */}
-                        <div 
-                          onClick={() => handleDocumentClick(c.id, 'cnic', cnicOk)}
-                          className={`relative group cursor-pointer ${
-                            cnicOk ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
-                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md hover:scale-105`}
-                        >
-                          <Shield className={`w-5 h-5 mb-1 ${
-                            cnicOk ? 'text-indigo-600' : 'text-red-600'
-                          }`} />
-                          <span className="text-xs font-semibold">CNIC</span>
-                          {cnicOk ? (
-                            <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
-                          ) : (
-                            <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
-                          )}
-                          {!cnicOk && (
-                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50">
-                              <div className="bg-gray-900 text-white text-xs rounded-md px-2 py-1 whitespace-nowrap">
-                                CNIC needs review
-                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Driving License */}
-                        <div 
-                          onClick={() => handleDocumentClick(c.id, 'driving_license', drivingLicenseOk)}
-                          className={`relative group cursor-pointer ${
-                            drivingLicenseOk ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
-                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md hover:scale-105`}
-                        >
-                          <Shield className={`w-5 h-5 mb-1 ${
-                            drivingLicenseOk ? 'text-cyan-600' : 'text-red-600'
-                          }`} />
-                          <span className="text-xs font-semibold">License</span>
-                          {drivingLicenseOk ? (
-                            <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
-                          ) : (
-                            <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
-                          )}
-                          {!drivingLicenseOk && (
-                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50">
-                              <div className="bg-gray-900 text-white text-xs rounded-md px-2 py-1 whitespace-nowrap">
-                                License needs review
-                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Police Character Certificate */}
-                        <div 
-                          onClick={() => handleDocumentClick(c.id, 'police_character_certificate', policeCharacterOk)}
-                          className={`relative group cursor-pointer ${
-                            policeCharacterOk ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
-                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md hover:scale-105`}
-                        >
-                          <Shield className={`w-5 h-5 mb-1 ${
-                            policeCharacterOk ? 'text-teal-600' : 'text-red-600'
-                          }`} />
-                          <span className="text-xs font-semibold">PCC</span>
-                          {policeCharacterOk ? (
-                            <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
-                          ) : (
-                            <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
-                          )}
-                          {!policeCharacterOk && (
-                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50">
-                              <div className="bg-gray-900 text-white text-xs rounded-md px-2 py-1 whitespace-nowrap">
-                                PCC needs review
-                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Certificate */}
-                        <div 
-                          onClick={() => handleDocumentClick(c.id, 'certificate', certificateOk)}
-                          className={`relative group cursor-pointer ${
-                            certificateOk ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
-                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md hover:scale-105`}
-                        >
-                          <Award className={`w-5 h-5 mb-1 ${
-                            certificateOk ? 'text-blue-600' : 'text-red-600'
-                          }`} />
-                          <span className="text-xs font-semibold">Cert</span>
-                          {certificateOk ? (
-                            <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
-                          ) : (
-                            <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
-                          )}
-                          {!certificateOk && (
-                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50">
-                              <div className="bg-gray-900 text-white text-xs rounded-md px-2 py-1 whitespace-nowrap">
-                                Certificate needs review
-                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Photo */}
-                        <div 
-                          onClick={() => handleDocumentClick(c.id, 'photo', photoOk)}
-                          className={`relative group cursor-pointer ${
-                            photoOk ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
-                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md hover:scale-105`}
-                        >
-                          <Image className={`w-5 h-5 mb-1 ${
-                            photoOk ? 'text-pink-600' : 'text-red-600'
-                          }`} />
-                          <span className="text-xs font-semibold">Photo</span>
-                          {photoOk ? (
-                            <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
-                          ) : (
-                            <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
-                          )}
-                          {!photoOk && (
-                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50">
-                              <div className="bg-gray-900 text-white text-xs rounded-md px-2 py-1 whitespace-nowrap">
-                                Photo needs review
-                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Medical */}
-                        <div 
-                          onClick={() => handleDocumentClick(c.id, 'medical', medicalOk)}
-                          className={`relative group cursor-pointer ${
-                            medicalOk ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
-                          } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all hover:shadow-md hover:scale-105`}
-                        >
-                          <File className={`w-5 h-5 mb-1 ${
-                            medicalOk ? 'text-green-600' : 'text-red-600'
-                          }`} />
-                          <span className="text-xs font-semibold">Medical</span>
-                          {medicalOk ? (
-                            <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
-                          ) : (
-                            <XCircle className="w-5 h-5 text-red-600 absolute top-1 right-1" strokeWidth={2.5} />
-                          )}
-                          {!medicalOk && (
-                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50">
-                              <div className="bg-gray-900 text-white text-xs rounded-md px-2 py-1 whitespace-nowrap">
-                                Medical needs review
-                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                            )}
                           </div>
 
                           {/* Document Status Message */}
@@ -1835,36 +1667,36 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5 mt-1">
+                      <div className="grid grid-cols-2 gap-2">
                         <button 
                           onClick={() => handleViewProfile(c)}
-                          className="px-5 py-3.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all flex items-center justify-center gap-2 font-medium shadow-lg hover:shadow-xl"
+                          className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5 text-xs font-medium"
                         >
-                          <Eye className="w-5 h-5" />
+                          <Eye className="w-3.5 h-3.5" />
                           View Details
                         </button>
                         <button 
                           onClick={() => handleDownloadCV(c)}
-                          className="px-5 py-3.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-purple-800 transition-all flex items-center justify-center gap-2 font-medium shadow-lg hover:shadow-xl"
+                          className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-1.5 text-xs font-medium"
                         >
-                          <Download className="w-5 h-5" />
+                          <Download className="w-3.5 h-3.5" />
                           Download CV
                         </button>
                       </div>
                       <button
                         onClick={() => handleDeleteCandidate(c)}
                         disabled={deletingCandidateId === c.id}
-                        className="w-full px-5 py-3 border border-red-200 bg-red-50 text-red-700 rounded-xl hover:bg-red-100 transition-all flex items-center justify-center gap-2 font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="w-full px-3 py-1.5 border border-red-200 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-1.5 text-xs font-medium disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         {deletingCandidateId === c.id ? (
                           <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
                             Deleting...
                           </>
                         ) : (
                           <>
-                            <Trash2 className="w-5 h-5" />
+                            <Trash2 className="w-3.5 h-3.5" />
                             Delete Candidate
                           </>
                         )}
@@ -1900,9 +1732,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                     <th className="px-4 py-3 text-left font-semibold text-gray-600 whitespace-nowrap">Status</th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-600 whitespace-nowrap">Exp (yrs)</th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-600 whitespace-nowrap">Source</th>
-                    <th className="px-4 py-3 text-center font-semibold text-gray-600 whitespace-nowrap">CV</th>
-                    <th className="px-4 py-3 text-center font-semibold text-gray-600 whitespace-nowrap">Photo</th>
-                    <th className="px-4 py-3 text-center font-semibold text-gray-600 whitespace-nowrap">Passport</th>
+                    <th className="px-4 py-3 text-center font-semibold text-gray-600 whitespace-nowrap">Documents</th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-600 whitespace-nowrap">Partner</th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-600 whitespace-nowrap">Added</th>
                     <th className="px-4 py-3 text-center font-semibold text-gray-600 whitespace-nowrap">View</th>
@@ -1933,20 +1763,25 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                         </td>
                         <td className="px-4 py-2.5 text-center text-gray-600">{c.experience_years ?? '—'}</td>
                         <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap text-xs">{c.source || '—'}</td>
-                        <td className="px-4 py-2.5 text-center">
-                          {c.cv_received
-                            ? <CheckCircle className="w-4 h-4 text-green-500 mx-auto" />
-                            : <span className="text-gray-300 text-xs">—</span>}
-                        </td>
-                        <td className="px-4 py-2.5 text-center">
-                          {c.photo_received
-                            ? <CheckCircle className="w-4 h-4 text-green-500 mx-auto" />
-                            : <span className="text-gray-300 text-xs">—</span>}
-                        </td>
-                        <td className="px-4 py-2.5 text-center">
-                          {c.passport_received
-                            ? <CheckCircle className="w-4 h-4 text-green-500 mx-auto" />
-                            : <span className="text-gray-300 text-xs">—</span>}
+                        <td className="px-4 py-2.5 text-center" onClick={e => e.stopPropagation()}>
+                          <div className="flex flex-wrap gap-1 justify-center min-w-[120px]">
+                            {DOC_TYPES_CONFIG.filter(cfg => !!(c as any)[cfg.flag]).length === 0 ? (
+                              <span className="text-xs text-gray-300">—</span>
+                            ) : (
+                              DOC_TYPES_CONFIG.filter(cfg => !!(c as any)[cfg.flag]).map(cfg => (
+                                <button
+                                  key={cfg.key}
+                                  type="button"
+                                  title={`View ${cfg.label}`}
+                                  onClick={(e) => { e.stopPropagation(); openCandidateDocument(c.id, cfg.category, cfg.label); }}
+                                  className={`p-1 rounded transition-colors ${cfg.bg}`}
+                                >
+                                  <cfg.Icon className={`w-4 h-4 ${cfg.color}`} />
+                                </button>
+                              ))
+                            )}
+                            {docOpeningIds[c.id] && <Loader2 className="w-3 h-3 animate-pulse text-gray-400 self-center" />}
+                          </div>
                         </td>
                         <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap text-xs max-w-[120px] truncate">{c.partner_name || '—'}</td>
                         <td className="px-4 py-2.5 text-gray-400 whitespace-nowrap text-xs">{addedDate}</td>

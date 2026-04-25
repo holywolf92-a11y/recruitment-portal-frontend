@@ -28,13 +28,15 @@ import { CandidateOnboardingPage } from './components/CandidateOnboardingPage';
 import { CandidatePortalDashboard } from './components/CandidatePortalDashboard';
 import { EmployerPortalDashboard } from './components/EmployerPortalDashboard';
 import { PartnerPortalDashboard } from './components/PartnerPortalDashboard';
+import { SocialLinksLanding } from './components/SocialLinksLanding';
+import { Databank } from './components/Databank';
 import { useAuth, AuthProvider } from './lib/authContext';
 import { CandidateProvider } from './lib/candidateContext';
 import { getRoleLabel, hasRolePermission, normalizeUserRole, type Permission, type UserRole } from './lib/authData';
 import { apiClient, type PortalProfileResponse } from './lib/apiClient';
 import { APP_CONFIG } from './lib/constants';
 import { Toaster } from './components/ui/sonner';
-import { ArrowLeft, Briefcase, Building2, ChevronDown, ClipboardList, FileText, FolderTree, Inbox, LayoutDashboard, Link2, LogOut, Mail, Menu, MessageSquare, Phone, Settings as SettingsIcon, Shield, Users, X, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, Briefcase, Building2, ChevronDown, ClipboardList, Database, FileText, FolderTree, Inbox, LayoutDashboard, Link2, LogOut, Mail, Menu, MessageSquare, Phone, Settings as SettingsIcon, Shield, Users, X, type LucideIcon } from 'lucide-react';
 
 type AdminNavigationOptions = {
   profession?: string;
@@ -84,8 +86,20 @@ const NAV_SECTIONS: NavSectionConfig[] = [
     items: [
       { tab: 'cv-inbox', label: 'CV Inbox', icon: Inbox },
       { tab: 'inbox-ui', label: 'Inbox Manager', icon: Mail },
-      { tab: 'candidate-excel-browser', label: 'Excel Browser', icon: FolderTree },
       { tab: 'candidates', label: 'Candidates', icon: Users, badge: 'candidate-count' },
+    ],
+  },
+  {
+    id: 'excel-browser',
+    label: 'Excel Browser',
+    items: [
+      { tab: 'candidate-excel-browser', label: 'Excel Browser', icon: FolderTree },
+    ],
+  },
+  {
+    id: 'partners',
+    label: 'Partners',
+    items: [
       { tab: 'partners', label: 'Partners', icon: Building2 },
     ],
   },
@@ -123,6 +137,7 @@ const NAV_SECTIONS: NavSectionConfig[] = [
       { tab: 'admin-panel', label: 'Admin Panel', icon: Shield, adminOnly: true },
       { tab: 'users', label: 'User Management', icon: Users, permission: { resource: 'users', action: 'view' } },
       { tab: 'settings', label: 'Settings', icon: SettingsIcon },
+      { tab: 'databank', label: 'Databank', icon: Database, roles: ['admin', 'worker'] },
     ],
   },
 ];
@@ -130,6 +145,8 @@ const NAV_SECTIONS: NavSectionConfig[] = [
 const DEFAULT_OPEN_SECTIONS: Record<string, boolean> = {
   overview: true,
   talent: true,
+  'excel-browser': false,
+  partners: false,
   jobs: false,
   operations: false,
   communication: false,
@@ -203,6 +220,7 @@ const AppContent = () => {
   });
   const [professions, setProfessions] = useState<string[]>(['all']);
   const [professionCounts, setProfessionCounts] = useState<Record<string, number>>({ all: 0 });
+  const [professionsOpen, setProfessionsOpen] = useState(false);
   const [portalProfile, setPortalProfile] = useState<PortalProfileResponse | null>(null);
   const [portalProfileLoading, setPortalProfileLoading] = useState(false);
   const [portalProfileError, setPortalProfileError] = useState<string | null>(null);
@@ -539,10 +557,12 @@ const AppContent = () => {
   }, [session, user.role]);
 
   const toggleSection = (sectionId: string) => {
-    setOpenSections((current) => ({
-      ...current,
-      [sectionId]: !current[sectionId],
-    }));
+    setOpenSections((current) => {
+      const isCurrentlyOpen = current[sectionId];
+      // Collapse all sections, then open the clicked one (accordion behaviour)
+      const allClosed = Object.fromEntries(Object.keys(current).map((k) => [k, false]));
+      return { ...allClosed, [sectionId]: !isCurrentlyOpen };
+    });
   };
 
   const shouldRenderNavItem = (item: NavItemConfig) => {
@@ -619,6 +639,8 @@ const AppContent = () => {
         return <Reports />;
       case 'settings':
         return <Settings />;
+      case 'databank':
+        return <Databank />;
       case 'admin-panel':
         return <AdminPanel />;
       case 'users':
@@ -709,7 +731,7 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="sticky top-0 z-40 shrink-0 border-b border-slate-200 bg-white/92 shadow-[0_1px_0_rgba(15,23,42,0.04)] backdrop-blur supports-[backdrop-filter]:bg-white/84">
+      {!isBrowserView && <header className="sticky top-0 z-40 shrink-0 border-b border-slate-200 bg-white/92 shadow-[0_1px_0_rgba(15,23,42,0.04)] backdrop-blur supports-[backdrop-filter]:bg-white/84">
         <div className="px-3 md:px-5 py-2.5">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 md:gap-3 min-w-0 flex-1">
@@ -797,7 +819,7 @@ const AppContent = () => {
             </div>
           </div>
         </div>
-      </header>
+      </header>}
 
       <div className="admin-shell min-w-0 flex-1 min-h-0">
         {!isBrowserView && (
@@ -881,28 +903,40 @@ const AppContent = () => {
                                 );
                               })}
 
-                              {section.id === 'talent' && activeTab === 'candidates' && professions.filter((profession) => profession !== 'all').length > 0 && (
-                                <div className="admin-nav-subtree" aria-label="Candidate profession filters">
-                                  {professions.filter((profession) => profession !== 'all').map((profession) => {
-                                    const isActiveProfession = selectedProfession === profession;
+                              {section.id === 'talent' && professions.filter((profession) => profession !== 'all').length > 0 && (
+                                <div className="admin-nav-profession-group">
+                                  <button
+                                    className="admin-nav-profession-toggle"
+                                    onClick={() => setProfessionsOpen((prev) => !prev)}
+                                    aria-expanded={professionsOpen}
+                                  >
+                                    <span>Professions</span>
+                                    <ChevronDown className={`h-3 w-3 transition-transform ${professionsOpen ? 'rotate-180' : ''}`} />
+                                  </button>
+                                  {professionsOpen && (
+                                    <div className="admin-nav-subtree" aria-label="Candidate profession filters">
+                                      {professions.filter((profession) => profession !== 'all').map((profession) => {
+                                        const isActiveProfession = selectedProfession === profession;
 
-                                    return (
-                                      <a
-                                        key={profession}
-                                        href={buildPortalUrl('candidates', { profession })}
-                                        onClick={(event) => {
-                                          setSelectedProfession(profession);
-                                          onNavClick(event, 'candidates', { profession });
-                                        }}
-                                        className={`admin-nav-subitem${isActiveProfession ? ' is-active' : ''}`}
-                                        aria-current={isActiveProfession ? 'page' : undefined}
-                                      >
-                                        <span className="admin-nav-subitem-dot" />
-                                        <span className="admin-nav-subitem-label">{profession}</span>
-                                        <span className="admin-nav-subitem-count">{professionCounts[profession] ?? 0}</span>
-                                      </a>
-                                    );
-                                  })}
+                                        return (
+                                          <a
+                                            key={profession}
+                                            href={buildPortalUrl('candidates', { profession })}
+                                            onClick={(event) => {
+                                              setSelectedProfession(profession);
+                                              onNavClick(event, 'candidates', { profession });
+                                            }}
+                                            className={`admin-nav-subitem${isActiveProfession ? ' is-active' : ''}`}
+                                            aria-current={isActiveProfession ? 'page' : undefined}
+                                          >
+                                            <span className="admin-nav-subitem-dot" />
+                                            <span className="admin-nav-subitem-label">{profession}</span>
+                                            <span className="admin-nav-subitem-count">{professionCounts[profession] ?? 0}</span>
+                                          </a>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -923,19 +957,7 @@ const AppContent = () => {
           </>
         )}
 
-        <main className={`flex-1 min-w-0 min-h-0 bg-gradient-to-b from-slate-50 to-white ${activeTab === 'whatsapp-inbox' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}>
-          {isBrowserView && (
-            <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-3">
-              <button
-                onClick={() => navigateTab('candidates')}
-                className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5" />
-                <span className="font-medium">Back to Candidates</span>
-              </button>
-            </div>
-          )}
-
+        <main className={`flex-1 min-w-0 min-h-0 bg-gradient-to-b from-slate-50 to-white ${activeTab === 'whatsapp-inbox' ? 'overflow-hidden flex flex-col' : isBrowserView ? 'overflow-hidden' : 'overflow-y-auto'}`}>
           <div className={activeTab === 'whatsapp-inbox' ? 'flex-1 min-h-0 flex flex-col' : isBrowserView ? '' : 'p-3 sm:p-4 md:p-6'}>
             {renderContent()}
           </div>
@@ -958,8 +980,30 @@ export default function App() {
       return <JoinLanding />;
     }
 
+    if (pathname === '/links/social') {
+      window.location.replace('/social');
+      return null;
+    }
+
+    if (pathname === '/links/social-google') {
+      window.location.replace('/social-google');
+      return null;
+    }
+
+    if (pathname === '/social') {
+      return <SocialLinksLanding includeGoogleBusiness={false} />;
+    }
+
+    if (pathname === '/social-google') {
+      return <SocialLinksLanding includeGoogleBusiness={true} />;
+    }
+
     if (pathname === '/apply' || pathname.startsWith('/apply/')) {
-      return <PublicApplicationForm />;
+      return (
+        <AuthProvider>
+          <PublicApplicationForm />
+        </AuthProvider>
+      );
     }
 
     if (pathname === '/onboarding') {
