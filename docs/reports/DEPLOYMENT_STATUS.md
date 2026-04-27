@@ -45,7 +45,7 @@ If auto-deploy didn't trigger, you can manually deploy:
 cd "D:\falisha\recruitment-portal-frontend"
 railway login  # Authenticate first
 railway link --project f6697836-a039-4c9c-aa26-c659dc634b86
-railway up --detach
+git push origin main
 ```
 
 ## ✅ What's Fixed

@@ -98,8 +98,8 @@ Once backend is restarted:
 - **Fix:** Restart backend service
   ```bash
   cd backend
-  npm start
-  # Or in Railway: railway up
+  git push origin main
+  # Railway should deploy automatically from GitHub
   ```
 
 ### Issue #2: Need Actual CV File for Real Test

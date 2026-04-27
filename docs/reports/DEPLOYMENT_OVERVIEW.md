@@ -46,13 +46,13 @@
 - Falls back to "missing" for country_of_interest
 
 ## Commands
-- Deploy backend: `cd backend && railway up`
-- Deploy Python parser: `cd python-parser && railway up`
-- Deploy frontend: `railway up` (from repo root)
+- Deploy backend: `cd backend && git push origin main`
+- Deploy Python parser: `cd python-parser && git push origin main`
+- Deploy frontend: `git push origin main` (from repo root)
 - Tail backend logs: `cd backend && railway logs --service recruitment-portal-backend`
 - Tail parser logs: `cd python-parser && railway logs --service recruitment-portal-python-parser`
 
 ## Notes
 - Push to frontend uses `frontend` remote (not `origin`)
-- Python parser push to GitHub failed (403 permission error) but Railway deployment succeeded via `railway up`
+- Python parser should deploy from GitHub push once repository access is working
 - All three services are in Railway project `gleaming-healing` except frontend which is in `exquisite-surprise`

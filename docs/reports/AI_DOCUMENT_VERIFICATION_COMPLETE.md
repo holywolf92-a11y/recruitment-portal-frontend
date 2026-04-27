@@ -335,14 +335,11 @@ All core features have been successfully implemented! The AI Document Verificati
 cd backend
 git push
 
-# 2. Deploy to Railway
-railway up --detach
-
-# 3. Verify worker started
+# 2. Verify worker started
 # Check logs for "Document Verification worker started"
 railway logs
 
-# 4. Test health endpoint
+# 3. Test health endpoint
 curl https://your-backend-url/health
 ```
 
@@ -352,10 +349,7 @@ curl https://your-backend-url/health
 cd python-parser
 git push
 
-# 2. Deploy to Railway
-railway up --detach --service recruitment-portal-python-parser
-
-# 3. Verify new endpoint
+# 2. Verify new endpoint
 curl https://your-python-parser-url/health
 ```
 
@@ -365,10 +359,7 @@ curl https://your-python-parser-url/health
 cd "d:\falisha\Recruitment Automation Portal (2)"
 git push
 
-# 2. Deploy to Railway
-railway up --detach --service exquisite-surprise
-
-# 3. Verify deployment
+# 2. Verify deployment
 # Open https://your-frontend-url
 ```
 

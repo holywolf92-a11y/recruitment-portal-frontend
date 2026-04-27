@@ -82,7 +82,7 @@ INFO:     Application startup complete.
 
 **Solution:**
 - Need to deploy/restart backend Node.js service in Railway
-- Command: `cd backend && railway up` to trigger redeploy
+- Command: `cd backend && git push origin main` to trigger the GitHub-linked redeploy
 
 ---
 
@@ -118,7 +118,7 @@ Expected: Return extraction history with confidence scores
 
 ```bash
 cd d:\falisha\Recruitment Automation Portal (2)\backend
-railway up
+git push origin main
 ```
 
 Then re-run tests to verify all endpoints.

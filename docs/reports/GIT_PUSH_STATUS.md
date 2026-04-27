@@ -51,11 +51,11 @@ npm i -g @railway/cli
 # Login
 railway login
 
-# Deploy python parser
-railway up -s recruitment-portal-python-parser
+# Push python parser
+git push origin main
 
-# Deploy backend  
-railway up -s recruitment-portal-backend
+# Push backend
+git push origin main
 ```
 
 ## Verification
