@@ -2208,11 +2208,11 @@ Object.assign(apiClient, {
     });
   },
 
-  createDatabankFolder(name: string, accessToken: string): Promise<{ folder: DatabankFolder }> {
+  createDatabankFolder(name: string, accessToken: string, parentId?: string | null): Promise<{ folder: DatabankFolder }> {
     return (apiClient as any).request<{ folder: DatabankFolder }>('/databank/folders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, parent_id: parentId ?? null }),
     });
   },
 
@@ -2254,7 +2254,7 @@ Object.assign(apiClient, {
   },
 } satisfies {
   listDatabankFolders: (accessToken: string) => Promise<{ folders: DatabankFolder[] }>;
-  createDatabankFolder: (name: string, accessToken: string) => Promise<{ folder: DatabankFolder }>;
+  createDatabankFolder: (name: string, accessToken: string, parentId?: string | null) => Promise<{ folder: DatabankFolder }>;
   deleteDatabankFolder: (id: string, accessToken: string) => Promise<{ success: boolean }>;
   listDatabankFiles: (folderId: string, accessToken: string) => Promise<{ files: DatabankFile[] }>;
   uploadDatabankFile: (folderId: string, file: File, displayName: string, accessToken: string) => Promise<{ file: DatabankFile }>;

@@ -48,6 +48,22 @@ function getFileCategory(ext: string): FileCategory {
   return 'default';
 }
 
+function getFolderPath(folders: DatabankFolder[], folder: DatabankFolder | null): DatabankFolder[] {
+  if (!folder) return [];
+
+  const path: DatabankFolder[] = [];
+  const visited = new Set<string>();
+  let current: DatabankFolder | null = folder;
+
+  while (current && !visited.has(current.id)) {
+    path.unshift(current);
+    visited.add(current.id);
+    current = current.parent_id ? folders.find((entry) => entry.id === current!.parent_id) ?? null : null;
+  }
+
+  return path;
+}
+
 interface FileIconProps {
   file: DatabankFile;
   size?: number;
@@ -151,6 +167,10 @@ export function Databank() {
   const [confirmDelete, setConfirmDelete] = useState<null | { type: 'folder' | 'file'; id: string; name: string }>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const currentPath = getFolderPath(folders, currentFolder);
+  const visibleFolders = folders
+    .filter((folder) => folder.parent_id === (currentFolder?.id ?? null))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   // ── Data fetching ──────────────────────────────────────────────────────────
 
@@ -203,10 +223,27 @@ export function Databank() {
   }
 
   function goBack() {
-    setView('folders');
-    setCurrentFolder(null);
-    setFiles([]);
+    if (!currentFolder?.parent_id) {
+      setView('folders');
+      setCurrentFolder(null);
+      setFiles([]);
+      setError(null);
+      return;
+    }
+
+    const parentFolder = folders.find((folder) => folder.id === currentFolder.parent_id) ?? null;
+    if (!parentFolder) {
+      setView('folders');
+      setCurrentFolder(null);
+      setFiles([]);
+      setError(null);
+      return;
+    }
+
+    setCurrentFolder(parentFolder);
+    setView('files');
     setError(null);
+    loadFiles(parentFolder.id);
   }
 
   async function handleCreateFolder(e: React.FormEvent) {
@@ -214,7 +251,7 @@ export function Databank() {
     if (!newFolderName.trim() || !accessToken) return;
     setCreating(true);
     try {
-      const { folder } = await apiClient.createDatabankFolder(newFolderName.trim(), accessToken);
+      const { folder } = await apiClient.createDatabankFolder(newFolderName.trim(), accessToken, currentFolder?.id ?? null);
       setFolders((prev) => [...prev, folder].sort((a, b) => a.name.localeCompare(b.name)));
       setNewFolderName('');
       setShowCreateFolder(false);
@@ -264,7 +301,27 @@ export function Databank() {
     try {
       if (confirmDelete.type === 'folder') {
         await apiClient.deleteDatabankFolder(confirmDelete.id, accessToken);
-        setFolders((prev) => prev.filter((f) => f.id !== confirmDelete.id));
+        setFolders((prev) => {
+          const removeIds = new Set<string>([confirmDelete.id]);
+          let changed = true;
+
+          while (changed) {
+            changed = false;
+            for (const folder of prev) {
+              if (folder.parent_id && removeIds.has(folder.parent_id) && !removeIds.has(folder.id)) {
+                removeIds.add(folder.id);
+                changed = true;
+              }
+            }
+          }
+
+          return prev.filter((folder) => !removeIds.has(folder.id));
+        });
+        if (currentFolder && (currentFolder.id === confirmDelete.id || currentPath.some((folder) => folder.id === confirmDelete.id))) {
+          setView('folders');
+          setCurrentFolder(null);
+          setFiles([]);
+        }
       } else {
         await apiClient.deleteDatabankFile(confirmDelete.id, accessToken);
         setFiles((prev) => prev.filter((f) => f.id !== confirmDelete.id));
@@ -314,14 +371,17 @@ export function Databank() {
             <Database size={15} />
             Databank
           </button>
-          {currentFolder && (
-            <>
+          {currentPath.map((folder) => (
+            <span key={folder.id} className="contents">
               <ChevronRight size={14} className="text-gray-400" />
-              <span className="text-gray-700 font-medium truncate max-w-[200px]">
-                {currentFolder.name}
-              </span>
-            </>
-          )}
+              <button
+                onClick={() => openFolder(folder)}
+                className="text-gray-700 font-medium truncate max-w-[200px] hover:text-blue-700 transition-colors"
+              >
+                {folder.name}
+              </button>
+            </span>
+          ))}
         </nav>
 
         <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -352,6 +412,13 @@ export function Databank() {
                   className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   ← Back
+                </button>
+                <button
+                  onClick={() => { setShowCreateFolder(true); setError(null); }}
+                  className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <Plus size={15} />
+                  New Subfolder
                 </button>
                 <button
                   onClick={() => { setShowUpload(true); setError(null); }}
@@ -392,7 +459,7 @@ export function Databank() {
       {/* ── FOLDER VIEW ───────────────────────────────────────────────────── */}
       {!authLoading && !loading && view === 'folders' && (
         <>
-          {folders.length === 0 ? (
+          {visibleFolders.length === 0 ? (
             <EmptyState
               icon={<Folder size={40} className="text-gray-300" />}
               title="No folders yet"
@@ -400,7 +467,7 @@ export function Databank() {
             />
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {folders.map((folder) => (
+              {visibleFolders.map((folder) => (
                 <FolderCard
                   key={folder.id}
                   folder={folder}
@@ -418,24 +485,55 @@ export function Databank() {
       {/* ── FILE VIEW ─────────────────────────────────────────────────────── */}
       {!authLoading && !loading && view === 'files' && (
         <>
-          {files.length === 0 ? (
+          {visibleFolders.length === 0 && files.length === 0 ? (
             <EmptyState
               icon={<FolderOpen size={40} className="text-gray-300" />}
               title="This folder is empty"
-              description='Upload documents with "Upload"'
+              description='Add a subfolder or upload documents here'
             />
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {files.map((file) => (
-                <FileCard
-                  key={file.id}
-                  file={file}
-                  onOpen={() => openFile(file)}
-                  onDelete={() =>
-                    setConfirmDelete({ type: 'file', id: file.id, name: file.file_name })
-                  }
-                />
-              ))}
+            <div className="space-y-5">
+              {visibleFolders.length > 0 && (
+                <section>
+                  <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                    <Folder size={16} className="text-amber-500" />
+                    Subfolders
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {visibleFolders.map((folder) => (
+                      <FolderCard
+                        key={folder.id}
+                        folder={folder}
+                        onOpen={() => openFolder(folder)}
+                        onDelete={() =>
+                          setConfirmDelete({ type: 'folder', id: folder.id, name: folder.name })
+                        }
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {files.length > 0 && (
+                <section>
+                  <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                    <FileText size={16} className="text-blue-500" />
+                    Files
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {files.map((file) => (
+                      <FileCard
+                        key={file.id}
+                        file={file}
+                        onOpen={() => openFile(file)}
+                        onDelete={() =>
+                          setConfirmDelete({ type: 'file', id: file.id, name: file.file_name })
+                        }
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
             </div>
           )}
         </>
@@ -443,7 +541,7 @@ export function Databank() {
 
       {/* ── CREATE FOLDER MODAL ───────────────────────────────────────────── */}
       {showCreateFolder && (
-        <Modal title="New Folder" onClose={() => { setShowCreateFolder(false); setNewFolderName(''); }}>
+        <Modal title={currentFolder ? `New Subfolder in "${currentFolder.name}"` : 'New Folder'} onClose={() => { setShowCreateFolder(false); setNewFolderName(''); }}>
           <form onSubmit={handleCreateFolder} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Folder Name</label>
@@ -456,6 +554,11 @@ export function Databank() {
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
+              {currentFolder && (
+                <p className="mt-1 text-xs text-gray-500">
+                  This folder will be created inside {currentFolder.name}.
+                </p>
+              )}
             </div>
             <div className="flex justify-end gap-2 pt-1">
               <button
