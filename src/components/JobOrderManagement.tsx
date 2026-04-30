@@ -55,6 +55,7 @@ export function JobOrderManagement({ initialCompany = '' }: { initialCompany?: s
 
   // Inline status updates
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null); // order id being updated
+  const [statusError, setStatusError] = useState<string | null>(null);
 
   // Find & Recommend panel
   const [findPanelJob, setFindPanelJob] = useState<EmployerLeadProfile | null>(null);
@@ -84,11 +85,13 @@ export function JobOrderManagement({ initialCompany = '' }: { initialCompany?: s
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     setUpdatingStatus(orderId);
+    setStatusError(null);
     try {
       const result = await apiClient.updateAdminEmployerLead(orderId, { status: newStatus });
       setOrders(prev => prev.map(o => o.id === orderId ? result.lead : o));
-    } catch {
-      // silently revert on failure — user can retry
+    } catch (err: any) {
+      setStatusError('Failed to update status. Please try again.');
+      setTimeout(() => setStatusError(null), 4000);
     } finally {
       setUpdatingStatus(null);
     }
@@ -315,6 +318,14 @@ export function JobOrderManagement({ initialCompany = '' }: { initialCompany?: s
         </div>
       </div>
 
+      {/* Status update error toast */}
+      {statusError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-3">
+          <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+          <p className="text-red-700 text-sm">{statusError}</p>
+        </div>
+      )}
+
       {/* Error */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
@@ -387,31 +398,35 @@ export function JobOrderManagement({ initialCompany = '' }: { initialCompany?: s
                         Portal
                       </span>
                     )}
-                    {/* Inline status dropdown */}
-                    <div className="relative">
-                      <select
-                        value={
-                          order.status
-                            ? STATUS_OPTIONS.find(s => s.toLowerCase() === order.status!.toLowerCase()) || order.status
-                            : 'New'
-                        }
-                        onChange={e => handleStatusChange(order.id!, e.target.value)}
-                        disabled={updatingStatus === order.id}
-                        onClick={e => e.stopPropagation()}
-                        className={`text-xs font-medium rounded-full px-2.5 py-1 border-0 cursor-pointer appearance-none pr-5 focus:ring-2 focus:ring-white focus:ring-opacity-50 ${
-                          STATUS_COLORS[order.status || 'New'] || 'bg-white bg-opacity-20 text-white'
-                        } ${updatingStatus === order.id ? 'opacity-60' : ''}`}
-                      >
-                        {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                      <ChevronDown className="w-3 h-3 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-current opacity-70" />
-                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Card body */}
               <div className="p-5 grid grid-cols-2 gap-3">
+                {/* Status row — full width */}
+                <div className="col-span-2 flex items-center gap-3 pb-2 border-b border-gray-100">
+                  <p className="text-xs text-gray-500 w-12 flex-shrink-0">Status</p>
+                  <div className="relative flex-1">
+                    <select
+                      value={
+                        order.status
+                          ? STATUS_OPTIONS.find(s => s.toLowerCase() === order.status!.toLowerCase()) || order.status
+                          : 'New'
+                      }
+                      onChange={e => handleStatusChange(order.id!, e.target.value)}
+                      disabled={updatingStatus === order.id}
+                      onClick={e => e.stopPropagation()}
+                      className={`w-full text-sm font-medium rounded-lg px-3 py-1.5 border border-gray-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none pr-7 ${
+                        STATUS_COLORS[order.status || 'New'] || 'bg-gray-50 text-gray-700'
+                      } ${updatingStatus === order.id ? 'opacity-60' : ''}`}
+                    >
+                      {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500" />
+                    {updatingStatus === order.id && <span className="absolute right-8 top-1/2 -translate-y-1/2 text-xs text-gray-400">Saving…</span>}
+                  </div>
+                </div>
                 {(order.country || order.city) && (
                   <div className="flex items-start gap-2">
                     <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
