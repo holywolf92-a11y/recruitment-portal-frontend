@@ -6,18 +6,23 @@ import {
   BookOpen,
   Briefcase,
   Calendar,
+  Camera,
   Car,
   CreditCard,
   Download,
+  ExternalLink,
   Eye,
   File,
   FileText,
+  Globe,
+  GraduationCap,
   Grid3x3,
   Heart,
   Image,
   List,
   Mail,
   MapPin,
+  MessageCircle,
   MessageSquare,
   Phone,
   Plus,
@@ -30,9 +35,12 @@ import {
   CheckCircle,
   XCircle,
 } from 'lucide-react';
-import { normalizeCandidatePaymentAmount } from '../lib/candidatePayment';
+import { normalizeCandidatePaymentAmount, formatCandidatePaymentAmount } from '../lib/candidatePayment';
 import { apiClient, Candidate } from '../lib/apiClient';
-import { CANDIDATE_STATUS_VALUES, type CandidateStatus, normalizeCandidateStatus } from '../lib/candidateStatus';
+import { CANDIDATE_STATUS_VALUES, type CandidateStatus, getCandidateStatusClasses, normalizeCandidateStatus } from '../lib/candidateStatus';
+import { getFrontendBaseUrl } from '../lib/publicUrl';
+import { toast } from 'sonner';
+import { Toaster } from './ui/sonner';
 import { MergeCandidatesModal } from './MergeCandidatesModal';
 
 interface CandidateManagementProps {
@@ -80,6 +88,36 @@ function confidenceScore10(confidence?: Record<string, number>) {
   return Math.round(score * 10) / 10;
 }
 
+function calculateAge(dateOfBirth?: string): number | null {
+  if (!dateOfBirth) return null;
+  try {
+    const birth = new Date(dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return age;
+  } catch { return null; }
+}
+
+function generateProfileLink(candidate: Candidate): string {
+  const slug = (candidate.name || 'candidate').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  return `${getFrontendBaseUrl()}/profile/${candidate.id}/${slug}`;
+}
+
+const TABLE_DOC_CONFIG = [
+  { flag: 'cv_received',              category: 'cv_resume',             Icon: FileText,      color: 'text-blue-600',   bg: 'hover:bg-blue-100',   label: 'CV/Resume' },
+  { flag: 'passport_received',        category: 'passport',              Icon: BookOpen,      color: 'text-green-600',  bg: 'hover:bg-green-100',  label: 'Passport'  },
+  { flag: 'cnic_received',            category: 'cnic',                  Icon: CreditCard,    color: 'text-purple-600', bg: 'hover:bg-purple-100', label: 'CNIC'      },
+  { flag: 'driving_license_received', category: 'driving_license',       Icon: Car,           color: 'text-orange-600', bg: 'hover:bg-orange-100', label: 'License'   },
+  { flag: 'police_character_received',category: 'police_clearance',      Icon: Shield,        color: 'text-indigo-600', bg: 'hover:bg-indigo-100', label: 'PCC'       },
+  { flag: 'certificate_received',     category: 'certificates',          Icon: Award,         color: 'text-yellow-600', bg: 'hover:bg-yellow-100', label: 'Cert'      },
+  { flag: 'degree_received',          category: 'educational_documents', Icon: GraduationCap, color: 'text-teal-600',   bg: 'hover:bg-teal-100',   label: 'Degree'    },
+  { flag: 'photo_received',           category: 'photos',                Icon: Camera,        color: 'text-pink-600',   bg: 'hover:bg-pink-100',   label: 'Photo'     },
+  { flag: 'medical_received',         category: 'medical_reports',       Icon: Heart,         color: 'text-red-600',    bg: 'hover:bg-red-100',    label: 'Medical'   },
+  { flag: 'visa_received',            category: 'other_documents',       Icon: Globe,         color: 'text-teal-600',   bg: 'hover:bg-teal-100',   label: 'Visa'      },
+] as const;
+
 export function CandidateManagement({ initialProfessionFilter = 'all' }: CandidateManagementProps) {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
@@ -90,6 +128,12 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
   const [bulkStatus, setBulkStatus] = useState<CandidateStatus>('Pending');
   const [bulkUpdating, setBulkUpdating] = useState(false);
   const [mergeTarget, setMergeTarget] = useState<Candidate | null>(null);
+  // Inline table state
+  const [statusUpdatingIds, setStatusUpdatingIds] = useState<Record<string, boolean>>({});
+  const [paymentDrafts, setPaymentDrafts] = useState<Record<string, string>>({});
+  const [paymentUpdatingIds, setPaymentUpdatingIds] = useState<Record<string, boolean>>({});
+  const [docCache, setDocCache] = useState<Record<string, any[]>>({});
+  const [docLoadingIds, setDocLoadingIds] = useState<Record<string, boolean>>({});
   // ── Search: separate the raw input value from the debounced API query ────────
   // Enterprise pattern: user sees instant feedback in the input box while we
   // wait 400 ms of inactivity before firing the network request.
@@ -295,6 +339,59 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
       alert(e?.message || 'Failed to bulk update status');
     } finally {
       setBulkUpdating(false);
+    }
+  }
+
+  // ── Inline table: status change ──────────────────────────────────────────────
+  async function handleInlineStatusChange(candidate: Candidate, nextStatus: CandidateStatus) {
+    if (normalizeCandidateStatus(candidate.status) === nextStatus) return;
+    try {
+      setStatusUpdatingIds(p => ({ ...p, [candidate.id]: true }));
+      const updated = await apiClient.updateCandidate(candidate.id, { status: nextStatus } as any);
+      setCandidates(prev => prev.map(c => c.id === candidate.id ? { ...c, status: updated.status } : c));
+      toast.success(`Status updated to ${nextStatus}`);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update status');
+    } finally {
+      setStatusUpdatingIds(p => ({ ...p, [candidate.id]: false }));
+    }
+  }
+
+  // ── Inline table: payment save ───────────────────────────────────────────────
+  async function handlePaymentSave(candidate: Candidate) {
+    const raw = paymentDrafts[candidate.id] ?? String(normalizeCandidatePaymentAmount(candidate.payment_amount));
+    const amount = normalizeCandidatePaymentAmount(raw);
+    try {
+      setPaymentUpdatingIds(p => ({ ...p, [candidate.id]: true }));
+      await apiClient.updateCandidate(candidate.id, { payment_amount: amount } as any);
+      setCandidates(prev => prev.map(c => c.id === candidate.id ? { ...c, payment_amount: amount } : c));
+      setPaymentDrafts(p => { const n = { ...p }; delete n[candidate.id]; return n; });
+      toast.success('Payment saved');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to save payment');
+    } finally {
+      setPaymentUpdatingIds(p => ({ ...p, [candidate.id]: false }));
+    }
+  }
+
+  // ── Inline table: doc icon click ─────────────────────────────────────────────
+  async function handleDocClick(candidateId: string, category: string, label: string) {
+    try {
+      let docs = docCache[candidateId];
+      if (!docs) {
+        setDocLoadingIds(p => ({ ...p, [candidateId]: true }));
+        docs = await apiClient.listCandidateDocumentsNew(candidateId);
+        setDocCache(p => ({ ...p, [candidateId]: docs }));
+        setDocLoadingIds(p => ({ ...p, [candidateId]: false }));
+      }
+      const doc = docs.find((d: any) => d.category === category || d.doc_type === category);
+      if (!doc) { toast.error(`No ${label} document found`); return; }
+      toast.info(`Opening ${label}…`);
+      const url = await apiClient.getCandidateDocumentDownloadUrl(doc.id);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (err: any) {
+      setDocLoadingIds(p => ({ ...p, [candidateId]: false }));
+      toast.error(err?.message || `Failed to open ${label}`);
     }
   }
 
@@ -807,60 +904,45 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
           </div>
             ) : (
           <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
-            <table className="w-full text-sm" style={{ tableLayout: 'fixed', minWidth: '900px' }}>
-              <colgroup>
-                <col style={{ width: '210px' }} />
-                <col style={{ width: '185px' }} />
-                <col style={{ width: '115px' }} />
-                <col style={{ width: '185px' }} />
-                <col style={{ width: '145px' }} />
-                <col style={{ width: '100px' }} />
-              </colgroup>
-              <thead className="bg-gray-50 border-b border-gray-200">
+            <table className="w-full text-sm border-collapse" style={{ minWidth: '1100px' }}>
+              <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Candidate</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Contact</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Experience</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Documents</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Payment</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[220px]">Candidate</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[170px]">Contact</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[120px]">Exp / Age</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[60px]">Score</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[210px]">Documents</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[200px]">Payment</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[130px]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filteredCandidates.map((c) => {
-                  const docs = [
-                    { key: 'cv',       label: 'CV',       ok: !!c.cv_received,                Icon: FileText  },
-                    { key: 'passport', label: 'Passport', ok: !!c.passport_received,          Icon: BookOpen  },
-                    { key: 'cnic',     label: 'CNIC',     ok: !!c.cnic_received,              Icon: CreditCard},
-                    { key: 'license',  label: 'License',  ok: !!c.driving_license_received,   Icon: Car       },
-                    { key: 'pcc',      label: 'PCC',      ok: !!c.police_character_received,  Icon: Shield    },
-                    { key: 'cert',     label: 'Cert',     ok: !!(c.certificate_received || c.degree_received), Icon: Award },
-                    { key: 'photo',    label: 'Photo',    ok: !!c.photo_received,             Icon: Image     },
-                    { key: 'medical',  label: 'Medical',  ok: !!c.medical_received,           Icon: Heart     },
-                  ];
-                  const docsOk = docs.filter(d => d.ok).length;
+                  const docsOk = TABLE_DOC_CONFIG.filter(d => !!(c as any)[d.flag]).length;
                   const rowBorder =
-                    docsOk === 0              ? 'border-l-4 border-l-red-400'
-                    : docsOk === docs.length  ? 'border-l-4 border-l-green-400'
-                    :                          'border-l-4 border-l-yellow-400';
+                    docsOk === 0                        ? 'border-l-4 border-l-red-400'
+                    : docsOk === TABLE_DOC_CONFIG.length ? 'border-l-4 border-l-green-400'
+                    :                                     'border-l-4 border-l-yellow-400';
 
                   const badge = c.needs_review
-                    ? { label: 'Review',  cls: 'bg-yellow-100 text-yellow-800' }
+                    ? { label: 'Review', cls: 'bg-yellow-100 text-yellow-800' }
                     : c.auto_extracted
-                      ? { label: 'Auto',  cls: 'bg-green-100  text-green-800'  }
-                      : { label: 'Applied', cls: 'bg-blue-100 text-blue-800'   };
+                      ? { label: 'Auto',  cls: 'bg-green-100 text-green-800'  }
+                      : { label: 'Applied', cls: 'bg-blue-100 text-blue-800'  };
 
                   const payAmt = normalizeCandidatePaymentAmount(c.payment_amount);
-                  const payState = payAmt > 0
-                    ? { label: 'RECEIVED', cls: 'bg-green-100 text-green-700',  sub: 'Payment collected.' }
-                    : { label: 'PENDING',  cls: 'bg-yellow-100 text-yellow-700', sub: 'Not collected yet.' };
-
+                  const payDraft = paymentDrafts[c.id] ?? String(payAmt);
+                  const age = calculateAge(c.date_of_birth);
                   const photoUrl = (c.profile_photo_signed_url || photoUrls[c.id] || '').toString();
+                  const score = typeof c.ai_score === 'number' && isFinite(c.ai_score)
+                    ? Math.round(c.ai_score * 10) / 10
+                    : confidenceScore10(c.extraction_confidence);
 
                   return (
-                    <tr key={c.id} className={`${rowBorder} hover:bg-gray-50 transition-colors`} style={{ height: '88px' }}>
+                    <tr key={c.id} className={`${rowBorder} hover:bg-gray-50/70 transition-colors`} style={{ height: '92px' }}>
+
                       {/* CANDIDATE */}
-                      <td className="px-4 py-2">
+                      <td className="px-3 py-2">
                         <div className="flex items-center gap-2.5">
                           <div className="w-9 h-9 rounded-full flex-shrink-0 overflow-hidden bg-blue-100 flex items-center justify-center">
                             {photoUrl ? (
@@ -872,122 +954,162 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
                           </div>
                           <div className="min-w-0">
                             <p className="font-semibold text-gray-900 text-sm leading-tight truncate">{c.name}</p>
-                            <p className="text-xs text-gray-500 leading-tight truncate">{c.position || '—'}</p>
+                            <p className="text-[10px] font-mono text-gray-400 leading-tight">{c.candidate_code || '—'}</p>
                             <div className="flex items-center gap-1 mt-0.5 flex-wrap">
                               <span className={`px-1.5 text-[10px] font-semibold rounded-full leading-5 ${badge.cls}`}>{badge.label}</span>
-                              {c.experience_years != null && (
-                                <span className="px-1.5 text-[10px] font-semibold rounded-full bg-blue-50 text-blue-700 leading-5">{c.experience_years}y exp</span>
-                              )}
                             </div>
+                            <select
+                              value={normalizeCandidateStatus(c.status)}
+                              onChange={e => handleInlineStatusChange(c, e.target.value as CandidateStatus)}
+                              disabled={!!statusUpdatingIds[c.id]}
+                              className={`mt-0.5 text-[10px] rounded border-0 px-1.5 py-0.5 font-semibold cursor-pointer outline-none focus:ring-1 focus:ring-blue-400 ${getCandidateStatusClasses(c.status)} ${statusUpdatingIds[c.id] ? 'opacity-60 cursor-wait' : ''}`}
+                            >
+                              {CANDIDATE_STATUS_VALUES.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
                           </div>
                         </div>
                       </td>
 
                       {/* CONTACT */}
-                      <td className="px-4 py-2">
-                        <div className="space-y-1">
+                      <td className="px-3 py-2">
+                        <div className="space-y-0.5">
                           {c.phone && (
-                            <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                            <div className="flex items-center gap-1.5 text-xs text-gray-700">
                               <Phone className="w-3 h-3 text-gray-400 flex-shrink-0" />
                               <span className="truncate">{c.phone}</span>
                             </div>
                           )}
                           {c.email && (
-                            <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                            <div className="flex items-center gap-1.5 text-xs text-gray-700">
                               <Mail className="w-3 h-3 text-gray-400 flex-shrink-0" />
                               <span className="truncate">{c.email}</span>
                             </div>
                           )}
-                          {c.nationality && (
-                            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                          {(c.nationality || c.country_of_interest) && (
+                            <div className="flex items-center gap-1 text-[10px] text-gray-500 flex-wrap">
                               <MapPin className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                              <span className="truncate">{c.nationality}</span>
+                              <span>{c.nationality || '—'}</span>
+                              {c.country_of_interest && <>
+                                <span className="text-gray-300">→</span>
+                                <span className="text-blue-600 font-medium">{c.country_of_interest}</span>
+                              </>}
                             </div>
                           )}
                         </div>
                       </td>
 
-                      {/* EXPERIENCE */}
-                      <td className="px-4 py-2">
-                        <div className="flex flex-col items-start justify-center h-full gap-0.5">
-                          {c.experience_years != null ? (
-                            <p className="text-sm font-semibold text-gray-900">{c.experience_years} years</p>
-                          ) : (
-                            <p className="text-xs text-gray-400">—</p>
-                          )}
+                      {/* EXP / AGE */}
+                      <td className="px-3 py-2">
+                        <div className="space-y-0.5">
+                          {c.experience_years != null
+                            ? <p className="text-sm font-semibold text-gray-900">{c.experience_years}y exp</p>
+                            : <p className="text-xs text-gray-400">—</p>}
+                          {age != null && <p className="text-[11px] text-gray-500">{age} yrs old</p>}
                           {c.created_at && (
-                            <p className="text-[11px] text-gray-400">
+                            <p className="text-[10px] text-gray-400">
                               {new Date(c.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                             </p>
                           )}
                         </div>
                       </td>
 
-                      {/* DOCUMENTS */}
-                      <td className="px-4 py-2">
-                        <div className="grid grid-cols-4 gap-1 w-fit">
-                          {docs.map(d => (
-                            <button
-                              key={d.key}
-                              type="button"
-                              title={d.ok ? `View ${d.label}` : `${d.label} missing`}
-                              disabled={!d.ok}
-                              className={`w-8 h-8 rounded flex items-center justify-center transition-colors ${
-                                d.ok
-                                  ? 'bg-green-50 text-green-600 hover:bg-green-100'
-                                  : 'bg-red-50 text-red-400 opacity-60 cursor-default'
-                              }`}
-                            >
-                              <d.Icon className="w-3.5 h-3.5" />
-                            </button>
-                          ))}
+                      {/* SCORE */}
+                      <td className="px-3 py-2 text-center">
+                        {score != null ? (
+                          <div className="flex flex-col items-center gap-0.5">
+                            <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-400" />
+                            <span className="text-xs font-bold text-gray-700">{score}</span>
+                            <span className="text-[9px] text-gray-400">/10</span>
+                          </div>
+                        ) : <span className="text-xs text-gray-300">—</span>}
+                      </td>
+
+                      {/* DOCUMENTS — clickable, opens real doc */}
+                      <td className="px-3 py-2">
+                        <div className="flex flex-wrap gap-1">
+                          {TABLE_DOC_CONFIG.map(d => {
+                            const ok = !!(c as any)[d.flag];
+                            return (
+                              <button
+                                key={d.flag}
+                                type="button"
+                                title={ok ? `View ${d.label}` : `${d.label} missing`}
+                                disabled={!ok}
+                                onClick={() => ok && handleDocClick(c.id, d.category, d.label)}
+                                className={`w-7 h-7 rounded flex items-center justify-center transition-colors ${
+                                  ok ? `bg-green-50 ${d.color} ${d.bg}` : 'bg-gray-50 text-gray-300 cursor-default'
+                                }`}
+                              >
+                                <d.Icon className="w-3.5 h-3.5" />
+                              </button>
+                            );
+                          })}
+                          {docLoadingIds[c.id] && <span className="text-[10px] text-gray-400 animate-pulse self-center">…</span>}
                         </div>
-                        <p className="text-[10px] text-gray-400 mt-1">
-                          {docsOk}/{docs.length} docs
-                          {docsOk === docs.length && <span className="text-green-600 font-medium ml-1">✓</span>}
+                        <p className="text-[10px] text-gray-400 mt-0.5">
+                          {docsOk}/{TABLE_DOC_CONFIG.length} docs
+                          {docsOk === TABLE_DOC_CONFIG.length && <span className="text-green-600 ml-1">✓</span>}
                         </p>
                       </td>
 
-                      {/* PAYMENT */}
-                      <td className="px-4 py-2">
-                        <div className="space-y-0.5">
-                          <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${payState.cls}`}>
-                            {payState.label}
-                          </span>
-                          <p className="text-sm font-bold text-gray-900 leading-tight">{payAmt.toLocaleString()} PKR</p>
-                          <p className="text-[10px] text-gray-400 leading-tight">{payState.sub}</p>
-                          <button
-                            type="button"
-                            className="mt-1 px-2.5 py-0.5 text-[11px] font-semibold rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-                          >
-                            Collect
-                          </button>
+                      {/* PAYMENT — inline edit */}
+                      <td className="px-3 py-2">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5">
+                            <div className="flex items-center rounded border border-gray-200 bg-gray-50 text-xs">
+                              <span className="px-1.5 text-gray-500 border-r border-gray-200">PKR</span>
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                value={payDraft}
+                                onChange={e => setPaymentDrafts(p => ({ ...p, [c.id]: e.target.value }))}
+                                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handlePaymentSave(c); } }}
+                                disabled={!!paymentUpdatingIds[c.id]}
+                                className="w-20 bg-transparent px-2 py-1 outline-none text-gray-900 font-medium"
+                                placeholder="0"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handlePaymentSave(c)}
+                              disabled={!!paymentUpdatingIds[c.id]}
+                              className="px-2 py-1 text-[11px] font-semibold rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
+                            >
+                              {paymentUpdatingIds[c.id] ? '…' : 'Save'}
+                            </button>
+                          </div>
+                          <p className="text-[11px] font-semibold text-emerald-700">{formatCandidatePaymentAmount(c.payment_amount)}</p>
                         </div>
                       </td>
 
                       {/* ACTIONS */}
-                      <td className="px-4 py-2">
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            title="View profile"
-                            className="p-1.5 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                          >
+                      <td className="px-3 py-2">
+                        <div className="flex flex-wrap gap-1">
+                          <button type="button" title="View profile"
+                            className="p-1.5 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
                             <Eye className="w-4 h-4" />
                           </button>
-                          <button
-                            type="button"
-                            title="Download CV"
+                          <button type="button" title="Download CV"
                             onClick={() => handleDownloadCV(c)}
-                            className="p-1.5 rounded text-gray-400 hover:text-green-600 hover:bg-green-50 transition-colors"
-                          >
+                            className="p-1.5 rounded text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors">
                             <Download className="w-4 h-4" />
                           </button>
-                          <button
-                            type="button"
-                            title="Delete candidate"
-                            className="p-1.5 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                          >
+                          {c.phone && (
+                            <a href={`https://wa.me/${c.phone.replace(/[^0-9]/g, '')}`}
+                              target="_blank" rel="noopener noreferrer"
+                              title="WhatsApp"
+                              className="p-1.5 rounded text-gray-400 hover:text-green-600 hover:bg-green-50 transition-colors">
+                              <MessageCircle className="w-4 h-4" />
+                            </a>
+                          )}
+                          <a href={generateProfileLink(c)}
+                            target="_blank" rel="noopener noreferrer"
+                            title="Public profile"
+                            className="p-1.5 rounded text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-colors">
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                          <button type="button" title="Delete candidate"
+                            className="p-1.5 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
@@ -1058,6 +1180,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
           }}
         />
       )}
+      <Toaster position="bottom-right" />
     </div>
   );
 }
