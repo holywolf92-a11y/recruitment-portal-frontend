@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Briefcase, Building2, MapPin, DollarSign, Users, RefreshCw, AlertCircle, Clock, X, ChevronDown, Globe, UserCheck, Send, Trash2, CheckSquare, Square } from 'lucide-react';
+import { Search, Plus, Briefcase, Building2, MapPin, DollarSign, Users, RefreshCw, AlertCircle, Clock, X, ChevronDown, Globe, UserCheck, Send, Trash2, CheckSquare, Square, FileText, Phone, Mail, MessageCircle } from 'lucide-react';
 import { apiClient, EmployerLeadProfile, RecommendationCandidate } from '../lib/apiClient';
 
 const STATUS_OPTIONS = ['New', 'Active', 'Contacted', 'In Progress', 'Fulfilled', 'Closed'];
@@ -64,6 +64,23 @@ export function JobOrderManagement() {
   const [selectedCandidates, setSelectedCandidates] = useState<Map<string, number>>(new Map()); // id → score
   const [pushing, setPushing] = useState(false);
   const [pushSuccess, setPushSuccess] = useState<string | null>(null);
+  const [viewingCvId, setViewingCvId] = useState<string | null>(null);
+  const [openContactId, setOpenContactId] = useState<string | null>(null);
+
+  const handleViewCV = async (e: React.MouseEvent, candidateId: string) => {
+    e.stopPropagation();
+    setViewingCvId(candidateId);
+    try {
+      const { cv_url } = await apiClient.generateCandidateCV(candidateId, 'employer-safe');
+      window.open(cv_url, '_blank');
+    } catch {
+      alert('Could not load CV. Please try again.');
+    } finally {
+      setViewingCvId(null);
+    }
+  };
+
+  const formatWhatsAppNumber = (phone: string) => phone.replace(/\D/g, '');
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     setUpdatingStatus(orderId);
@@ -155,6 +172,13 @@ export function JobOrderManagement() {
     const t = setTimeout(() => setDebouncedSearch(searchTerm), 400);
     return () => clearTimeout(t);
   }, [searchTerm]);
+
+  useEffect(() => {
+    if (!openContactId) return;
+    const close = () => setOpenContactId(null);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [openContactId]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -744,6 +768,62 @@ export function JobOrderManagement() {
                         </span>
                       )}
                       <span className="text-[10px] text-gray-400">match</span>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex-shrink-0 flex flex-col gap-1" onClick={e => e.stopPropagation()}>
+                      {/* View CV */}
+                      <button
+                        onClick={e => handleViewCV(e, c.id)}
+                        disabled={viewingCvId === c.id}
+                        title="View Employer Package"
+                        className="flex items-center gap-1 px-2 py-1 text-xs font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        {viewingCvId === c.id ? '…' : 'CV'}
+                      </button>
+
+                      {/* Contact */}
+                      {(c.phone || c.email) && (
+                        <div className="relative">
+                          <button
+                            onClick={() => setOpenContactId(openContactId === c.id ? null : c.id)}
+                            title="Contact candidate"
+                            className="flex items-center gap-1 px-2 py-1 text-xs font-medium bg-green-50 text-green-700 hover:bg-green-100 rounded-lg transition-colors w-full"
+                          >
+                            <Phone className="w-3.5 h-3.5" />
+                            Contact
+                          </button>
+                          {openContactId === c.id && (
+                            <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 min-w-[160px] py-1">
+                              {c.phone && (
+                                <a
+                                  href={`https://wa.me/${formatWhatsAppNumber(c.phone)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={() => setOpenContactId(null)}
+                                  className="flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                                >
+                                  <MessageCircle className="w-3.5 h-3.5 text-green-600" />
+                                  WhatsApp
+                                  <span className="text-gray-400 truncate max-w-[80px]">{c.phone}</span>
+                                </a>
+                              )}
+                              {c.email && (
+                                <a
+                                  href={`mailto:${c.email}`}
+                                  onClick={() => setOpenContactId(null)}
+                                  className="flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                                >
+                                  <Mail className="w-3.5 h-3.5 text-blue-500" />
+                                  Email
+                                  <span className="text-gray-400 truncate max-w-[80px]">{c.email}</span>
+                                </a>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

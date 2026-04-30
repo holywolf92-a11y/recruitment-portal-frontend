@@ -2161,6 +2161,8 @@ export interface RecommendationCandidate {
   profile_photo_url?: string | null;
   candidate_code?: string | null;
   professional_summary?: string | null;
+  phone?: string | null;
+  email?: string | null;
   match_score: number;
   already_recommended: boolean;
 }
