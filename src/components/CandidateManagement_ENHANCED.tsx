@@ -931,13 +931,13 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${candidate.name || 'Candidate'}_Employer_Safe_CV.pdf`;
+      link.download = `${candidate.name || 'Candidate'}_Employer_Package.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
-      alert('Employer-Safe CV downloaded successfully!');
+      alert('Employer Package downloaded successfully!');
     } catch (error: any) {
       console.error('Failed to download CV:', error);
       if (error?.message?.includes('404') || error?.message?.includes('not found')) {
