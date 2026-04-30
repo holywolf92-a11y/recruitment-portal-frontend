@@ -3,13 +3,17 @@ import { useDebounce } from '../hooks/useDebounce';
 import {
   Award,
   AlertCircle,
+  BookOpen,
   Briefcase,
   Calendar,
+  Car,
+  CreditCard,
   Download,
   Eye,
   File,
   FileText,
   Grid3x3,
+  Heart,
   Image,
   List,
   Mail,
@@ -19,11 +23,14 @@ import {
   Plus,
   Search,
   Share2,
+  Shield,
   Star,
+  Trash2,
   X,
   CheckCircle,
   XCircle,
 } from 'lucide-react';
+import { normalizeCandidatePaymentAmount } from '../lib/candidatePayment';
 import { apiClient, Candidate } from '../lib/apiClient';
 import { CANDIDATE_STATUS_VALUES, type CandidateStatus, normalizeCandidateStatus } from '../lib/candidateStatus';
 import { MergeCandidatesModal } from './MergeCandidatesModal';
@@ -799,72 +806,195 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
             })}
           </div>
             ) : (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <table className="w-full">
+          <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
+            <table className="w-full text-sm" style={{ tableLayout: 'fixed', minWidth: '900px' }}>
+              <colgroup>
+                <col style={{ width: '210px' }} />
+                <col style={{ width: '185px' }} />
+                <col style={{ width: '115px' }} />
+                <col style={{ width: '185px' }} />
+                <col style={{ width: '145px' }} />
+                <col style={{ width: '100px' }} />
+              </colgroup>
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Position</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Phone</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Actions</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Candidate</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Contact</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Experience</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Documents</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Payment</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredCandidates.map((c) => (
-                  <tr key={c.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        {((c.profile_photo_signed_url || photoUrls[c.id] || '').toString()) ? (
-                          <img
-                            src={((c.profile_photo_signed_url || photoUrls[c.id] || '').toString())}
-                            alt={c.name}
-                            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                            <span className="text-blue-600 font-semibold text-xs">
-                              {c.name.substring(0, 2).toUpperCase()}
-                            </span>
+              <tbody className="divide-y divide-gray-100">
+                {filteredCandidates.map((c) => {
+                  const docs = [
+                    { key: 'cv',       label: 'CV',       ok: !!c.cv_received,                Icon: FileText  },
+                    { key: 'passport', label: 'Passport', ok: !!c.passport_received,          Icon: BookOpen  },
+                    { key: 'cnic',     label: 'CNIC',     ok: !!c.cnic_received,              Icon: CreditCard},
+                    { key: 'license',  label: 'License',  ok: !!c.driving_license_received,   Icon: Car       },
+                    { key: 'pcc',      label: 'PCC',      ok: !!c.police_character_received,  Icon: Shield    },
+                    { key: 'cert',     label: 'Cert',     ok: !!(c.certificate_received || c.degree_received), Icon: Award },
+                    { key: 'photo',    label: 'Photo',    ok: !!c.photo_received,             Icon: Image     },
+                    { key: 'medical',  label: 'Medical',  ok: !!c.medical_received,           Icon: Heart     },
+                  ];
+                  const docsOk = docs.filter(d => d.ok).length;
+                  const rowBorder =
+                    docsOk === 0              ? 'border-l-4 border-l-red-400'
+                    : docsOk === docs.length  ? 'border-l-4 border-l-green-400'
+                    :                          'border-l-4 border-l-yellow-400';
+
+                  const badge = c.needs_review
+                    ? { label: 'Review',  cls: 'bg-yellow-100 text-yellow-800' }
+                    : c.auto_extracted
+                      ? { label: 'Auto',  cls: 'bg-green-100  text-green-800'  }
+                      : { label: 'Applied', cls: 'bg-blue-100 text-blue-800'   };
+
+                  const payAmt = normalizeCandidatePaymentAmount(c.payment_amount);
+                  const payState = payAmt > 0
+                    ? { label: 'RECEIVED', cls: 'bg-green-100 text-green-700',  sub: 'Payment collected.' }
+                    : { label: 'PENDING',  cls: 'bg-yellow-100 text-yellow-700', sub: 'Not collected yet.' };
+
+                  const photoUrl = (c.profile_photo_signed_url || photoUrls[c.id] || '').toString();
+
+                  return (
+                    <tr key={c.id} className={`${rowBorder} hover:bg-gray-50 transition-colors`} style={{ height: '88px' }}>
+                      {/* CANDIDATE */}
+                      <td className="px-4 py-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-full flex-shrink-0 overflow-hidden bg-blue-100 flex items-center justify-center">
+                            {photoUrl ? (
+                              <img src={photoUrl} alt={c.name} className="w-full h-full object-cover"
+                                onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                            ) : (
+                              <span className="text-blue-700 font-bold text-xs">{getInitials(c.name)}</span>
+                            )}
                           </div>
-                        )}
-                        <div>
-                          <p className="font-medium text-gray-900 text-sm">{c.name}</p>
-                          <p className="text-xs text-gray-500 font-mono">{c.candidate_code}</p>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-gray-900 text-sm leading-tight truncate">{c.name}</p>
+                            <p className="text-xs text-gray-500 leading-tight truncate">{c.position || '—'}</p>
+                            <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                              <span className={`px-1.5 text-[10px] font-semibold rounded-full leading-5 ${badge.cls}`}>{badge.label}</span>
+                              {c.experience_years != null && (
+                                <span className="px-1.5 text-[10px] font-semibold rounded-full bg-blue-50 text-blue-700 leading-5">{c.experience_years}y exp</span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{c.position || '—'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{c.email || '—'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{c.phone || '—'}</td>
-                    <td className="px-6 py-4">
-                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700">
-                        {c.status || 'Applied'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                          title="View details"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDownloadCV(c)}
-                          className="p-1.5 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-                          title="Download CV"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+
+                      {/* CONTACT */}
+                      <td className="px-4 py-2">
+                        <div className="space-y-1">
+                          {c.phone && (
+                            <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                              <Phone className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                              <span className="truncate">{c.phone}</span>
+                            </div>
+                          )}
+                          {c.email && (
+                            <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                              <Mail className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                              <span className="truncate">{c.email}</span>
+                            </div>
+                          )}
+                          {c.nationality && (
+                            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                              <MapPin className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                              <span className="truncate">{c.nationality}</span>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* EXPERIENCE */}
+                      <td className="px-4 py-2">
+                        <div className="flex flex-col items-start justify-center h-full gap-0.5">
+                          {c.experience_years != null ? (
+                            <p className="text-sm font-semibold text-gray-900">{c.experience_years} years</p>
+                          ) : (
+                            <p className="text-xs text-gray-400">—</p>
+                          )}
+                          {c.created_at && (
+                            <p className="text-[11px] text-gray-400">
+                              {new Date(c.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            </p>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* DOCUMENTS */}
+                      <td className="px-4 py-2">
+                        <div className="grid grid-cols-4 gap-1 w-fit">
+                          {docs.map(d => (
+                            <button
+                              key={d.key}
+                              type="button"
+                              title={d.ok ? `View ${d.label}` : `${d.label} missing`}
+                              disabled={!d.ok}
+                              className={`w-8 h-8 rounded flex items-center justify-center transition-colors ${
+                                d.ok
+                                  ? 'bg-green-50 text-green-600 hover:bg-green-100'
+                                  : 'bg-red-50 text-red-400 opacity-60 cursor-default'
+                              }`}
+                            >
+                              <d.Icon className="w-3.5 h-3.5" />
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-gray-400 mt-1">
+                          {docsOk}/{docs.length} docs
+                          {docsOk === docs.length && <span className="text-green-600 font-medium ml-1">✓</span>}
+                        </p>
+                      </td>
+
+                      {/* PAYMENT */}
+                      <td className="px-4 py-2">
+                        <div className="space-y-0.5">
+                          <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${payState.cls}`}>
+                            {payState.label}
+                          </span>
+                          <p className="text-sm font-bold text-gray-900 leading-tight">{payAmt.toLocaleString()} PKR</p>
+                          <p className="text-[10px] text-gray-400 leading-tight">{payState.sub}</p>
+                          <button
+                            type="button"
+                            className="mt-1 px-2.5 py-0.5 text-[11px] font-semibold rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                          >
+                            Collect
+                          </button>
+                        </div>
+                      </td>
+
+                      {/* ACTIONS */}
+                      <td className="px-4 py-2">
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            title="View profile"
+                            className="p-1.5 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            title="Download CV"
+                            onClick={() => handleDownloadCV(c)}
+                            className="p-1.5 rounded text-gray-400 hover:text-green-600 hover:bg-green-50 transition-colors"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            title="Delete candidate"
+                            className="p-1.5 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
