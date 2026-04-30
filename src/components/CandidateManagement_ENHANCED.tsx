@@ -11,6 +11,7 @@ import {
   Camera,
   Car,
   CheckCircle,
+  ChevronDown,
   CreditCard,
   Download,
   ExternalLink,
@@ -315,6 +316,16 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
   const [documentAction, setDocumentAction] = useState<{ candidateId: string; docType: string } | null>(null);
   const [paymentUpdatingIds, setPaymentUpdatingIds] = useState<Record<string, boolean>>({});
   const [paymentDrafts, setPaymentDrafts] = useState<Record<string, string>>({});
+
+  // Call dropdown: which candidate's popup is open
+  const [callPopupId, setCallPopupId] = useState<string | null>(null);
+
+  // Email/forward CV modal
+  const [emailModal, setEmailModal] = useState<{ candidate: Candidate } | null>(null);
+  const [emailTo, setEmailTo] = useState('');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [emailCvLoading, setEmailCvLoading] = useState(false);
   
   // Document processing states
   const [processingDocuments, setProcessingDocuments] = useState<Map<string, {
@@ -392,6 +403,34 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
       toast.error(err?.message || 'Failed to save payment');
     } finally {
       setPaymentUpdatingIds(p => ({ ...p, [candidate.id]: false }));
+    }
+  }
+
+  // ── Open email-with-CV modal pre-filled for a candidate ──────────────────────
+  function openEmailModal(candidate: Candidate) {
+    const subject = `CV: ${candidate.name}${candidate.position ? ` — ${candidate.position}` : ''}`;
+    const body = `Dear Recruiter,\n\nPlease find attached the employer-safe CV for the following candidate:\n\nName: ${candidate.name}\nProfession: ${candidate.position || '—'}\nPhone: ${candidate.phone || '—'}\nEmail: ${candidate.email || '—'}\nNationality: ${candidate.nationality || '—'}\nExperience: ${candidate.experience_years != null ? `${candidate.experience_years} years` : '—'}\n\nPlease see the secure CV download link below (generated after you click Send).\n\nRegards,\nFalisha Jobs Team`;
+    setEmailTo(candidate.email || '');
+    setEmailSubject(subject);
+    setEmailBody(body);
+    setEmailModal({ candidate });
+  }
+
+  // ── Send via mailto with CV link ─────────────────────────────────────────────
+  async function handleSendEmail() {
+    if (!emailModal) return;
+    setEmailCvLoading(true);
+    try {
+      const result = await apiClient.generateCandidateCV(emailModal.candidate.id, 'employer-safe', false);
+      const bodyWithLink = `${emailBody}\n\n--- EMPLOYER-SAFE CV ---\n${result.cv_url}\n\nThis link is valid for a limited time. Do not share publicly.`;
+      const mailto = `mailto:${encodeURIComponent(emailTo)}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(bodyWithLink)}`;
+      window.open(mailto, '_blank');
+      toast.success('Email client opened — please review and send.');
+      setEmailModal(null);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to generate CV link');
+    } finally {
+      setEmailCvLoading(false);
     }
   }
 
@@ -1869,18 +1908,56 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
 
                       {/* CONTACT */}
                       <td className="px-3 py-2">
-                        <div className="space-y-0.5">
+                        <div className="space-y-1">
+                          {/* Phone + call dropdown */}
                           {c.phone && (
-                            <div className="flex items-center gap-1.5 text-xs text-gray-700">
-                              <Phone className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                              <span className="truncate">{c.phone}</span>
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={() => setCallPopupId(callPopupId === c.id ? null : c.id)}
+                                className="flex items-center gap-1.5 text-xs text-blue-700 bg-blue-50 hover:bg-blue-100 rounded px-2 py-1 w-full max-w-[160px]"
+                                title={c.phone}
+                              >
+                                <Phone className="w-3 h-3 flex-shrink-0" />
+                                <span className="truncate flex-1 text-left">{c.phone}</span>
+                                <ChevronDown className="w-3 h-3 flex-shrink-0" />
+                              </button>
+                              {callPopupId === c.id && (
+                                <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[160px]"
+                                  onMouseLeave={() => setCallPopupId(null)}>
+                                  <a
+                                    href={`tel:${c.phone}`}
+                                    className="flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                                    onClick={() => setCallPopupId(null)}
+                                  >
+                                    <Phone className="w-3.5 h-3.5 text-blue-500" />
+                                    Call via SIM
+                                  </a>
+                                  <a
+                                    href={`https://wa.me/${c.phone.replace(/[^0-9]/g, '')}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                                    onClick={() => setCallPopupId(null)}
+                                  >
+                                    <MessageCircle className="w-3.5 h-3.5 text-green-500" />
+                                    Call via WhatsApp
+                                  </a>
+                                </div>
+                              )}
                             </div>
                           )}
+                          {/* Email + open modal */}
                           {c.email && (
-                            <div className="flex items-center gap-1.5 text-xs text-gray-700">
-                              <Mail className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                              <span className="truncate">{c.email}</span>
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => openEmailModal(c)}
+                              className="flex items-center gap-1.5 text-xs text-purple-700 bg-purple-50 hover:bg-purple-100 rounded px-2 py-1 w-full max-w-[160px]"
+                              title="Send email / forward CV"
+                            >
+                              <Mail className="w-3 h-3 flex-shrink-0" />
+                              <span className="truncate flex-1 text-left">{c.email}</span>
+                            </button>
                           )}
                           {(c.nationality || c.country_of_interest) && (
                             <div className="flex items-center gap-1 text-[10px] text-gray-500 flex-wrap">
@@ -2042,6 +2119,87 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
         document.body
       )}
       <Toaster position="bottom-right" />
+
+      {/* Email / Forward CV Modal */}
+      {emailModal && createPortal(
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={e => { if (e.target === e.currentTarget) setEmailModal(null); }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div>
+                <h2 className="text-base font-bold text-gray-900">Send Email / Forward CV</h2>
+                <p className="text-xs text-gray-500 mt-0.5">{emailModal.candidate.name} · Employer-Safe CV will be attached as a link</p>
+              </div>
+              <button onClick={() => setEmailModal(null)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-4 space-y-3">
+              {/* To field */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">To (email address)</label>
+                <input
+                  type="email"
+                  value={emailTo}
+                  onChange={e => setEmailTo(e.target.value)}
+                  placeholder="recruiter@example.com"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">Candidate email pre-filled — change to any recruiter/partner address</p>
+              </div>
+
+              {/* Subject */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Subject</label>
+                <input
+                  type="text"
+                  value={emailSubject}
+                  onChange={e => setEmailSubject(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+
+              {/* Body */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Message</label>
+                <textarea
+                  value={emailBody}
+                  onChange={e => setEmailBody(e.target.value)}
+                  rows={6}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                <Mail className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                <p className="text-xs text-amber-700">Clicking <strong>Send</strong> generates a secure CV link and opens your email client. The CV link will be appended to the message automatically.</p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-gray-100">
+              <button
+                onClick={() => setEmailModal(null)}
+                className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSendEmail}
+                disabled={emailCvLoading || !emailTo.trim()}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+              >
+                {emailCvLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {emailCvLoading ? 'Generating CV…' : 'Send'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
