@@ -484,6 +484,8 @@ export interface CandidateDashboardStats {
   pendingReview: number;
   deployed: number;
   newThisWeek: number;
+  totalPartners: number;
+  totalEmployers: number;
 }
 
 export interface Document {

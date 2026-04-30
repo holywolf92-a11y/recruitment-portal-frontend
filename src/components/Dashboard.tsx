@@ -17,15 +17,11 @@ export function Dashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [stats, employersRes, jobOrdersRes] = await Promise.all([
-        apiClient.getCandidateDashboardStats(),
-        apiClient.getEmployers({ limit: 1 }),
-        apiClient.getJobOrders({ limit: 1 }),
-      ]);
+      const stats = await apiClient.getCandidateDashboardStats();
       setData({
         stats,
-        totalEmployers: employersRes.total,
-        totalJobOrders: jobOrdersRes.total,
+        totalEmployers: stats.totalEmployers,
+        totalJobOrders: 0,
       });
     } catch (err: any) {
       setError(err?.message || 'Failed to load dashboard data');
@@ -104,9 +100,9 @@ export function Dashboard() {
       to: 'to-violet-600',
     },
     {
-      label: 'Deployed',
-      value: stats.deployed.toLocaleString(),
-      sub: 'Successfully placed',
+      label: 'Partners',
+      value: stats.totalPartners.toLocaleString(),
+      sub: 'Active partners',
       icon: UserCheck,
       from: 'from-orange-500',
       to: 'to-orange-600',
