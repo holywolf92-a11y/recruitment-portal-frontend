@@ -42,6 +42,7 @@ type AdminNavigationOptions = {
   profession?: string;
   candidateId?: string | null;
   candidateTab?: 'details' | 'documents' | 'missing-data' | null;
+  jobsCompany?: string;
 };
 
 type NavItemConfig = {
@@ -301,6 +302,8 @@ const AppContent = () => {
     return { tab, profession: profession || 'all', candidateId, candidateTab };
   };
 
+  const [jobsCompanyFilter, setJobsCompanyFilter] = useState<string>('');
+
   const navigateTab = (tab: string, opts?: AdminNavigationOptions) => {
     setActiveTab(tab);
     if (tab === 'candidates') {
@@ -311,6 +314,11 @@ const AppContent = () => {
       if (opts?.candidateTab) {
         setCandidateTabToOpen(opts.candidateTab);
       }
+    }
+    if (tab === 'jobs' && opts?.jobsCompany !== undefined) {
+      setJobsCompanyFilter(opts.jobsCompany);
+    } else if (tab !== 'jobs') {
+      setJobsCompanyFilter('');
     }
     if (typeof window === 'undefined') {
       return;
@@ -626,9 +634,9 @@ const AppContent = () => {
       case 'partners':
         return <PartnerManagement />;
       case 'employers':
-        return <EmployerManagement />;
+        return <EmployerManagement onViewJobs={(company) => navigateTab('jobs', { jobsCompany: company })} />;
       case 'jobs':
-        return <JobOrderManagement />;
+        return <JobOrderManagement initialCompany={jobsCompanyFilter} />;
       case 'employees':
         return <EmployeesModule userRole={user.role} />;
       case 'templates':

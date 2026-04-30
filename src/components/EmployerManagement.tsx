@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Building2, Mail, Phone, MapPin, Briefcase, RefreshCw, AlertCircle, Users, Clock } from 'lucide-react';
+import { Search, Plus, Building2, Mail, Phone, MapPin, Briefcase, RefreshCw, AlertCircle, Users, Clock, ExternalLink } from 'lucide-react';
 import { apiClient, EmployerLeadProfile } from '../lib/apiClient';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -13,7 +13,7 @@ const STATUS_COLORS: Record<string, string> = {
   Closed: 'bg-gray-100 text-gray-600',
 };
 
-export function EmployerManagement() {
+export function EmployerManagement({ onViewJobs }: { onViewJobs?: (company: string) => void }) {
   const [leads, setLeads] = useState<(EmployerLeadProfile & { requirements_count?: number })[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -210,13 +210,23 @@ export function EmployerManagement() {
                   )}
                 </div>
 
-                <div className="border-t border-gray-100 px-6 py-3">
+                <div className="border-t border-gray-100 px-6 py-3 flex items-center justify-between">
                   <p className="text-xs text-gray-400">
                     Added {new Date(lead.created_at || '').toLocaleDateString()}
                     {(lead as any).requirements_count > 1 && (
                       <> &bull; {(lead as any).requirements_count} requirements</>
                     )}
                   </p>
+                  {lead.company_name && onViewJobs && (
+                    <button
+                      onClick={() => onViewJobs(lead.company_name!)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                      title={`View job orders for ${lead.company_name}`}
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      View Jobs
+                    </button>
+                  )}
                 </div>
               </div>
             );

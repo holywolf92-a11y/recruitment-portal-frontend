@@ -38,13 +38,13 @@ const EMPTY_FORM = {
 
 type FormData = typeof EMPTY_FORM;
 
-export function JobOrderManagement() {
+export function JobOrderManagement({ initialCompany = '' }: { initialCompany?: string }) {
   const [orders, setOrders] = useState<EmployerLeadProfile[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [searchTerm, setSearchTerm] = useState(initialCompany);
+  const [debouncedSearch, setDebouncedSearch] = useState(initialCompany);
   const [statusFilter, setStatusFilter] = useState('all');
 
   // Create modal
