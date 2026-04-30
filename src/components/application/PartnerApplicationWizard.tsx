@@ -21,6 +21,7 @@ import {
   APPLICATION_PHONE_CODE_OPTIONS,
 } from '@/constants/applicationOptions';
 import { apiClient } from '@/lib/apiClient';
+import { useAuth } from '@/lib/authContext';
 import type { PublicPartnerPortalResponse } from '@/lib/apiClient';
 import type { ApplicationStep } from '@/types/application';
 
@@ -67,6 +68,7 @@ const partnerTypeOptions = [
 ];
 
 export default function PartnerApplicationWizard() {
+  const { signIn } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [form, setForm] = useState<PartnerWizardForm>(initialForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -153,6 +155,22 @@ export default function PartnerApplicationWizard() {
         cnic: form.cnic.trim(),
         partnerType: form.partnerType.trim(),
       });
+
+      if (response.autoLoginUrl) {
+        window.location.assign(response.autoLoginUrl);
+        return;
+      }
+
+      if (response.password) {
+        try {
+          await signIn(response.email, response.password);
+          window.location.assign(response.dashboardUrl || '/partner/dashboard');
+          return;
+        } catch {
+          setErrors({ submit: 'Your account was created, but automatic sign-in failed. Use the credentials below to continue.' });
+        }
+      }
+
       setResult(response);
       setCurrentStep(7);
       window.localStorage.removeItem(STORAGE_KEY);
