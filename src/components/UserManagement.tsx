@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Edit, Mail, Plus, RefreshCcw, Search, Send, Shield, Trash2, UserCheck, Users as UsersIcon, X } from 'lucide-react';
+import { Check, Copy, Edit, ExternalLink, Mail, Plus, RefreshCcw, Search, Send, Shield, Trash2, UserCheck, Users as UsersIcon, X } from 'lucide-react';
 import { getRoleLabel, rolePermissions, type UserRole } from '../lib/authData';
 import { apiClient, type AdminUsersResponse, type AppUserProfile, type Candidate, type CreateAdminUserPayload } from '../lib/apiClient';
 import { useAuth } from '../lib/authContext';
@@ -96,6 +96,8 @@ export function UserManagement() {
   const [deletingUser, setDeletingUser] = useState<AppUserProfile | null>(null);
   const [permissionUser, setPermissionUser] = useState<AppUserProfile | null>(null);
   const [sendingCredentials, setSendingCredentials] = useState<string | null>(null); // userId
+  const [lastAccessLink, setLastAccessLink] = useState<{ userName: string; email: string; whatsapp: string | null; autoLoginUrl: string | null } | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const loadUsers = async () => {
     if (!accessToken) return;
@@ -248,11 +250,30 @@ export function UserManagement() {
     setError(null);
     try {
       const result = await apiClient.sendUserCredentials(user.id, accessToken);
-      alert(`Credentials sent!\nEmail: ${result.sentTo.email}${result.sentTo.whatsapp ? `\nWhatsApp: ${result.sentTo.whatsapp}` : ''}`);
+      setLastAccessLink({
+        userName: user.name || user.email,
+        email: result.sentTo.email,
+        whatsapp: result.sentTo.whatsapp,
+        autoLoginUrl: result.autoLoginUrl,
+      });
+      setLinkCopied(false);
     } catch (err: any) {
       setError(err?.message || 'Failed to send credentials');
     } finally {
       setSendingCredentials(null);
+    }
+  };
+
+  const handleCopyAccessLink = async () => {
+    if (!lastAccessLink?.autoLoginUrl || !navigator?.clipboard) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(lastAccessLink.autoLoginUrl);
+      setLinkCopied(true);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to copy access link');
     }
   };
 
@@ -343,6 +364,51 @@ export function UserManagement() {
           </div>
         </div>
         {error && <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+        {lastAccessLink && (
+          <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div className="space-y-1">
+                <div className="font-semibold">Portal access link ready for {lastAccessLink.userName}</div>
+                <div>Email: {lastAccessLink.email}</div>
+                <div>WhatsApp: {lastAccessLink.whatsapp || 'Not available'}</div>
+                <div className="break-all text-emerald-800">
+                  {lastAccessLink.autoLoginUrl || 'Direct access link could not be generated for this user.'}
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleCopyAccessLink}
+                  disabled={!lastAccessLink.autoLoginUrl}
+                  className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-white px-3 py-2 text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {linkCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  {linkCopied ? 'Copied' : 'Copy link'}
+                </button>
+                <a
+                  href={lastAccessLink.autoLoginUrl || '#'}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 ${lastAccessLink.autoLoginUrl ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'pointer-events-none bg-emerald-200 text-emerald-700 opacity-60'}`}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Open link
+                </a>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLastAccessLink(null);
+                    setLinkCopied(false);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-white px-3 py-2 text-emerald-700"
+                >
+                  <X className="h-4 w-4" />
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -411,7 +477,7 @@ export function UserManagement() {
                           onClick={() => handleSendCredentials(user)}
                           disabled={sendingCredentials === user.id}
                           className={`rounded-lg p-2 hover:bg-green-50 disabled:text-gray-300 disabled:hover:bg-transparent ${['candidate', 'partner', 'employer'].includes(user.role) ? 'text-green-600' : 'hidden'}`}
-                          title="Send credentials (email + WhatsApp)"
+                          title="Send direct access link (email + WhatsApp)"
                         >
                           <Send className="h-4 w-4" />
                         </button>

@@ -1165,8 +1165,8 @@ class ApiClient {
     });
   }
 
-  async sendUserCredentials(userId: string, accessToken: string): Promise<{ message: string; sentTo: { email: string; whatsapp: string | null } }> {
-    return this.post<{ message: string; sentTo: { email: string; whatsapp: string | null } }>(
+  async sendUserCredentials(userId: string, accessToken: string): Promise<{ message: string; sentTo: { email: string; whatsapp: string | null }; autoLoginUrl: string | null }> {
+    return this.post<{ message: string; sentTo: { email: string; whatsapp: string | null }; autoLoginUrl: string | null }>(
       `/auth/users/${userId}/send-credentials`,
       {},
       { headers: { Authorization: `Bearer ${accessToken}` } }
