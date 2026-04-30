@@ -353,13 +353,27 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
 
   async function openCandidateDocument(candidateId: string, category: string, label: string) {
     try {
+      setDocOpeningIds(prev => ({ ...prev, [candidateId]: true }));
+
+      // For CV, use dedicated endpoint that checks both candidate_documents and inbox_attachments
+      if (category === 'cv_resume') {
+        const url = await apiClient.getOriginalCvDownloadUrl(candidateId);
+        setDocOpeningIds(prev => { const n = { ...prev }; delete n[candidateId]; return n; });
+        if (!url) {
+          toast.error(`No ${label} document found`);
+          return;
+        }
+        toast.info(`Opening ${label}…`);
+        window.open(url, '_blank', 'noopener,noreferrer');
+        return;
+      }
+
       let docs = candidateDocCache[candidateId];
       if (!docs) {
-        setDocOpeningIds(prev => ({ ...prev, [candidateId]: true }));
         docs = await apiClient.listCandidateDocumentsNew(candidateId);
         setCandidateDocCache(prev => ({ ...prev, [candidateId]: docs }));
-        setDocOpeningIds(prev => { const n = { ...prev }; delete n[candidateId]; return n; });
       }
+      setDocOpeningIds(prev => { const n = { ...prev }; delete n[candidateId]; return n; });
       const doc = docs.find((d: any) => d.category === category || d.doc_type === category || d.document_type === category);
       if (!doc) {
         toast.error(`No ${label} document found`);

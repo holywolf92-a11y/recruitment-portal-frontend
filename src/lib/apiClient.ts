@@ -1793,6 +1793,15 @@ class ApiClient {
     return response.documents || [];
   }
 
+  async getOriginalCvDownloadUrl(candidateId: string): Promise<string | null> {
+    try {
+      const response = await this.request<{ download_url: string }>(`/documents/candidates/${candidateId}/cv-url`);
+      return response.download_url || null;
+    } catch {
+      return null;
+    }
+  }
+
   async updateCandidateDocumentFlags(candidateId: string): Promise<{ success: boolean; message?: string }> {
     return this.request<{ success: boolean; message?: string }>(`/candidates/${candidateId}/update-document-flags`, {
       method: 'POST',
