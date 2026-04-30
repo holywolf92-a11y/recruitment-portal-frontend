@@ -1819,6 +1819,54 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                           Download CV
                         </button>
                       </div>
+                      {/* Contact row */}
+                      {(c.phone || c.email) && (
+                        <div className="grid grid-cols-2 gap-2">
+                          {/* Call / WhatsApp */}
+                          {c.phone ? (
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={() => setCallPopupId(callPopupId === c.id ? null : c.id)}
+                                className="w-full px-3 py-2 bg-green-50 border border-green-200 text-green-700 rounded-lg hover:bg-green-100 transition-colors flex items-center justify-center gap-1.5 text-xs font-medium"
+                              >
+                                <Phone className="w-3.5 h-3.5" />
+                                Call
+                                <ChevronDown className="w-3 h-3" />
+                              </button>
+                              {callPopupId === c.id && (
+                                <div className="absolute left-0 bottom-full mb-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[160px]"
+                                  onMouseLeave={() => setCallPopupId(null)}>
+                                  <a href={`tel:${c.phone}`}
+                                    className="flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                                    onClick={() => setCallPopupId(null)}>
+                                    <Phone className="w-3.5 h-3.5 text-blue-500" />
+                                    Call via SIM
+                                  </a>
+                                  <a href={`https://wa.me/${c.phone.replace(/[^0-9]/g, '')}`}
+                                    target="_blank" rel="noopener noreferrer"
+                                    className="flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                                    onClick={() => setCallPopupId(null)}>
+                                    <MessageCircle className="w-3.5 h-3.5 text-green-500" />
+                                    WhatsApp
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          ) : <div />}
+                          {/* Email */}
+                          {c.email ? (
+                            <button
+                              type="button"
+                              onClick={() => openEmailModal(c)}
+                              className="w-full px-3 py-2 bg-orange-50 border border-orange-200 text-orange-700 rounded-lg hover:bg-orange-100 transition-colors flex items-center justify-center gap-1.5 text-xs font-medium"
+                            >
+                              <Mail className="w-3.5 h-3.5" />
+                              Email
+                            </button>
+                          ) : <div />}
+                        </div>
+                      )}
                       <button
                         onClick={() => handleDeleteCandidate(c)}
                         disabled={deletingCandidateId === c.id}
