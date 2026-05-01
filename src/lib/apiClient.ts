@@ -453,6 +453,7 @@ export interface CreateCandidateData {
 export interface CandidateFilters {
   search?: string;
   status?: string;
+  gender?: string;
   position?: string;
   country_of_interest?: string;
   documents?: 'complete' | 'missing' | string;
@@ -1198,6 +1199,7 @@ class ApiClient {
     const params = new URLSearchParams();
     if (filters.search) params.append('search', filters.search);
     if (filters.status && filters.status !== 'all') params.append('status', filters.status);
+    if (filters.gender && filters.gender !== 'all') params.append('search', filters.gender);
     if (filters.position && filters.position !== 'all') params.append('position', filters.position);
     if (filters.country_of_interest && filters.country_of_interest !== 'all') params.append('country_of_interest', filters.country_of_interest);
     if (filters.documents && filters.documents !== 'all') params.append('documents', filters.documents);

@@ -67,6 +67,7 @@ interface FilterState {
   position: string;
   country: string;
   status: string;
+  gender: string;
 }
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100, 200];
@@ -221,6 +222,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
     position: initialProfessionFilter || 'all',
     country: 'all',
     status: 'all',
+    gender: 'all',
   });
   const [searchInput, setSearchInput] = useState('');
   const debouncedSearch = useDebounce(searchInput.trim(), 400);
@@ -564,6 +566,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
       position: filters.position === 'all' ? undefined : filters.position,
       country_of_interest: filters.country === 'all' ? undefined : filters.country,
       status: filters.status === 'all' ? undefined : filters.status,
+      gender: filters.gender === 'all' ? undefined : filters.gender,
       partner_id: partnerIdFilter || undefined,
       limit: pageSize,
       offset: (currentPage - 1) * pageSize,
@@ -652,7 +655,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
       if (!loading) setSlowLoadWarning(false); // Clear warning when loading finishes
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, filters.position, filters.country, filters.status, currentPage, pageSize]);
+  }, [debouncedSearch, filters.position, filters.country, filters.status, filters.gender, currentPage, pageSize]);
   
   // Clear slow-load warning when loading finishes
   useEffect(() => {
@@ -1237,6 +1240,21 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
             {positions.map(pos => (
               <option key={pos} value={pos}>{pos}</option>
             ))}
+          </select>
+
+          {/* Gender Filter */}
+          <select
+            value={filters.gender}
+            onChange={(e) => {
+              setCurrentPage(1);
+              setFilters(prev => ({ ...prev, gender: e.target.value }));
+            }}
+            className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          >
+            <option value="all">All Genders</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
           </select>
 
           {/* Search Bar */}
