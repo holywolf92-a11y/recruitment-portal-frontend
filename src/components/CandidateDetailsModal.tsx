@@ -906,7 +906,8 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                     candidate.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
                     candidate.status === 'Deployed' ? 'bg-green-100 text-green-700' :
                     candidate.status === 'Hired' ? 'bg-emerald-100 text-emerald-700' :
-                    'bg-red-100 text-red-700'
+                    candidate.status === 'Cancelled' ? 'bg-red-100 text-red-700' :
+                    'bg-gray-100 text-gray-700'
                   }`}>
                     {candidate.status}
                   </span>

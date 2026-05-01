@@ -1,4 +1,4 @@
-export const CANDIDATE_STATUS_VALUES = ['Applied', 'Pending', 'Deployed', 'Hired'] as const;
+export const CANDIDATE_STATUS_VALUES = ['Applied', 'Pending', 'Deployed', 'Hired', 'Cancelled'] as const;
 
 export type CandidateStatus = (typeof CANDIDATE_STATUS_VALUES)[number];
 
@@ -14,6 +14,8 @@ export function normalizeCandidateStatus(status?: string | null, fallback: Candi
       return 'Deployed';
     case 'hired':
       return 'Hired';
+    case 'cancelled':
+      return 'Cancelled';
     default:
       return fallback;
   }
@@ -31,5 +33,7 @@ export function getCandidateStatusClasses(status?: string | null) {
       return 'bg-green-100 text-green-700';
     case 'Hired':
       return 'bg-emerald-100 text-emerald-700';
+    case 'Cancelled':
+      return 'bg-red-100 text-red-700';
   }
 }
