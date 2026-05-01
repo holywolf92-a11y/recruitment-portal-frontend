@@ -41,6 +41,11 @@ import {
   X,
   XCircle,
   Loader2,
+  SlidersHorizontal,
+  Clock,
+  CalendarDays,
+  CalendarRange,
+  Infinity,
 } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import { apiClient, Candidate, CandidateDashboardStats } from '../lib/apiClient';
@@ -62,12 +67,15 @@ interface CandidateManagementProps {
   onCandidateOpened?: () => void;
 }
 
+type DateFilter = 'all' | 'today' | 'week' | 'month';
+
 interface FilterState {
   search: string;
   position: string;
   country: string;
   status: string;
   gender: string;
+  dateFilter: DateFilter;
 }
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100, 200];
@@ -223,7 +231,10 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
     country: 'all',
     status: 'all',
     gender: 'all',
+    dateFilter: 'all',
   });
+  const [showDateFilter, setShowDateFilter] = useState(false);
+  const dateFilterRef = useRef<HTMLDivElement>(null);
   const [searchInput, setSearchInput] = useState('');
   const debouncedSearch = useDebounce(searchInput.trim(), 400);
   const [currentPage, setCurrentPage] = useState(1);
@@ -559,8 +570,32 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
     };
     }, [candidates, photoUrls, pdfThumbs]);
   
+  // Click-outside closes date filter dropdown
+  useEffect(() => {
+    if (!showDateFilter) return;
+    const handler = (e: MouseEvent) => {
+      if (dateFilterRef.current && !dateFilterRef.current.contains(e.target as Node)) {
+        setShowDateFilter(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showDateFilter]);
+
   // Fetch candidates using context
   const fetchCandidates = async () => {
+    let applied_from: string | undefined;
+    if (filters.dateFilter === 'today') {
+      const now = new Date();
+      applied_from = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    } else if (filters.dateFilter === 'week') {
+      const d = new Date(); d.setDate(d.getDate() - 7);
+      applied_from = d.toISOString();
+    } else if (filters.dateFilter === 'month') {
+      const d = new Date(); d.setMonth(d.getMonth() - 1);
+      applied_from = d.toISOString();
+    }
+
     await fetchCandidatesFromContext({
       search: debouncedSearch,
       position: filters.position === 'all' ? undefined : filters.position,
@@ -568,6 +603,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
       status: filters.status === 'all' ? undefined : filters.status,
       gender: filters.gender === 'all' ? undefined : filters.gender,
       partner_id: partnerIdFilter || undefined,
+      applied_from,
       limit: pageSize,
       offset: (currentPage - 1) * pageSize,
     });
@@ -655,7 +691,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
       if (!loading) setSlowLoadWarning(false); // Clear warning when loading finishes
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, filters.position, filters.country, filters.status, filters.gender, currentPage, pageSize]);
+  }, [debouncedSearch, filters.position, filters.country, filters.status, filters.gender, filters.dateFilter, currentPage, pageSize]);
   
   // Clear slow-load warning when loading finishes
   useEffect(() => {
@@ -1257,45 +1293,138 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
             <option value="Other">Other</option>
           </select>
 
-          {/* Search Bar */}
-          <div className="sm:col-span-2 xl:col-span-2 relative">
-            <Search className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-            <input
-              type="search"
-              placeholder="Search by name, email, phone, profession or skills..."
-              value={searchInput}
-              onChange={(e) => {
-                setCurrentPage(1);
-                setSearchInput(e.target.value);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') e.preventDefault();
-              }}
-              role="searchbox"
-              aria-label="Search candidates"
-              className="w-full pl-12 pr-20 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            />
+          {/* Search Bar + Date Filter */}
+          <div className="sm:col-span-2 xl:col-span-2 flex gap-2 items-stretch">
+            {/* Search input */}
+            <div className="relative flex-1">
+              <Search className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+              <input
+                type="search"
+                placeholder="Search by name, email, phone, profession or skills..."
+                value={searchInput}
+                onChange={(e) => {
+                  setCurrentPage(1);
+                  setSearchInput(e.target.value);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') e.preventDefault();
+                }}
+                role="searchbox"
+                aria-label="Search candidates"
+                className="w-full pl-12 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+              {loading && !showBlockingLoader && (
+                <div className="absolute right-10 top-1/2 -translate-y-1/2 text-blue-600" aria-hidden="true">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                </div>
+              )}
+              {searchInput && (
+                <button
+                  type="button"
+                  onClick={() => { setCurrentPage(1); setSearchInput(''); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                  aria-label="Clear search"
+                  title="Clear"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
 
-            {loading && !showBlockingLoader && (
-              <div className="absolute right-10 top-1/2 -translate-y-1/2 text-blue-600" aria-hidden="true">
-                <Loader2 className="w-4 h-4 animate-spin" />
-              </div>
-            )}
-
-            {searchInput && (
+            {/* Date Filter Button */}
+            <div className="relative flex-shrink-0" ref={dateFilterRef}>
               <button
                 type="button"
-                onClick={() => {
-                  setCurrentPage(1);
-                  setSearchInput('');
-                }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                aria-label="Clear search"
-                title="Clear"
+                onClick={() => setShowDateFilter(p => !p)}
+                title="Filter by date"
+                className={`relative h-full px-4 rounded-lg border transition-all duration-200 flex items-center gap-2 text-sm font-medium ${
+                  filters.dateFilter !== 'all'
+                    ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200'
+                    : 'border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50'
+                }`}
               >
-                <X className="w-4 h-4" />
+                <SlidersHorizontal className="w-4 h-4" />
+                {filters.dateFilter !== 'all' && (
+                  <span className="hidden sm:inline text-xs">
+                    {filters.dateFilter === 'today' ? 'Today' : filters.dateFilter === 'week' ? 'This Week' : 'This Month'}
+                  </span>
+                )}
+                {filters.dateFilter !== 'all' && (
+                  <span className="absolute -top-1.5 -right-1.5 w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-white" />
+                )}
               </button>
-            )}
+
+              {/* Premium Date Filter Dropdown */}
+              {showDateFilter && (
+                <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50"
+                  style={{ boxShadow: '0 20px 60px -10px rgba(0,0,0,0.18), 0 4px 16px -4px rgba(0,0,0,0.08)' }}
+                >
+                  {/* Header */}
+                  <div className="px-5 pt-4 pb-3 border-b border-gray-50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center">
+                          <CalendarDays className="w-3.5 h-3.5 text-blue-600" />
+                        </div>
+                        <span className="text-sm font-semibold text-gray-800">Filter by Date Added</span>
+                      </div>
+                      {filters.dateFilter !== 'all' && (
+                        <button
+                          type="button"
+                          onClick={() => { setFilters(f => ({ ...f, dateFilter: 'all' })); setCurrentPage(1); setShowDateFilter(false); }}
+                          className="text-xs text-blue-600 hover:text-blue-800 font-medium px-2 py-0.5 rounded-md hover:bg-blue-50 transition-colors"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Options */}
+                  <div className="p-2.5">
+                    {([
+                      { value: 'today' as DateFilter, label: 'Today',      sub: 'Candidates added today',        Icon: Clock,         bg: 'bg-amber-50',  iconColor: 'text-amber-600',  ring: 'ring-amber-500' },
+                      { value: 'week'  as DateFilter, label: 'This Week',  sub: 'Last 7 days',                   Icon: CalendarRange, bg: 'bg-blue-50',   iconColor: 'text-blue-600',   ring: 'ring-blue-500'  },
+                      { value: 'month' as DateFilter, label: 'This Month', sub: 'Last 30 days',                  Icon: CalendarDays,  bg: 'bg-violet-50', iconColor: 'text-violet-600', ring: 'ring-violet-500'},
+                      { value: 'all'   as DateFilter, label: 'All Time',   sub: 'No date restriction',           Icon: Infinity,      bg: 'bg-gray-50',   iconColor: 'text-gray-500',   ring: 'ring-gray-400'  },
+                    ] as const).map(({ value, label, sub, Icon: OptionIcon, bg, iconColor, ring }) => {
+                      const active = filters.dateFilter === value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => {
+                            setFilters(f => ({ ...f, dateFilter: value }));
+                            setCurrentPage(1);
+                            setShowDateFilter(false);
+                          }}
+                          className={`w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl mb-1 last:mb-0 text-left transition-all duration-150 ${
+                            active
+                              ? `bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-200`
+                              : 'hover:bg-gray-50 text-gray-700'
+                          }`}
+                        >
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
+                            active ? 'bg-white/20' : bg
+                          }`}>
+                            <OptionIcon className={`w-4.5 h-4.5 ${active ? 'text-white' : iconColor}`} style={{ width: '1.1rem', height: '1.1rem' }} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className={`text-sm font-semibold leading-tight ${active ? 'text-white' : 'text-gray-800'}`}>{label}</div>
+                            <div className={`text-xs mt-0.5 leading-tight ${active ? 'text-blue-100' : 'text-gray-400'}`}>{sub}</div>
+                          </div>
+                          {active && (
+                            <div className="w-5 h-5 rounded-full bg-white/30 flex items-center justify-center flex-shrink-0">
+                              <CheckCircle className="w-3 h-3 text-white" />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* View Toggle */}
