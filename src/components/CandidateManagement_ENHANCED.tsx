@@ -596,6 +596,9 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
       applied_from = d.toISOString();
     }
 
+    // When a date filter is active, fetch ALL matching candidates (no pagination)
+    const isDateFiltered = filters.dateFilter !== 'all';
+
     await fetchCandidatesFromContext({
       search: debouncedSearch,
       position: filters.position === 'all' ? undefined : filters.position,
@@ -604,8 +607,8 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
       gender: filters.gender === 'all' ? undefined : filters.gender,
       partner_id: partnerIdFilter || undefined,
       applied_from,
-      limit: pageSize,
-      offset: (currentPage - 1) * pageSize,
+      limit: isDateFiltered ? 9999 : pageSize,
+      offset: isDateFiltered ? 0 : (currentPage - 1) * pageSize,
     });
   };
 
@@ -1203,6 +1206,21 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Candidates</h1>
             <p className="text-gray-600 mt-1">Manage your candidate pipeline</p>
           </div>
+          {/* Rows per page — top right */}
+          {filters.dateFilter === 'all' && (
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <label className="text-sm font-medium text-gray-600 whitespace-nowrap">Rows per page</label>
+              <select
+                value={pageSize}
+                onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white"
+              >
+                {PAGE_SIZE_OPTIONS.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Quick Stats */}
@@ -1428,7 +1446,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
           </div>
 
           {/* View Toggle */}
-          <div className="flex items-center gap-2 sm:col-span-2 xl:col-span-1">
+          <div className="flex items-center gap-2 sm:col-span-2 xl:col-span-2">
             <button
               onClick={() => setViewMode('card')}
               className={`flex-1 px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-2 ${
@@ -1447,22 +1465,6 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
               <List className="w-4 h-4" />
               Table
             </button>
-          </div>
-
-          <div className="sm:col-span-2 xl:col-span-1 flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Rows</label>
-            <select
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            >
-              {PAGE_SIZE_OPTIONS.map((option) => (
-                <option key={option} value={option}>{option} per page</option>
-              ))}
-            </select>
           </div>
         </div>
 
@@ -1506,7 +1508,9 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4">
           <p className="text-sm text-gray-600">
-            Showing <strong>{pageStart}-{pageEnd}</strong> of <strong>{total}</strong> candidates
+            {filters.dateFilter !== 'all'
+              ? <><strong>{total}</strong> candidates — {filters.dateFilter === 'today' ? 'Today' : filters.dateFilter === 'week' ? 'This Week' : 'This Month'} (all results shown)</>
+              : <>Showing <strong>{pageStart}–{pageEnd}</strong> of <strong>{total}</strong> candidates</>}
           </p>
           {loading && !showBlockingLoader && (
             <div className="flex items-center gap-2 text-sm text-blue-600">
@@ -1522,7 +1526,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
           </button>
         </div>
 
-        {total > 0 && (
+        {total > 0 && filters.dateFilter === 'all' && (
           <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between border-t border-gray-200 pt-4">
             <div className="text-sm text-gray-600">
               Page {currentPage} of {totalPages}
