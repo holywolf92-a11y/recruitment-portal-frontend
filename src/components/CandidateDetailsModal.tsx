@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from 'react';
-import { X, Edit2, Save, Phone, Mail, MapPin, Briefcase, Calendar, FileText, Globe, CheckCircle, XCircle, Star, Video, MessageSquare, Upload, Download, Eye, Trash2, File, Image as ImageIcon, AlertCircle, Loader, Shield, Check, Link2, RefreshCw } from 'lucide-react';
+import { X, Edit2, Save, Phone, Mail, MapPin, Briefcase, Calendar, FileText, Globe, CheckCircle, XCircle, Star, Video, MessageSquare, Upload, Download, Eye, Trash2, File, Image as ImageIcon, AlertCircle, Loader, Shield, Check, Link2, RefreshCw, Table2 } from 'lucide-react';
 import { Candidate } from '../lib/apiClient';
 import { ExtractionReviewModal } from './ExtractionReviewModal';
 import { MissingDataTab } from './MissingDataTab';
@@ -9,7 +9,7 @@ import { renderPdfFirstPageToDataUrl } from '../lib/pdfThumb';
 interface CandidateDetailsModalProps {
   candidate: Candidate;
   onClose: () => void;
-  initialTab?: 'details' | 'documents' | 'missing-data';
+  initialTab?: 'details' | 'documents' | 'missing-data' | 'excel-data';
   onDocumentChange?: () => void;
 }
 
@@ -195,7 +195,29 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
   const [editedCandidate, setEditedCandidate] = useState(candidate);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [documentsLoading, setDocumentsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'details' | 'documents' | 'missing-data'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'details' | 'documents' | 'missing-data' | 'excel-data'>(initialTab);
+  const [excelForm, setExcelForm] = useState({
+    date_of_birth: candidate.date_of_birth || '',
+    gender: candidate.gender || '',
+    marital_status: candidate.marital_status || '',
+    father_name: candidate.father_name || '',
+    religion: candidate.religion || '',
+    address: candidate.address || '',
+    cnic: candidate.cnic || '',
+    passport: candidate.passport || '',
+    passport_expiry: candidate.passport_expiry || '',
+    license: candidate.license || '',
+    medical_expiry: candidate.medical_expiry || '',
+    gcc_years: candidate.gcc_years !== undefined && candidate.gcc_years !== null ? String(candidate.gcc_years) : '',
+    salary_expectation: candidate.salary_expectation || '',
+    date_available: candidate.date_available || '',
+    interview_date: candidate.interview_date || '',
+    languages: candidate.languages || '',
+    skills: candidate.skills || '',
+  });
+  const [excelSaving, setExcelSaving] = useState(false);
+  const [excelSaveError, setExcelSaveError] = useState<string | null>(null);
+  const [excelSaveSuccess, setExcelSaveSuccess] = useState(false);
   const [extractionInProgress, setExtractionInProgress] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showExtractionModal, setShowExtractionModal] = useState(false);
@@ -809,6 +831,17 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
             >
               <AlertCircle className="w-4 h-4" />
               Missing Data
+            </button>
+            <button
+              onClick={() => setActiveTab('excel-data')}
+              className={`py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                activeTab === 'excel-data'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Table2 className="w-4 h-4" />
+              Excel Data
             </button>
           </div>
         </div>
@@ -1434,6 +1467,96 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                   });
                 }}
               />
+            </div>
+          ) : activeTab === 'excel-data' ? (
+            <div className="p-6 space-y-6">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-base font-semibold text-gray-900">Excel Data Fields</h3>
+                {excelSaveSuccess && (
+                  <span className="text-sm text-green-600 flex items-center gap-1"><CheckCircle className="w-4 h-4" /> Saved</span>
+                )}
+                {excelSaveError && (
+                  <span className="text-sm text-red-600">{excelSaveError}</span>
+                )}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {([
+                  { key: 'date_of_birth', label: 'Date of Birth', type: 'date' },
+                  { key: 'gender', label: 'Gender', type: 'text' },
+                  { key: 'marital_status', label: 'Marital Status', type: 'text' },
+                  { key: 'father_name', label: 'Father Name', type: 'text' },
+                  { key: 'religion', label: 'Religion', type: 'text' },
+                  { key: 'cnic', label: 'CNIC', type: 'text' },
+                  { key: 'passport', label: 'Passport Number', type: 'text' },
+                  { key: 'passport_expiry', label: 'Passport Expiry', type: 'date' },
+                  { key: 'license', label: 'License', type: 'text' },
+                  { key: 'medical_expiry', label: 'Medical Expiry', type: 'date' },
+                  { key: 'gcc_years', label: 'GCC Experience (Years)', type: 'text' },
+                  { key: 'salary_expectation', label: 'Salary Expectation', type: 'text' },
+                  { key: 'date_available', label: 'Date Available', type: 'date' },
+                  { key: 'interview_date', label: 'Interview Date', type: 'date' },
+                ] as { key: keyof typeof excelForm; label: string; type: string }[]).map(({ key, label, type }) => (
+                  <div key={key}>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
+                    <input
+                      type={type}
+                      value={excelForm[key]}
+                      onChange={e => setExcelForm(f => ({ ...f, [key]: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                {([
+                  { key: 'address', label: 'Address' },
+                  { key: 'languages', label: 'Languages' },
+                  { key: 'skills', label: 'Skills' },
+                ] as { key: keyof typeof excelForm; label: string }[]).map(({ key, label }) => (
+                  <div key={key}>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
+                    <textarea
+                      value={excelForm[key]}
+                      onChange={e => setExcelForm(f => ({ ...f, [key]: e.target.value }))}
+                      rows={2}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-end pt-2">
+                <button
+                  disabled={excelSaving}
+                  onClick={async () => {
+                    setExcelSaving(true);
+                    setExcelSaveError(null);
+                    setExcelSaveSuccess(false);
+                    try {
+                      const payload: Record<string, string | number | null> = {};
+                      const keys = Object.keys(excelForm) as (keyof typeof excelForm)[];
+                      for (const k of keys) {
+                        const v = excelForm[k];
+                        if (k === 'gcc_years') {
+                          payload[k] = v === '' ? null : Number(v);
+                        } else {
+                          payload[k] = v === '' ? null : v;
+                        }
+                      }
+                      await apiClient.updateCandidate(candidate.id, payload as any);
+                      setExcelSaveSuccess(true);
+                      setTimeout(() => setExcelSaveSuccess(false), 3000);
+                    } catch (err: any) {
+                      setExcelSaveError(err.message || 'Save failed');
+                    } finally {
+                      setExcelSaving(false);
+                    }
+                  }}
+                  className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 transition-colors"
+                >
+                  {excelSaving ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {excelSaving ? 'Saving…' : 'Save Changes'}
+                </button>
+              </div>
             </div>
           ) : null}
         </div>

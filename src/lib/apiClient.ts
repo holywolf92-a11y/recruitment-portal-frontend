@@ -370,6 +370,15 @@ export interface Candidate {
   field_sources?: Record<string, { field: string; source: string; updated_at: string; updated_by?: string }>;
   missing_fields?: string[];
   
+  // Excel data fields
+  religion?: string;
+  salary_expectation?: string;
+  date_available?: string;
+  interview_date?: string;
+  medical_expiry?: string;
+  license?: string;
+  gcc_years?: number;
+
   created_at: string;
   updated_at: string;
 }
@@ -429,6 +438,15 @@ export interface CreateCandidateData {
   passport_expiry?: string;
   professional_summary?: string;
   extraction_confidence?: Record<string, number>;
+
+  // Excel data fields
+  religion?: string;
+  salary_expectation?: string;
+  date_available?: string;
+  interview_date?: string;
+  medical_expiry?: string;
+  license?: string;
+  gcc_years?: number;
   extraction_source?: string;
 }
 
