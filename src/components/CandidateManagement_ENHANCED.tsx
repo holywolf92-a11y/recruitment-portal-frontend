@@ -430,19 +430,21 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
     setEmailModal({ candidate });
   }
 
-  // ── Send via mailto with CV link ─────────────────────────────────────────────
+  // ── Send CV email directly via backend ───────────────────────────────────────
   async function handleSendEmail() {
     if (!emailModal) return;
+    if (!emailTo.trim()) return;
     setEmailCvLoading(true);
     try {
-      const result = await apiClient.generateCandidateCV(emailModal.candidate.id, 'employer-safe', false);
-      const bodyWithLink = `${emailBody}\n\n--- EMPLOYER-SAFE CV ---\n${result.cv_url}\n\nThis link is valid for a limited time. Do not share publicly.`;
-      const mailto = `mailto:${encodeURIComponent(emailTo)}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(bodyWithLink)}`;
-      window.open(mailto, '_blank');
-      toast.success('Email client opened — please review and send.');
+      await apiClient.forwardCvByEmail(emailModal.candidate.id, {
+        to: emailTo.trim(),
+        subject: emailSubject,
+        body: emailBody,
+      });
+      toast.success(`Email sent to ${emailTo.trim()} — CV link included.`);
       setEmailModal(null);
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to generate CV link');
+      toast.error(err?.message || 'Failed to send email');
     } finally {
       setEmailCvLoading(false);
     }
@@ -2235,9 +2237,9 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                 />
               </div>
 
-              <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                <Mail className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                <p className="text-xs text-amber-700">Clicking <strong>Send</strong> generates a secure CV link and opens your email client. The CV link will be appended to the message automatically.</p>
+              <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                <Mail className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                <p className="text-xs text-blue-700">Clicking <strong>Send Email</strong> generates an employer-safe CV link and sends the email directly from <strong>support@falishajobs.com</strong> to the recipient.</p>
               </div>
             </div>
 
@@ -2255,7 +2257,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                 className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
               >
                 {emailCvLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                {emailCvLoading ? 'Generating CV…' : 'Send'}
+                {emailCvLoading ? 'Sending…' : 'Send Email'}
               </button>
             </div>
           </div>

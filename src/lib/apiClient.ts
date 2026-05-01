@@ -1572,6 +1572,16 @@ class ApiClient {
     );
   }
 
+  async forwardCvByEmail(
+    candidateId: string,
+    opts: { to: string; subject: string; body: string }
+  ): Promise<{ sent: boolean; to: string; provider: string; cv_url: string }> {
+    return await this.request<{ sent: boolean; to: string; provider: string; cv_url: string }>(
+      `/cv-generator/${candidateId}/forward-email`,
+      { method: 'POST', body: JSON.stringify(opts) }
+    );
+  }
+
   /**
    * Get CV generation status for a candidate
    * GET /api/cv-generator/:candidateId/status?format=employer-safe
