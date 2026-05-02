@@ -1434,6 +1434,10 @@ class ApiClient {
     return this.request(`/candidates/${candidateId}/portal-link`);
   }
 
+  async sendPortalLinkWhatsApp(candidateId: string): Promise<{ ok: boolean; to: string; portalLink: string; name: string }> {
+    return this.request(`/candidates/${candidateId}/send-portal-link-whatsapp`, { method: 'POST' });
+  }
+
   async getHostingerPollingStatus(): Promise<HostingerPollingStatus> {
     return this.request('/email/hostinger/status');
   }

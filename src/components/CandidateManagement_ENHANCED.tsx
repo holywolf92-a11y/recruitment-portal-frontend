@@ -225,6 +225,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
   const [bulkUpdating, setBulkUpdating] = useState(false);
   const [statusUpdatingIds, setStatusUpdatingIds] = useState<Record<string, boolean>>({});
   const [portalLinkLoadingIds, setPortalLinkLoadingIds] = useState<Record<string, boolean>>({});
+  const [waSendingIds, setWaSendingIds] = useState<Record<string, boolean>>({});
   // Track which candidate CVs have been opened/reviewed — persisted in localStorage
   const [reviewedCvIds, setReviewedCvIds] = useState<Set<string>>(() => {
     try {
@@ -2078,7 +2079,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[220px]">Candidate</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[170px]">Contact</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[120px]">Exp / Age</th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[70px]">Portal</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[90px]">Portal</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[210px]">Documents</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[200px]">Payment</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[130px]">Actions</th>
@@ -2227,32 +2228,62 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
 
                       {/* PORTAL */}
                       <td className="px-3 py-2 text-center">
-                        <button
-                          type="button"
-                          title="Copy portal link & open candidate portal"
-                          disabled={!!portalLinkLoadingIds[c.id]}
-                          onClick={async () => {
-                            setPortalLinkLoadingIds(p => ({ ...p, [c.id]: true }));
-                            try {
-                              const { portalLink } = await apiClient.getCandidatePortalLink(c.id);
-                              navigator.clipboard.writeText(portalLink).catch(() => {});
-                              window.open(portalLink, '_blank', 'noopener,noreferrer');
-                              toast.success('Portal link copied!', { description: portalLink, duration: 3000 });
-                            } catch {
-                              toast.error('Could not get portal link for this candidate');
-                            } finally {
-                              setPortalLinkLoadingIds(p => ({ ...p, [c.id]: false }));
-                            }
-                          }}
-                          className={`inline-flex flex-col items-center gap-0.5 transition-colors group ${portalLinkLoadingIds[c.id] ? 'text-gray-400 cursor-wait' : 'text-blue-600 hover:text-blue-800'}`}
-                        >
-                          {portalLinkLoadingIds[c.id]
-                            ? <Loader2 className="w-4 h-4 animate-spin" />
-                            : <Share2 className="w-4 h-4 group-hover:scale-110 transition-transform" />}
-                          <span className={`text-[9px] font-medium ${portalLinkLoadingIds[c.id] ? 'text-gray-400' : 'text-blue-500 group-hover:text-blue-700'}`}>
-                            {portalLinkLoadingIds[c.id] ? '…' : 'Share'}
-                          </span>
-                        </button>
+                        <div className="flex flex-col items-center gap-1">
+                          {/* Copy & open link */}
+                          <button
+                            type="button"
+                            title="Copy portal link & open candidate portal"
+                            disabled={!!portalLinkLoadingIds[c.id]}
+                            onClick={async () => {
+                              setPortalLinkLoadingIds(p => ({ ...p, [c.id]: true }));
+                              try {
+                                const { portalLink } = await apiClient.getCandidatePortalLink(c.id);
+                                navigator.clipboard.writeText(portalLink).catch(() => {});
+                                window.open(portalLink, '_blank', 'noopener,noreferrer');
+                                toast.success('Portal link copied!', { description: portalLink, duration: 3000 });
+                              } catch {
+                                toast.error('Could not get portal link for this candidate');
+                              } finally {
+                                setPortalLinkLoadingIds(p => ({ ...p, [c.id]: false }));
+                              }
+                            }}
+                            className={`inline-flex flex-col items-center gap-0.5 transition-colors group ${portalLinkLoadingIds[c.id] ? 'text-gray-400 cursor-wait' : 'text-blue-600 hover:text-blue-800'}`}
+                          >
+                            {portalLinkLoadingIds[c.id]
+                              ? <Loader2 className="w-4 h-4 animate-spin" />
+                              : <Share2 className="w-4 h-4 group-hover:scale-110 transition-transform" />}
+                            <span className={`text-[9px] font-medium ${portalLinkLoadingIds[c.id] ? 'text-gray-400' : 'text-blue-500 group-hover:text-blue-700'}`}>
+                              {portalLinkLoadingIds[c.id] ? '…' : 'Share'}
+                            </span>
+                          </button>
+                          {/* Send via WhatsApp */}
+                          {c.phone && (
+                            <button
+                              type="button"
+                              title="Send portal link to candidate via WhatsApp"
+                              disabled={!!waSendingIds[c.id]}
+                              onClick={async () => {
+                                setWaSendingIds(p => ({ ...p, [c.id]: true }));
+                                try {
+                                  const { to } = await apiClient.sendPortalLinkWhatsApp(c.id);
+                                  toast.success('Portal link sent via WhatsApp!', { description: `Sent to ${to}`, duration: 3000 });
+                                } catch (err: any) {
+                                  toast.error(err?.message || 'Failed to send WhatsApp message');
+                                } finally {
+                                  setWaSendingIds(p => ({ ...p, [c.id]: false }));
+                                }
+                              }}
+                              className={`inline-flex flex-col items-center gap-0.5 transition-colors group ${waSendingIds[c.id] ? 'text-gray-400 cursor-wait' : 'text-green-600 hover:text-green-800'}`}
+                            >
+                              {waSendingIds[c.id]
+                                ? <Loader2 className="w-4 h-4 animate-spin" />
+                                : <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />}
+                              <span className={`text-[9px] font-medium ${waSendingIds[c.id] ? 'text-gray-400' : 'text-green-500 group-hover:text-green-700'}`}>
+                                {waSendingIds[c.id] ? '…' : 'WA'}
+                              </span>
+                            </button>
+                          )}
+                        </div>
                       </td>
 
                       {/* DOCUMENTS — clickable, opens real doc */}
