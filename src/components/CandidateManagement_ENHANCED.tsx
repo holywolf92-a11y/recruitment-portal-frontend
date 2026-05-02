@@ -2370,16 +2370,25 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                               </button>
                             );
                           })}
-                          {c.youtube_link && (
+                          {/* YouTube Video — always visible, green when set */}
+                          {c.youtube_link ? (
                             <a
                               href={c.youtube_link}
                               target="_blank"
                               rel="noopener noreferrer"
-                              title="YouTube video"
-                              className="w-7 h-7 rounded flex items-center justify-center bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                              title="Watch YouTube video"
+                              className="w-7 h-7 rounded flex items-center justify-center bg-green-50 text-green-600 hover:bg-green-100 transition-colors"
+                              onClick={e => e.stopPropagation()}
                             >
                               <Play className="w-3.5 h-3.5" />
                             </a>
+                          ) : (
+                            <span
+                              title="No YouTube video"
+                              className="w-7 h-7 rounded flex items-center justify-center bg-gray-50 text-gray-300 cursor-default"
+                            >
+                              <Play className="w-3.5 h-3.5" />
+                            </span>
                           )}
                           {docOpeningIds[c.id] && <span className="text-[10px] text-gray-400 animate-pulse self-center">…</span>}
                         </div>
