@@ -11,6 +11,7 @@ import {
   Mail,
   MapPin,
   Phone,
+  Play,
   ShieldCheck,
   Sparkles,
   Upload,
@@ -454,7 +455,7 @@ export function CandidateOnboardingPage() {
     { label: 'Phone', value: formatDisplayValue(data.candidate.phone), icon: Phone },
     { label: 'DOB', value: formatDateValue(data.candidate.date_of_birth), icon: CalendarDays },
     { label: 'Address', value: formatDisplayValue(data.candidate.address), icon: MapPin },
-    ...(data.candidate.youtube_link ? [{ label: 'YouTube', value: data.candidate.youtube_link, icon: Upload, isLink: true }] : []),
+    ...(data.candidate.youtube_link ? [{ label: 'YouTube', value: data.candidate.youtube_link, icon: Play, isLink: true }] : []),
   ];
 
   const completionItems = [

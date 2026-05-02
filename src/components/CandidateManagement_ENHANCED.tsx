@@ -1863,18 +1863,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                         </button>
                       </div>
 
-                      {/* Error Summary Badge - Shows if there are document issues */}
-                      {!processingDocuments.get(c.id)?.isProcessing && docCount > 0 && !allDocsOk && (
-                        <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                          <div className="flex items-center gap-2 mb-1">
-                            <AlertTriangle className="w-4 h-4 text-red-600" />
-                            <span className="text-xs font-semibold text-red-700">Document Issues Detected</span>
-                          </div>
-                          <p className="text-xs text-red- 600">
-                            Some documents need attention. Click "View All" to review and resolve issues.
-                          </p>
-                        </div>
-                      )}
+
 
                       {processingDocuments.get(c.id)?.isProcessing ? (
                         // Premium Loading State with Shimmer Skeletons
@@ -1963,6 +1952,19 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                               <CheckCircle className="w-3 h-3" />
                               All documents are valid
                             </div>
+                          )}
+                          {/* YouTube link button */}
+                          {c.youtube_link && (
+                            <a
+                              href={c.youtube_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={e => e.stopPropagation()}
+                              className="mt-2 flex items-center justify-center gap-1.5 w-full px-3 py-1.5 bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-colors text-xs font-medium"
+                            >
+                              <Play className="w-3.5 h-3.5" />
+                              Watch YouTube Video
+                            </a>
                           )}
                         </>
                       ) : (
@@ -2334,6 +2336,17 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                               </button>
                             );
                           })}
+                          {c.youtube_link && (
+                            <a
+                              href={c.youtube_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="YouTube video"
+                              className="w-7 h-7 rounded flex items-center justify-center bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                            >
+                              <Play className="w-3.5 h-3.5" />
+                            </a>
+                          )}
                           {docOpeningIds[c.id] && <span className="text-[10px] text-gray-400 animate-pulse self-center">…</span>}
                         </div>
                         <p className="text-[10px] text-gray-400 mt-0.5">
