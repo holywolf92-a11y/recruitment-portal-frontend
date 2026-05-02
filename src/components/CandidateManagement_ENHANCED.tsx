@@ -2106,17 +2106,20 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                           <div className="min-w-0">
                             <p className="font-semibold text-gray-900 text-sm leading-tight truncate">{c.name}</p>
                             <p className="text-[10px] font-mono text-gray-400 leading-tight">{c.candidate_code || '—'}</p>
+                            {c.position && (
+                              <p className="text-[11px] text-gray-600 font-medium leading-tight truncate mt-0.5">{c.position}</p>
+                            )}
                             <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                              <select
+                                value={normalizeCandidateStatus(c.status)}
+                                onChange={e => handleInlineStatusChange(c, e.target.value as CandidateStatus)}
+                                disabled={!!statusUpdatingIds[c.id]}
+                                className={`text-[10px] rounded border-0 px-1.5 py-0.5 font-semibold cursor-pointer outline-none focus:ring-1 focus:ring-blue-400 ${getCandidateStatusClasses(c.status)} ${statusUpdatingIds[c.id] ? 'opacity-60 cursor-wait' : ''}`}
+                              >
+                                {CANDIDATE_STATUS_VALUES.map(s => <option key={s} value={s}>{s}</option>)}
+                              </select>
                               <span className={`px-1.5 text-[10px] font-semibold rounded-full leading-5 ${badge.cls}`}>{badge.label}</span>
                             </div>
-                            <select
-                              value={normalizeCandidateStatus(c.status)}
-                              onChange={e => handleInlineStatusChange(c, e.target.value as CandidateStatus)}
-                              disabled={!!statusUpdatingIds[c.id]}
-                              className={`mt-0.5 text-[10px] rounded border-0 px-1.5 py-0.5 font-semibold cursor-pointer outline-none focus:ring-1 focus:ring-blue-400 ${getCandidateStatusClasses(c.status)} ${statusUpdatingIds[c.id] ? 'opacity-60 cursor-wait' : ''}`}
-                            >
-                              {CANDIDATE_STATUS_VALUES.map(s => <option key={s} value={s}>{s}</option>)}
-                            </select>
                           </div>
                         </div>
                       </td>
