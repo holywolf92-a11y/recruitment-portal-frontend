@@ -1938,6 +1938,35 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                                 <Loader2 className="w-3 h-3 animate-spin" /> Opening document…
                               </div>
                             )}
+                            {/* YouTube Video Tile — always visible in doc grid */}
+                            <div
+                              onClick={c.youtube_link ? (e) => { e.stopPropagation(); window.open(c.youtube_link!, '_blank', 'noopener,noreferrer'); } : undefined}
+                              title={c.youtube_link ? 'Watch YouTube video' : 'No YouTube video uploaded'}
+                              className={`relative group ${c.youtube_link ? 'cursor-pointer' : 'cursor-not-allowed'} ${
+                                c.youtube_link ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
+                              } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all ${c.youtube_link ? 'hover:shadow-md hover:scale-105 hover:bg-green-100' : 'opacity-70'} animate-fade-in`}
+                            >
+                              <Play className={`w-5 h-5 mb-1 ${c.youtube_link ? 'text-green-600' : 'text-red-400'}`} />
+                              <span className="text-xs font-semibold">Video</span>
+                              {c.youtube_link ? (
+                                <>
+                                  <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
+                                  <div className="absolute inset-0 rounded-lg bg-green-600/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                                    <Eye className="w-4 h-4 text-green-700" />
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <XCircle className="w-5 h-5 text-red-400 absolute top-1 right-1" strokeWidth={2.5} />
+                                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50">
+                                    <div className="bg-gray-900 text-white text-xs rounded-md px-2 py-1 whitespace-nowrap">
+                                      No YouTube video uploaded
+                                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           </div>
 
                           {/* Document Status Message */}
@@ -1953,25 +1982,30 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                               All documents are valid
                             </div>
                           )}
-                          {/* YouTube link button */}
-                          {c.youtube_link && (
-                            <a
-                              href={c.youtube_link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={e => e.stopPropagation()}
-                              className="mt-2 flex items-center justify-center gap-1.5 w-full px-3 py-1.5 bg-red-50 border border-red-200 text-red-700 rounded-lg hover:bg-red-100 transition-colors text-xs font-medium"
-                            >
-                              <Play className="w-3.5 h-3.5" />
-                              Watch YouTube Video
-                            </a>
-                          )}
                         </>
                       ) : (
-                        <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 flex items-center gap-2">
-                          <AlertCircle className="w-4 h-4" />
-                          No documents uploaded yet
-                        </div>
+                        <>
+                          <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4" />
+                            No documents uploaded yet
+                          </div>
+                          {/* YouTube Video Tile even when no docs */}
+                          <div
+                            onClick={c.youtube_link ? (e) => { e.stopPropagation(); window.open(c.youtube_link!, '_blank', 'noopener,noreferrer'); } : undefined}
+                            title={c.youtube_link ? 'Watch YouTube video' : 'No YouTube video uploaded'}
+                            className={`mt-2 relative group ${c.youtube_link ? 'cursor-pointer' : 'cursor-not-allowed'} ${
+                              c.youtube_link ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'
+                            } border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all ${c.youtube_link ? 'hover:shadow-md hover:scale-105 hover:bg-green-100' : 'opacity-70'}`}
+                          >
+                            <Play className={`w-5 h-5 mb-1 ${c.youtube_link ? 'text-green-600' : 'text-red-400'}`} />
+                            <span className="text-xs font-semibold">Video</span>
+                            {c.youtube_link ? (
+                              <CheckCircle className="w-5 h-5 text-green-600 absolute top-1 right-1" strokeWidth={2.5} />
+                            ) : (
+                              <XCircle className="w-5 h-5 text-red-400 absolute top-1 right-1" strokeWidth={2.5} />
+                            )}
+                          </div>
+                        </>
                       )}
                     </div>
 
