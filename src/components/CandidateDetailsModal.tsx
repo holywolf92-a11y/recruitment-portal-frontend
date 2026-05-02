@@ -358,11 +358,20 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
     setIsEditing(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsEditing(false);
-    // Here you would typically update the candidate data in your backend
-    // For this example, we'll just update the local state
-    setEditedCandidate(editedCandidate);
+    try {
+      await apiClient.updateCandidate(candidate.id, {
+        email: editedCandidate.email,
+        phone: editedCandidate.phone,
+        nationality: editedCandidate.nationality,
+        country_of_interest: editedCandidate.country_of_interest,
+        position: editedCandidate.position,
+        youtube_link: (editedCandidate as any).youtube_link || null,
+      } as any);
+    } catch (err: any) {
+      console.error('Failed to save candidate details:', err);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -977,6 +986,33 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                         className={`text-sm ${isEditing ? 'border border-gray-300' : 'bg-gray-100'} p-1 rounded`}
                         readOnly={!isEditing}
                       />
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 md:col-span-2">
+                    <Video className="w-5 h-5 text-red-400 mt-1" />
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-600">YouTube Link</p>
+                      {isEditing ? (
+                        <input
+                          type="url"
+                          name="youtube_link"
+                          value={(editedCandidate as any).youtube_link || ''}
+                          onChange={e => setEditedCandidate({ ...editedCandidate, youtube_link: e.target.value } as any)}
+                          placeholder="https://youtube.com/..."
+                          className="w-full text-sm border border-gray-300 p-1 rounded"
+                        />
+                      ) : (editedCandidate as any).youtube_link ? (
+                        <a
+                          href={(editedCandidate as any).youtube_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-red-600 underline hover:text-red-800 break-all"
+                        >
+                          {(editedCandidate as any).youtube_link}
+                        </a>
+                      ) : (
+                        <p className="text-sm text-gray-400 italic">Not set — click Edit to add</p>
+                      )}
                     </div>
                   </div>
                 </div>

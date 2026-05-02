@@ -2210,8 +2210,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                               <Play className="w-3 h-3 flex-shrink-0" />
                               <span className="truncate flex-1 text-left">YouTube</span>
                             </a>
-                          )}
-                          {(c.nationality || c.country_of_interest) && (
+                          )}                          {(c.nationality || c.country_of_interest) && (
                             <div className="flex items-center gap-1 text-[10px] text-gray-500 flex-wrap">
                               <MapPin className="w-3 h-3 text-gray-400 flex-shrink-0" />
                               <span>{c.nationality || '—'}</span>
