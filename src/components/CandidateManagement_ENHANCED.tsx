@@ -2126,6 +2126,9 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                             {c.position && (
                               <p className="text-[11px] text-gray-600 font-medium leading-tight truncate mt-0.5">{c.position}</p>
                             )}
+                            {(() => { const p = parsePartnerSource(c); return p ? (
+                              <p className="text-[10px] text-violet-600 font-medium leading-tight truncate mt-0.5">↗ {p.label}</p>
+                            ) : null; })()}
                             <div className="flex items-center gap-1 mt-0.5 flex-wrap">
                               <select
                                 value={normalizeCandidateStatus(c.status)}
