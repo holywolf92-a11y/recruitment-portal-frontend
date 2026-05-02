@@ -2061,7 +2061,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[220px]">Candidate</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[170px]">Contact</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[120px]">Exp / Age</th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[60px]">Score</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[70px]">Portal</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[210px]">Documents</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[200px]">Payment</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[130px]">Actions</th>
@@ -2205,15 +2205,22 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                         </div>
                       </td>
 
-                      {/* SCORE */}
+                      {/* PORTAL */}
                       <td className="px-3 py-2 text-center">
-                        {score != null ? (
-                          <div className="flex flex-col items-center gap-0.5">
-                            <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-400" />
-                            <span className="text-xs font-bold text-gray-700">{score}</span>
-                            <span className="text-[9px] text-gray-400">/10</span>
-                          </div>
-                        ) : <span className="text-xs text-gray-300">—</span>}
+                        <button
+                          type="button"
+                          title="Copy portal link & open candidate portal"
+                          onClick={() => {
+                            const link = `${window.location.origin}/profile/${c.id}`;
+                            navigator.clipboard.writeText(link).catch(() => {});
+                            window.open(link, '_blank', 'noopener,noreferrer');
+                            toast.success('Portal link copied!', { description: link, duration: 3000 });
+                          }}
+                          className="inline-flex flex-col items-center gap-0.5 text-blue-600 hover:text-blue-800 transition-colors group"
+                        >
+                          <Share2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                          <span className="text-[9px] font-medium text-blue-500 group-hover:text-blue-700">Share</span>
+                        </button>
                       </td>
 
                       {/* DOCUMENTS — clickable, opens real doc */}
