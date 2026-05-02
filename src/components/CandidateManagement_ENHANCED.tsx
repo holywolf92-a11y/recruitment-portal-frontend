@@ -225,6 +225,22 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
   const [bulkUpdating, setBulkUpdating] = useState(false);
   const [statusUpdatingIds, setStatusUpdatingIds] = useState<Record<string, boolean>>({});
   const [portalLinkLoadingIds, setPortalLinkLoadingIds] = useState<Record<string, boolean>>({});
+  // Track which candidate CVs have been opened/reviewed — persisted in localStorage
+  const [reviewedCvIds, setReviewedCvIds] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem('falisha:reviewed-cvs');
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch { return new Set(); }
+  });
+  const markCvReviewed = (candidateId: string) => {
+    setReviewedCvIds(prev => {
+      if (prev.has(candidateId)) return prev;
+      const next = new Set(prev);
+      next.add(candidateId);
+      try { localStorage.setItem('falisha:reviewed-cvs', JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  };
   const [slowLoadWarning, setSlowLoadWarning] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     search: '',
@@ -2241,18 +2257,34 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                         <div className="flex flex-wrap gap-1">
                           {TABLE_DOC_CONFIG.map(d => {
                             const ok = !!(c as any)[d.flag];
+                            const isCv = d.flag === 'cv_received';
+                            const cvReviewed = isCv && reviewedCvIds.has(c.id);
+                            const activeColor = cvReviewed
+                              ? 'text-amber-600 hover:bg-amber-100'
+                              : `${d.color} ${d.bg}`;
                             return (
                               <button
                                 key={d.flag}
                                 type="button"
-                                title={ok ? `View ${d.label}` : `${d.label} missing`}
+                                title={
+                                  isCv && ok
+                                    ? cvReviewed ? 'CV reviewed ✓ — click to open again' : 'View CV (not yet reviewed)'
+                                    : ok ? `View ${d.label}` : `${d.label} missing`
+                                }
                                 disabled={!ok}
-                                onClick={() => ok && openCandidateDocument(c.id, d.category, d.label)}
-                                className={`w-7 h-7 rounded flex items-center justify-center transition-colors ${
-                                  ok ? `bg-green-50 ${d.color} ${d.bg}` : 'bg-gray-50 text-gray-300 cursor-default'
+                                onClick={() => {
+                                  if (!ok) return;
+                                  if (isCv) markCvReviewed(c.id);
+                                  openCandidateDocument(c.id, d.category, d.label);
+                                }}
+                                className={`w-7 h-7 rounded flex items-center justify-center transition-colors relative ${
+                                  ok ? `bg-green-50 ${activeColor}` : 'bg-gray-50 text-gray-300 cursor-default'
                                 }`}
                               >
                                 <d.Icon className="w-3.5 h-3.5" />
+                                {isCv && ok && cvReviewed && (
+                                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-amber-400 rounded-full border border-white" title="CV reviewed" />
+                                )}
                               </button>
                             );
                           })}
