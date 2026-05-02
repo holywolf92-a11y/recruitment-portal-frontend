@@ -224,6 +224,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
   const [bulkStatus, setBulkStatus] = useState<CandidateStatus>('Pending');
   const [bulkUpdating, setBulkUpdating] = useState(false);
   const [statusUpdatingIds, setStatusUpdatingIds] = useState<Record<string, boolean>>({});
+  const [portalLinkLoadingIds, setPortalLinkLoadingIds] = useState<Record<string, boolean>>({});
   const [slowLoadWarning, setSlowLoadWarning] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     search: '',
@@ -2210,16 +2211,28 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                         <button
                           type="button"
                           title="Copy portal link & open candidate portal"
-                          onClick={() => {
-                            const link = `${window.location.origin}/profile/${c.id}`;
-                            navigator.clipboard.writeText(link).catch(() => {});
-                            window.open(link, '_blank', 'noopener,noreferrer');
-                            toast.success('Portal link copied!', { description: link, duration: 3000 });
+                          disabled={!!portalLinkLoadingIds[c.id]}
+                          onClick={async () => {
+                            setPortalLinkLoadingIds(p => ({ ...p, [c.id]: true }));
+                            try {
+                              const { portalLink } = await apiClient.getCandidatePortalLink(c.id);
+                              navigator.clipboard.writeText(portalLink).catch(() => {});
+                              window.open(portalLink, '_blank', 'noopener,noreferrer');
+                              toast.success('Portal link copied!', { description: portalLink, duration: 3000 });
+                            } catch {
+                              toast.error('Could not get portal link for this candidate');
+                            } finally {
+                              setPortalLinkLoadingIds(p => ({ ...p, [c.id]: false }));
+                            }
                           }}
-                          className="inline-flex flex-col items-center gap-0.5 text-blue-600 hover:text-blue-800 transition-colors group"
+                          className={`inline-flex flex-col items-center gap-0.5 transition-colors group ${portalLinkLoadingIds[c.id] ? 'text-gray-400 cursor-wait' : 'text-blue-600 hover:text-blue-800'}`}
                         >
-                          <Share2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                          <span className="text-[9px] font-medium text-blue-500 group-hover:text-blue-700">Share</span>
+                          {portalLinkLoadingIds[c.id]
+                            ? <Loader2 className="w-4 h-4 animate-spin" />
+                            : <Share2 className="w-4 h-4 group-hover:scale-110 transition-transform" />}
+                          <span className={`text-[9px] font-medium ${portalLinkLoadingIds[c.id] ? 'text-gray-400' : 'text-blue-500 group-hover:text-blue-700'}`}>
+                            {portalLinkLoadingIds[c.id] ? '…' : 'Share'}
+                          </span>
                         </button>
                       </td>
 

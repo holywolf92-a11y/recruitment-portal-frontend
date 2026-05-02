@@ -1430,6 +1430,10 @@ class ApiClient {
     return this.request(`/candidates/${candidateId}/missing-fields`);
   }
 
+  async getCandidatePortalLink(candidateId: string): Promise<{ portalLink: string; candidateId: string; name: string }> {
+    return this.request(`/candidates/${candidateId}/portal-link`);
+  }
+
   async getHostingerPollingStatus(): Promise<HostingerPollingStatus> {
     return this.request('/email/hostinger/status');
   }
