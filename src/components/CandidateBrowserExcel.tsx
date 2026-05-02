@@ -1536,7 +1536,19 @@ export function CandidateBrowserExcel() {
                         </button>
                       </td>
                       <td className="border border-gray-300 p-2">
-                        <span className="text-xs text-gray-400">missing</span>
+                        {candidate.youtube_link ? (
+                          <a
+                            href={candidate.youtube_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1 hover:bg-red-100 rounded flex items-center justify-center"
+                            title="Open YouTube"
+                          >
+                            <Play className="w-4 h-4 text-red-600" />
+                          </a>
+                        ) : (
+                          <span className="text-xs text-gray-400">missing</span>
+                        )}
                       </td>
                       <td className="border border-gray-300 p-2">
                         {candidate.phone ? (

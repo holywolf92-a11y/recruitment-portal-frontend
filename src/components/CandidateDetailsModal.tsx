@@ -214,6 +214,7 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
     interview_date: candidate.interview_date || '',
     languages: candidate.languages || '',
     skills: candidate.skills || '',
+    youtube_link: candidate.youtube_link || '',
   });
   const [excelSaving, setExcelSaving] = useState(false);
   const [excelSaveError, setExcelSaveError] = useState<string | null>(null);
@@ -1525,6 +1526,16 @@ export function CandidateDetailsModal({ candidate, onClose, initialTab = 'detail
                     />
                   </div>
                 ))}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">YouTube Link</label>
+                  <input
+                    type="url"
+                    value={excelForm.youtube_link}
+                    onChange={e => setExcelForm(f => ({ ...f, youtube_link: e.target.value }))}
+                    placeholder="https://youtube.com/..."
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
               </div>
               <div className="flex justify-end pt-2">
                 <button

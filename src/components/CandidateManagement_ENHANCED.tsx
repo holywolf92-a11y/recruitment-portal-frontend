@@ -46,6 +46,7 @@ import {
   CalendarDays,
   CalendarRange,
   Infinity,
+  Play,
 } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import { apiClient, Candidate, CandidateDashboardStats } from '../lib/apiClient';
@@ -2197,6 +2198,18 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                               <Mail className="w-3 h-3 flex-shrink-0" />
                               <span className="truncate flex-1 text-left">{c.email}</span>
                             </button>
+                          )}
+                          {c.youtube_link && (
+                            <a
+                              href={c.youtube_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1.5 text-xs text-red-700 bg-red-50 hover:bg-red-100 rounded px-2 py-1 w-full max-w-[160px]"
+                              title="Open YouTube video"
+                            >
+                              <Play className="w-3 h-3 flex-shrink-0" />
+                              <span className="truncate flex-1 text-left">YouTube</span>
+                            </a>
                           )}
                           {(c.nationality || c.country_of_interest) && (
                             <div className="flex items-center gap-1 text-[10px] text-gray-500 flex-wrap">

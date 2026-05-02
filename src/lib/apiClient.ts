@@ -379,6 +379,9 @@ export interface Candidate {
   license?: string;
   gcc_years?: number;
 
+  // Social links
+  youtube_link?: string;
+
   created_at: string;
   updated_at: string;
 }

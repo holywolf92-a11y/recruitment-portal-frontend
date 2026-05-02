@@ -26,6 +26,7 @@ type FormState = {
   email: string;
   date_of_birth: string;
   address: string;
+  youtube_link: string;
 };
 
 type UploadState = 'idle' | 'uploading' | 'success';
@@ -98,6 +99,7 @@ function createInitialForm(candidate: Candidate): FormState {
     email: candidate.email || '',
     date_of_birth: candidate.date_of_birth || '',
     address: candidate.address || '',
+    youtube_link: candidate.youtube_link || '',
   };
 }
 
@@ -452,6 +454,7 @@ export function CandidateOnboardingPage() {
     { label: 'Phone', value: formatDisplayValue(data.candidate.phone), icon: Phone },
     { label: 'DOB', value: formatDateValue(data.candidate.date_of_birth), icon: CalendarDays },
     { label: 'Address', value: formatDisplayValue(data.candidate.address), icon: MapPin },
+    ...(data.candidate.youtube_link ? [{ label: 'YouTube', value: data.candidate.youtube_link, icon: Upload, isLink: true }] : []),
   ];
 
   const completionItems = [
@@ -719,7 +722,11 @@ export function CandidateOnboardingPage() {
                                   </div>
                                   <div className="min-w-0 flex-1">
                                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{field.label}</p>
-                                    <p className="mt-1 break-words text-sm font-medium leading-6 text-slate-800">{field.value}</p>
+                                    {(field as any).isLink ? (
+                                      <a href={field.value} target="_blank" rel="noopener noreferrer" className="mt-1 break-words text-sm font-medium leading-6 text-sky-600 underline hover:text-sky-800">{field.value}</a>
+                                    ) : (
+                                      <p className="mt-1 break-words text-sm font-medium leading-6 text-slate-800">{field.value}</p>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -754,6 +761,10 @@ export function CandidateOnboardingPage() {
                       <label className="block sm:col-span-2">
                         <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Address</span>
                         <textarea value={form.address} onChange={(event) => updateFormField('address', event.target.value)} rows={4} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100" />
+                      </label>
+                      <label className="block sm:col-span-2">
+                        <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">YouTube Link</span>
+                        <input type="url" value={form.youtube_link} onChange={(event) => updateFormField('youtube_link', event.target.value)} placeholder="https://youtube.com/..." className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100" />
                       </label>
                     </div>
                   )}
