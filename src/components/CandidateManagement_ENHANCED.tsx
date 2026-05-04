@@ -976,7 +976,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
     try {
       // ✅ NEW SYSTEM: Server-side Puppeteer PDF generation (employer-safe format)
       // Replaces old getCandidateCVDownload that downloaded original uploaded CV
-      const result = await apiClient.generateCandidateCV(candidate.id, 'employer-safe', true);
+      const result = await apiClient.generateCandidateCV(candidate.id, 'employer-safe');
       
       if (result.cached) {
         console.log('Using cached CV');

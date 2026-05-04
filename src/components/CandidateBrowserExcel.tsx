@@ -142,7 +142,7 @@ function generateProfileLink(candidate: Candidate): string {
 function generateCVShareLink(candidate: Candidate): string {
   const candidateId = candidate.id || '';
   const apiBaseUrl = API_BASE_URL.replace(/\/$/, '');
-  return `${apiBaseUrl}/cv-generator/${candidateId}/download?format=employer-safe&force=true`;
+  return `${apiBaseUrl}/cv-generator/${candidateId}/download?format=employer-safe`;
 }
 
 // Helper function to copy to clipboard
@@ -1503,7 +1503,7 @@ export function CandidateBrowserExcel() {
                             e.stopPropagation();
                             try {
                               toast.info('Generating Employer CV...');
-                              const result = await apiClient.generateCandidateCV(candidate.id, 'employer-safe', true);
+                              const result = await apiClient.generateCandidateCV(candidate.id, 'employer-safe');
                               
                               // Download PDF from signed URL
                               const response = await fetch(result.cv_url);

@@ -398,7 +398,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all' }: Candida
   async function handleDownloadCV(candidate: Candidate) {
     try {
       // ✅ NEW SYSTEM: Server-side Puppeteer PDF generation (employer-safe format)
-      const result = await apiClient.generateCandidateCV(candidate.id, 'employer-safe', true);
+      const result = await apiClient.generateCandidateCV(candidate.id, 'employer-safe');
       
       // Download PDF from signed URL
       const response = await fetch(result.cv_url);

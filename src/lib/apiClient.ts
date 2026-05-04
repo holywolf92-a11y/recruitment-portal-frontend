@@ -1568,7 +1568,7 @@ class ApiClient {
   /**
    * Generate employer-safe CV for a candidate (new unified server-side system)
    * This replaces the old getCandidateCVDownload method
-   * GET /api/cv-generator/:candidateId?format=employer-safe&force=true
+    * GET /api/cv-generator/:candidateId?format=employer-safe
    */
   async generateCandidateCV(
     candidateId: string,
