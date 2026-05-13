@@ -411,8 +411,8 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
       ) : (
         <>
           {/* Stats Cards */}
-          <div className="flex gap-3 overflow-x-auto pb-2">
-            <div className="min-w-[200px] flex-1 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl p-5 shadow-lg text-white transform transition-all hover:scale-105">
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
+            <div className="bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl p-4 shadow-lg text-white transition-all hover:scale-105">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm opacity-90">Total CVs</span>
                 <Inbox className="w-6 h-6 opacity-80" />
@@ -420,7 +420,7 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
               <div className="text-3xl font-bold">{displayStats.total.toLocaleString()}</div>
               <div className="text-xs opacity-75 mt-2">{days > 0 ? `Last ${days} days` : 'All time'}</div>
             </div>
-            <div className="min-w-[200px] flex-1 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-5 shadow-lg text-white transform transition-all hover:scale-105">
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 shadow-lg text-white transition-all hover:scale-105">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm opacity-90">Processing / Queued</span>
                 <Sparkles className="w-6 h-6 opacity-80 animate-pulse" />
@@ -428,7 +428,7 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
               <div className="text-3xl font-bold">{displayStats.processing}</div>
               <div className="text-xs opacity-75 mt-2">AI extracting now...</div>
             </div>
-            <div className="min-w-[200px] flex-1 bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-5 shadow-lg text-white transform transition-all hover:scale-105">
+            <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 shadow-lg text-white transition-all hover:scale-105">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm opacity-90">Extracted</span>
                 <CheckCircle className="w-6 h-6 opacity-80" />
@@ -436,7 +436,7 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
               <div className="text-3xl font-bold">{displayStats.extracted}</div>
               <div className="text-xs opacity-75 mt-2">Now candidates</div>
             </div>
-            <div className="min-w-[200px] flex-1 bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-5 shadow-lg text-white transform transition-all hover:scale-105">
+            <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-4 shadow-lg text-white transition-all hover:scale-105">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm opacity-90">Errors</span>
                 <AlertTriangle className="w-6 h-6 opacity-80" />
@@ -445,7 +445,7 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
               <div className="text-xs opacity-75 mt-2">Need manual fix</div>
             </div>
             <div
-              className={`min-w-[200px] flex-1 rounded-xl p-5 shadow-lg text-white transform transition-all hover:scale-105 cursor-pointer ${
+              className={`rounded-xl p-4 shadow-lg text-white transition-all hover:scale-105 cursor-pointer col-span-2 sm:col-span-1 ${
                 displayStats.needsReview > 0
                   ? 'bg-gradient-to-br from-amber-500 to-orange-600 ring-2 ring-amber-300'
                   : 'bg-gradient-to-br from-amber-400 to-amber-500'
@@ -492,170 +492,176 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
               ))}
             </div>
             {days > 0 && (
-              <p className="text-xs text-gray-400 mt-2">Showing last {days} days Â· {cvs.length} CVs loaded Â· {displayStats.total.toLocaleString()} total</p>
+              <p className="text-xs text-gray-400 mt-2">Showing last {days} days · {cvs.length} CVs loaded · {displayStats.total.toLocaleString()} total</p>
             )}
           </div>
 
           {/* CV List */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              {loading && <div className="p-4 text-sm text-gray-600">Loading inbox...</div>}
-              {error && <div className="p-4 text-sm text-red-600">{error}</div>}
-              <table className="w-full min-w-[1180px]">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs uppercase tracking-wider text-gray-600">CV Details</th>
-                    <th className="px-6 py-4 text-left text-xs uppercase tracking-wider text-gray-600">Source</th>
-                    <th className="px-6 py-4 text-left text-xs uppercase tracking-wider text-gray-600">Sender Info</th>
-                    <th className="px-6 py-4 text-left text-xs uppercase tracking-wider text-gray-600">Received</th>
-                    <th className="px-6 py-4 text-left text-xs uppercase tracking-wider text-gray-600">Status</th>
-                    <th className="px-6 py-4 text-left text-xs uppercase tracking-wider text-gray-600">Review Reason</th>
-                    <th className="px-6 py-4 text-left text-xs uppercase tracking-wider text-gray-600">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredCVs.map((cv) => (
-                    <tr key={cv.id} className={`${cv.status === 'needs_review' ? 'bg-amber-50 hover:bg-amber-100' : 'hover:bg-gray-50'}`}>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                            (cv.status === 'processing' || cv.status === 'queued') ? 'bg-blue-100 animate-pulse' :
-                            cv.status === 'extracted' ? 'bg-green-100' :
-                            cv.status === 'needs_review' ? 'bg-amber-100' :
-                            'bg-red-100'
-                          }`}>
-                            <FileText className={`w-5 h-5 ${
-                              (cv.status === 'processing' || cv.status === 'queued') ? 'text-blue-600' :
-                              cv.status === 'extracted' ? 'text-green-600' :
-                              cv.status === 'needs_review' ? 'text-amber-600' :
-                              'text-red-600'
-                            }`} />
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900">{cv.fileName}</p>
-                            {cv.status === 'error' && cv.jobError && (
-                              <p className="text-xs text-red-600 mt-1">{cv.jobError}</p>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {(cv.source === 'whatsapp' || cv.source === 'WhatsApp') && (
-                            <><MessageSquare className="w-4 h-4 text-green-600" /><span className="text-sm text-green-700 font-medium">WhatsApp</span></>
-                          )}
-                          {(cv.source === 'email' || cv.source === 'hostinger-imap') && (
-                            <><Mail className="w-4 h-4 text-blue-600" /><span className="text-sm text-blue-700 font-medium">Email</span></>
-                          )}
-                          {cv.source === 'web' && (
-                            <><Upload className="w-4 h-4 text-purple-600" /><span className="text-sm text-purple-700 font-medium">Web Form</span></>
-                          )}
-                          {!['whatsapp', 'WhatsApp', 'email', 'hostinger-imap', 'web'].includes(cv.source) && (
-                            <span className="text-sm text-gray-500">{cv.source}</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{cv.senderName || 'Unknown'}</p>
-                          <p className="text-sm text-gray-500">{cv.senderContact || '-'}</p>
-                          {cv.senderContactNote && (
-                            <p className="text-xs text-amber-700 mt-1">{cv.senderContactNote}</p>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Calendar className="w-4 h-4" />
-                          {cv.receivedAt ? new Date(cv.receivedAt).toLocaleString() : '-'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        {(cv.status === 'processing' || cv.status === 'queued') && (
-                          <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium flex items-center gap-1 w-fit">
-                            <Sparkles className="w-3 h-3 animate-spin" />
-                            {cv.status === 'queued' ? 'Queued' : 'AI Processing...'}
-                          </span>
+            {loading && <div className="px-4 py-3 text-sm text-gray-600 border-b border-gray-100">Loading inbox...</div>}
+            {error && <div className="px-4 py-3 text-sm text-red-600 border-b border-red-100 bg-red-50">{error}</div>}
+            {/* Column headers — desktop only */}
+            <div className="hidden lg:grid lg:grid-cols-[minmax(0,2.5fr)_minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1.2fr)_minmax(0,1fr)_auto] gap-x-4 px-4 py-3 bg-gray-50 border-b border-gray-200 text-xs uppercase tracking-wider text-gray-500 font-semibold">
+              <div>CV / File</div>
+              <div>Source</div>
+              <div>Sender</div>
+              <div>Received</div>
+              <div>Status</div>
+              <div>Actions</div>
+            </div>
+            <div className="divide-y divide-gray-100">
+              {filteredCVs.map((cv) => (
+                <div
+                  key={cv.id}
+                  className={`px-4 py-3 transition-colors ${cv.status === 'needs_review' ? 'bg-amber-50 hover:bg-amber-100' : 'hover:bg-gray-50'}`}
+                >
+                  {/* Card row — stacks on mobile, grid on desktop */}
+                  <div className="flex flex-col gap-2 lg:grid lg:grid-cols-[minmax(0,2.5fr)_minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1.2fr)_minmax(0,1fr)_auto] lg:gap-x-4 lg:items-center">
+
+                    {/* CV Details */}
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className={`w-9 h-9 flex-shrink-0 rounded-lg flex items-center justify-center ${
+                        (cv.status === 'processing' || cv.status === 'queued') ? 'bg-blue-100 animate-pulse' :
+                        cv.status === 'extracted' ? 'bg-green-100' :
+                        cv.status === 'needs_review' ? 'bg-amber-100' : 'bg-red-100'
+                      }`}>
+                        <FileText className={`w-4 h-4 ${
+                          (cv.status === 'processing' || cv.status === 'queued') ? 'text-blue-600' :
+                          cv.status === 'extracted' ? 'text-green-600' :
+                          cv.status === 'needs_review' ? 'text-amber-600' : 'text-red-600'
+                        }`} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-900 text-sm break-words leading-snug">{cv.fileName}</p>
+                        {cv.status === 'error' && cv.jobError && (
+                          <p className="text-xs text-red-600 mt-0.5 leading-snug">{cv.jobError}</p>
                         )}
-                        {cv.status === 'extracted' && (
-                          <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium flex items-center gap-1 w-fit">
-                            <CheckCircle className="w-3 h-3" />
-                            Extracted
+                        {/* Source + sender shown inline on mobile (below filename) */}
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 lg:hidden">
+                          <span className="flex items-center gap-1 text-xs">
+                            {(cv.source === 'whatsapp' || cv.source === 'WhatsApp') && <><MessageSquare className="w-3 h-3 text-green-600" /><span className="text-green-700 font-medium">WhatsApp</span></>}
+                            {(cv.source === 'email' || cv.source === 'hostinger-imap') && <><Mail className="w-3 h-3 text-blue-600" /><span className="text-blue-700 font-medium">Email</span></>}
+                            {cv.source === 'web' && <><Upload className="w-3 h-3 text-purple-600" /><span className="text-purple-700 font-medium">Web</span></>}
+                            {!['whatsapp', 'WhatsApp', 'email', 'hostinger-imap', 'web'].includes(cv.source) && <span className="text-gray-500">{cv.source}</span>}
                           </span>
-                        )}
-                        {cv.status === 'needs_review' && (
-                          <span className="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-semibold flex items-center gap-1 w-fit ring-1 ring-amber-400">
-                            <AlertOctagon className="w-3 h-3" />
-                            Needs Review
+                          <span className="text-xs text-gray-600 font-medium">{cv.senderName || 'Unknown'}</span>
+                          {cv.senderContact && <span className="text-xs text-gray-400">{cv.senderContact}</span>}
+                          <span className="flex items-center gap-1 text-xs text-gray-400">
+                            <Calendar className="w-3 h-3" />
+                            {cv.receivedAt ? new Date(cv.receivedAt).toLocaleString() : '-'}
                           </span>
-                        )}
-                        {cv.status === 'error' && (
-                          <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium flex items-center gap-1 w-fit">
-                            <AlertTriangle className="w-3 h-3" />
-                            Error
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className={`text-sm ${cv.status === 'needs_review' ? 'text-amber-800 font-medium' : 'text-gray-600'}`}>
-                          {cv.reviewReason || '-'}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          {cv.status === 'extracted' && cv.candidateId && (
-                            <button
-                              onClick={() => handleViewCandidate(cv.candidateId!)}
-                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm"
-                            >
-                              <Eye className="w-4 h-4" />
-                              View Candidate
-                            </button>
-                          )}
-                          {cv.status === 'needs_review' && (
-                            <button
-                              onClick={() => handleProcess(cv.id)}
-                              className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors flex items-center gap-2 text-sm font-medium"
-                            >
-                              <Play className="w-4 h-4" />
-                              Re-process
-                            </button>
-                          )}
-                          {(cv.status === 'queued' || cv.status === 'error') && (
-                            <button
-                              onClick={() => handleProcess(cv.id)}
-                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm"
-                            >
-                              <Play className="w-4 h-4" />
-                              {cv.status === 'error' ? 'Retry' : 'Process CV'}
-                            </button>
-                          )}
-                          <button
-                            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                            title="Download"
-                          >
-                            <Download className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(cv.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Delete CV"
-                          >
-                            <Trash className="w-4 h-4" />
-                          </button>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {!loading && filteredCVs.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="px-6 py-10 text-center text-gray-400 text-sm">
-                        No CVs found for the current filter.
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
+
+                    {/* Source — desktop only */}
+                    <div className="hidden lg:flex items-center gap-1.5">
+                      {(cv.source === 'whatsapp' || cv.source === 'WhatsApp') && <><MessageSquare className="w-4 h-4 text-green-600" /><span className="text-sm text-green-700 font-medium">WhatsApp</span></>}
+                      {(cv.source === 'email' || cv.source === 'hostinger-imap') && <><Mail className="w-4 h-4 text-blue-600" /><span className="text-sm text-blue-700 font-medium">Email</span></>}
+                      {cv.source === 'web' && <><Upload className="w-4 h-4 text-purple-600" /><span className="text-sm text-purple-700 font-medium">Web Form</span></>}
+                      {!['whatsapp', 'WhatsApp', 'email', 'hostinger-imap', 'web'].includes(cv.source) && <span className="text-sm text-gray-500">{cv.source}</span>}
+                    </div>
+
+                    {/* Sender — desktop only */}
+                    <div className="hidden lg:block min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{cv.senderName || 'Unknown'}</p>
+                      <p className="text-xs text-gray-500 truncate">{cv.senderContact || '-'}</p>
+                      {cv.senderContactNote && <p className="text-xs text-amber-700 mt-0.5 truncate">{cv.senderContactNote}</p>}
+                    </div>
+
+                    {/* Received — desktop only */}
+                    <div className="hidden lg:flex items-center gap-1.5 text-sm text-gray-500">
+                      <Calendar className="w-4 h-4 flex-shrink-0" />
+                      <span className="text-xs">{cv.receivedAt ? new Date(cv.receivedAt).toLocaleString() : '-'}</span>
+                    </div>
+
+                    {/* Status */}
+                    <div className="flex items-center gap-2">
+                      {(cv.status === 'processing' || cv.status === 'queued') && (
+                        <span className="px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 animate-spin" />
+                          {cv.status === 'queued' ? 'Queued' : 'Processing...'}
+                        </span>
+                      )}
+                      {cv.status === 'extracted' && (
+                        <span className="px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" />
+                          Extracted
+                        </span>
+                      )}
+                      {cv.status === 'needs_review' && (
+                        <span className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-semibold flex items-center gap-1 ring-1 ring-amber-400">
+                          <AlertOctagon className="w-3 h-3" />
+                          Needs Review
+                        </span>
+                      )}
+                      {cv.status === 'error' && (
+                        <span className="px-2.5 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          Error
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {cv.status === 'extracted' && cv.candidateId && (
+                        <button
+                          onClick={() => handleViewCandidate(cv.candidateId!)}
+                          className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1.5 text-xs font-medium"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">View Candidate</span>
+                          <span className="sm:hidden">View</span>
+                        </button>
+                      )}
+                      {cv.status === 'needs_review' && (
+                        <button
+                          onClick={() => handleProcess(cv.id)}
+                          className="px-3 py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors flex items-center gap-1.5 text-xs font-medium"
+                        >
+                          <Play className="w-3.5 h-3.5" />
+                          Re-process
+                        </button>
+                      )}
+                      {(cv.status === 'queued' || cv.status === 'error') && (
+                        <button
+                          onClick={() => handleProcess(cv.id)}
+                          className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1.5 text-xs font-medium"
+                        >
+                          <Play className="w-3.5 h-3.5" />
+                          {cv.status === 'error' ? 'Retry' : 'Process'}
+                        </button>
+                      )}
+                      <button
+                        className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                        title="Download"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(cv.id)}
+                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete CV"
+                      >
+                        <Trash className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Review reason — shown below the row when present */}
+                  {cv.reviewReason && cv.reviewReason !== '-' && (
+                    <p className={`mt-1.5 text-xs pl-12 ${cv.status === 'needs_review' ? 'text-amber-800 font-medium' : 'text-gray-500'}`}>
+                      {cv.reviewReason}
+                    </p>
                   )}
-                </tbody>
-              </table>
+                </div>
+              ))}
+              {!loading && filteredCVs.length === 0 && (
+                <div className="px-6 py-10 text-center text-gray-400 text-sm">
+                  No CVs found for the current filter.
+                </div>
+              )}
             </div>
           </div>
 
@@ -666,7 +672,7 @@ export function CVInbox({ onNavigateToCandidate }: Props) {
                 <Sparkles className="w-6 h-6" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-gray-900 mb-2">ðŸ¤– Fully Automatic AI Processing</h3>
+                <h3 className="font-semibold text-gray-900 mb-2">🤖 Fully Automatic AI Processing</h3>
                 <p className="text-sm text-gray-700 mb-4">
                   When a CV arrives from WhatsApp, Email, or Web Form, our AI automatically:
                 </p>
