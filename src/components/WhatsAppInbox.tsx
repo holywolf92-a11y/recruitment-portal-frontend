@@ -470,13 +470,32 @@ export function WhatsAppInbox() {
     if (!text) return;
     setSendError(null);
     setDraft('');
+    // Optimistic update — show the message immediately
+    const tempId = `temp-${Date.now()}`;
+    const optimistic: Message = {
+      id: tempId,
+      conversation_id: conversationId,
+      direction: 'outbound',
+      body: text,
+      message_type: 'text',
+      status: 'sending',
+      created_at: new Date().toISOString(),
+      media_id: null,
+      mime_type: null,
+      file_name: null,
+    };
+    setMessages((prev) => [...prev, optimistic]);
     try {
       await fetchJson(`${API_BASE_URL}/whatsapp-inbox/conversations/${conversationId}/send-text`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeader },
         body: JSON.stringify({ text }),
       });
+      // Replace optimistic message with real data from server
+      loadMessages(conversationId);
     } catch (err) {
+      // Roll back optimistic message on failure
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
       const msg = err instanceof Error ? err.message : String(err);
       setSendError(msg.includes('24h_window_expired') ? '24-hour window expired. Use a template message.' : msg);
       setDraft(text);
