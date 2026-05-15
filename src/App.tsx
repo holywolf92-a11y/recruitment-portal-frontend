@@ -610,7 +610,7 @@ const AppContent = () => {
       case 'inbox-ui':
         return <InboxUI apiBaseUrl={(import.meta as { env?: Record<string, string> }).env?.VITE_API_BASE_URL || '/api'} />;
       case 'whatsapp-inbox':
-        return <WhatsAppInbox />;
+        return <WhatsAppInbox onNavigateToCandidate={(id) => navigateTab('candidates', { candidateId: id })} />;
       case 'whatsapp-bridge':
         return <WhatsAppBridge />;
       case 'candidate-excel-browser':

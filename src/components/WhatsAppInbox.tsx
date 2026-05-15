@@ -1,13 +1,152 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { API_BASE_URL } from '../lib/apiClient';
+import { API_BASE_URL, apiClient, type Candidate } from '../lib/apiClient';
 import { useAuth, supabase } from '../lib/authContext';
 import {
-  ArrowLeft, CalendarClock, CheckCheck, Download, FileText,
-  Mic, Phone, Search, Send, Smile, Paperclip, Smartphone, X,
+  ArrowLeft, Briefcase, CalendarClock, CheckCheck, Download, ExternalLink,
+  FileText, Globe, Mic, Phone, Search, Send, Smile, Paperclip, Smartphone,
+  User, X,
 } from 'lucide-react';
 
 // APK download URL — Falisha Agent Android App (built via EAS)
 const AGENT_APK_URL = 'https://expo.dev/artifacts/eas/4UHM4fr7khi7epQohrvcHL.apk';
+
+// ─── Candidate side panel ────────────────────────────────────────────────────
+
+function CandidateSidePanel({
+  candidateId,
+  onViewProfile,
+}: {
+  candidateId: string;
+  onViewProfile: (id: string) => void;
+}) {
+  const [candidate, setCandidate] = useState<Candidate | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setCandidate(null);
+    setLoading(true);
+    apiClient
+      .getCandidate(candidateId)
+      .then((c) => { if (!cancelled) { setCandidate(c); setLoading(false); } })
+      .catch(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [candidateId]);
+
+  const statusColor: Record<string, string> = {
+    Deployed: WA_MID, Applied: '#2563eb', Pending: '#d97706', Cancelled: '#dc2626',
+  };
+  const sColor = (candidate?.status && statusColor[candidate.status]) || '#6b7280';
+
+  return (
+    <div
+      className="hidden lg:flex"
+      style={{
+        width: 270, flexShrink: 0, flexDirection: 'column',
+        background: '#fff', borderLeft: '1px solid #e5e7eb',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        overflowY: 'auto',
+      }}
+    >
+      {/* Header */}
+      <div style={{
+        padding: '13px 16px', background: `linear-gradient(135deg, ${WA_DARK}, ${WA_MID})`,
+        flexShrink: 0,
+      }}>
+        <div style={{ color: '#fff', fontWeight: 700, fontSize: 13 }}>Candidate Profile</div>
+        <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, marginTop: 1 }}>Linked to this chat</div>
+      </div>
+
+      {loading && (
+        <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af', fontSize: 12 }}>Loading…</div>
+      )}
+
+      {!loading && !candidate && (
+        <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af', fontSize: 12 }}>Could not load profile.</div>
+      )}
+
+      {!loading && candidate && (
+        <>
+          {/* Avatar + name */}
+          <div style={{ padding: '20px 16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+            {candidate.profile_photo_signed_url ? (
+              <img
+                src={candidate.profile_photo_signed_url}
+                alt={candidate.name}
+                style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${WA_MID}` }}
+              />
+            ) : (
+              <WaAvatar name={candidate.name} size={72} />
+            )}
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: '#111827', lineHeight: 1.3 }}>{candidate.name}</div>
+              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{candidate.candidate_code}</div>
+            </div>
+            {candidate.status && (
+              <span style={{
+                fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 12,
+                background: `${sColor}18`, color: sColor, border: `1px solid ${sColor}33`,
+              }}>{candidate.status}</span>
+            )}
+          </div>
+
+          <div style={{ borderTop: '1px solid #f3f4f6', margin: '0 12px' }} />
+
+          {/* Info rows */}
+          <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {candidate.position && (
+              <InfoRow icon={<Briefcase size={13} color={WA_MID} />} label="Position" value={candidate.position} />
+            )}
+            {candidate.nationality && (
+              <InfoRow icon={<Globe size={13} color={WA_MID} />} label="Nationality" value={candidate.nationality} />
+            )}
+            {candidate.gender && (
+              <InfoRow icon={<User size={13} color={WA_MID} />} label="Gender" value={candidate.gender} />
+            )}
+            {candidate.phone && (
+              <InfoRow icon={<Phone size={13} color={WA_MID} />} label="Phone" value={candidate.phone} />
+            )}
+            {candidate.experience_years != null && (
+              <InfoRow icon={<Briefcase size={13} color="#6b7280" />} label="Experience" value={`${candidate.experience_years} yr${candidate.experience_years !== 1 ? 's' : ''}`} />
+            )}
+            {candidate.country_of_interest && (
+              <InfoRow icon={<Globe size={13} color="#6b7280" />} label="Interested in" value={candidate.country_of_interest} />
+            )}
+          </div>
+
+          <div style={{ flex: 1 }} />
+
+          {/* View Profile button */}
+          <div style={{ padding: '12px 16px', borderTop: '1px solid #f3f4f6' }}>
+            <button
+              onClick={() => onViewProfile(candidateId)}
+              style={{
+                width: '100%', padding: '9px 0', borderRadius: 10,
+                background: `linear-gradient(135deg, ${WA_DARK}, ${WA_MID})`,
+                border: 'none', color: '#fff', fontWeight: 700, fontSize: 13,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              }}
+            >
+              <ExternalLink size={14} /> View Full Profile
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+      <div style={{ marginTop: 1, flexShrink: 0 }}>{icon}</div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 10, color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
+        <div style={{ fontSize: 12, color: '#374151', fontWeight: 500, wordBreak: 'break-word', marginTop: 1 }}>{value}</div>
+      </div>
+    </div>
+  );
+}
 
 // WhatsApp brand palette
 const WA_DARK    = '#075E54';
@@ -266,7 +405,7 @@ function InlineImage({ messageId, fileName, fetchUrl }: {
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
-export function WhatsAppInbox() {
+export function WhatsAppInbox({ onNavigateToCandidate }: { onNavigateToCandidate?: (id: string) => void } = {}) {
   const { session } = useAuth();
 
   // ── State ─────────────────────────────────────────────────────────────────
@@ -821,7 +960,7 @@ export function WhatsAppInbox() {
         {/* ── RIGHT PANEL — chat view or empty state ──────────────────────── */}
         <div
           className={`flex-col min-w-0 ${!selectedConversationId ? 'hidden sm:flex' : 'flex'}`}
-          style={{ flex: 1, background: WA_CHAT_BG }}
+          style={{ flex: 1, background: WA_CHAT_BG, minWidth: 0 }}
         >
           {selectedConversation ? (
             <>
@@ -1158,6 +1297,13 @@ export function WhatsAppInbox() {
             </div>
           )}
         </div>
+        {/* ── CANDIDATE SIDE PANEL (3rd column, desktop only) ─────────── */}
+        {selectedConversation?.candidate_id && (
+          <CandidateSidePanel
+            candidateId={selectedConversation.candidate_id}
+            onViewProfile={(id) => onNavigateToCandidate?.(id)}
+          />
+        )}
       </div>
 
       {/* ── Book Appointment Modal ───────────────────────────────────────── */}
