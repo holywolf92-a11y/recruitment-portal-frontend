@@ -456,7 +456,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
   function openEmailModal(candidate: Candidate) {
     const subject = `CV: ${candidate.name}${candidate.position ? ` — ${candidate.position}` : ''}`;
     const body = `Dear Recruiter,\n\nPlease find attached the employer-safe CV for the following candidate:\n\nName: ${candidate.name}\nProfession: ${candidate.position || '—'}\nPhone: ${candidate.phone || '—'}\nEmail: ${candidate.email || '—'}\nNationality: ${candidate.nationality || '—'}\nExperience: ${candidate.experience_years != null ? `${candidate.experience_years} years` : '—'}\n\nPlease see the secure CV download link below (generated after you click Send).\n\nRegards,\nFalisha Jobs Team`;
-    setEmailTo(candidate.email || '');
+    setEmailTo('support@falishajobs.com');
     setEmailSubject(subject);
     setEmailBody(body);
     setEmailModal({ candidate });
@@ -2520,7 +2520,7 @@ export function CandidateManagement({ initialProfessionFilter = 'all', partnerId
                   placeholder="recruiter@example.com"
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
-                <p className="text-[10px] text-gray-400 mt-1">Candidate email pre-filled — change to any recruiter/partner address</p>
+                <p className="text-[10px] text-gray-400 mt-1">Defaults to support@falishajobs.com — change to any recruiter/partner address</p>
               </div>
 
               {/* Subject */}
