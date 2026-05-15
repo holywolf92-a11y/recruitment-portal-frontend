@@ -188,30 +188,79 @@ function InlineImage({ messageId, fileName, fetchUrl }: {
 }) {
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [errored, setErrored] = useState(false);
 
-  const open = async () => {
-    if (loading) return;
-    if (url) { window.open(url, '_blank'); return; }
+  // Auto-load the image URL on mount
+  useEffect(() => {
+    let cancelled = false;
     setLoading(true);
-    const loaded = await fetchUrl(messageId);
-    setUrl(loaded);
-    setLoading(false);
-    if (loaded) window.open(loaded, '_blank');
-  };
+    fetchUrl(messageId).then((loaded) => {
+      if (!cancelled) {
+        setUrl(loaded);
+        setLoading(false);
+      }
+    }).catch(() => {
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messageId]);
 
-  return (
-    <button
-      onClick={open}
-      style={{
+  if (loading) {
+    return (
+      <div style={{
+        width: 200, height: 140, borderRadius: 10,
+        background: 'rgba(0,0,0,0.06)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 12, color: '#9ca3af',
+      }}>
+        Loading image…
+      </div>
+    );
+  }
+
+  if (!url || errored) {
+    return (
+      <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
         background: 'rgba(0,0,0,0.07)', borderRadius: 10,
-        padding: '7px 10px', border: 'none', cursor: 'pointer',
-        fontSize: 12, color: '#374151',
-      }}
+        padding: '7px 10px', fontSize: 12, color: '#374151',
+      }}>
+        <span style={{ fontSize: 17 }}>📷</span>
+        <span>{fileName || 'Image'} (unavailable)</span>
+      </div>
+    );
+  }
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={fileName || 'View full size'}
+      style={{ display: 'block', textDecoration: 'none' }}
     >
-      <span style={{ fontSize: 17 }}>📷</span>
-      <span>{loading ? 'Loading…' : (fileName || 'Image')} — tap to view</span>
-    </button>
+      <img
+        src={url}
+        alt={fileName || 'Image'}
+        onError={() => setErrored(true)}
+        style={{
+          display: 'block',
+          maxWidth: 240,
+          maxHeight: 220,
+          width: 'auto',
+          height: 'auto',
+          borderRadius: 10,
+          cursor: 'pointer',
+          objectFit: 'cover',
+        }}
+      />
+      {fileName && (
+        <div style={{ fontSize: 11, color: '#6b7280', marginTop: 3, paddingLeft: 2 }}>
+          {fileName}
+        </div>
+      )}
+    </a>
   );
 }
 
