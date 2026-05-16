@@ -1,4 +1,4 @@
-import { useEffect, useState, type MouseEvent } from 'react';
+import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { Dashboard } from './components/Dashboard';
 import { CandidateManagement } from './components/CandidateManagement_ENHANCED';
 import { PartnerManagement } from './components/PartnerManagement';
@@ -221,8 +221,24 @@ const AppContent = () => {
   });
   const [professions, setProfessions] = useState<string[]>(['all']);
   const [professionCounts, setProfessionCounts] = useState<Record<string, number>>({ all: 0 });
+  const [professionSearch, setProfessionSearch] = useState('');
   const [professionsOpen, setProfessionsOpen] = useState(false);
   const [portalProfile, setPortalProfile] = useState<PortalProfileResponse | null>(null);
+
+  const displayedProfessions = useMemo(() => {
+    const allProfessionNames = professions.filter((profession) => profession !== 'all');
+    const normalizedQuery = professionSearch.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return [...allProfessionNames]
+        .sort((a, b) => (professionCounts[b] ?? 0) - (professionCounts[a] ?? 0))
+        .slice(0, 50);
+    }
+
+    return allProfessionNames.filter((profession) =>
+      profession.toLowerCase().includes(normalizedQuery),
+    );
+  }, [professions, professionCounts, professionSearch]);
   const [portalProfileLoading, setPortalProfileLoading] = useState(false);
   const [portalProfileError, setPortalProfileError] = useState<string | null>(null);
   // Clear server role on sign-out
@@ -923,7 +939,21 @@ const AppContent = () => {
                                   </button>
                                   {professionsOpen && (
                                     <div className="admin-nav-subtree" aria-label="Candidate profession filters">
-                                      {professions.filter((profession) => profession !== 'all').map((profession) => {
+                                      <div className="px-3 py-2">
+                                        <label htmlFor="profession-search" className="sr-only">Search professions</label>
+                                        <input
+                                          id="profession-search"
+                                          type="search"
+                                          value={professionSearch}
+                                          onChange={(event) => setProfessionSearch(event.target.value)}
+                                          placeholder="Search professions..."
+                                          className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                                        />
+                                        {professionSearch.trim() === '' && professions.length > 51 && (
+                                          <p className="mt-2 text-xs text-slate-500">Showing top 50 of {professions.length - 1} professions</p>
+                                        )}
+                                      </div>
+                                      {displayedProfessions.map((profession) => {
                                         const isActiveProfession = selectedProfession === profession;
 
                                         return (
