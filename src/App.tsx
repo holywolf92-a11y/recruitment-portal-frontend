@@ -24,6 +24,7 @@ import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { JoinLanding } from './components/JoinLanding';
 import { ReviewPage } from './components/ReviewPage';
 import { ReviewsDashboard } from './components/ReviewsDashboard';
+import { RecruiterLeads } from './components/RecruiterLeads';
 import { CandidateOnboardingPage } from './components/CandidateOnboardingPage';
 import { CandidatePortalDashboard } from './components/CandidatePortalDashboard';
 import { EmployerPortalDashboard } from './components/EmployerPortalDashboard';
@@ -119,6 +120,7 @@ const NAV_SECTIONS: NavSectionConfig[] = [
       { tab: 'employees', label: 'Employees', icon: ClipboardList },
       { tab: 'reports', label: 'Reports', icon: FileText },
       { tab: 'reviews', label: 'Reviews', icon: MessageSquare },
+      { tab: 'recruiter-leads', label: 'Recruiter Leads', icon: Briefcase },
     ],
   },
   {
@@ -671,6 +673,8 @@ const AppContent = () => {
         return <UserManagement />;
       case 'reviews':
         return <ReviewsDashboard />;
+      case 'recruiter-leads':
+        return <RecruiterLeads />;
       default:
         return <Dashboard />;
     }
