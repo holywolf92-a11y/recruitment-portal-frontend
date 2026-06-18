@@ -117,6 +117,12 @@ export function RecruiterLeads() {
   const [daysOld, setDaysOld] = useState('');
   const [searchQ, setSearchQ] = useState('');
 
+  // Pagination (separate page indices per tab so switching tabs preserves position)
+  const PAGE_SIZE_OPTIONS = [25, 50, 100, 200] as const;
+  const [pageSize, setPageSize] = useState<number>(50);
+  const [leadsPage, setLeadsPage] = useState(0);        // 0-indexed
+  const [companiesPage, setCompaniesPage] = useState(0);
+
   const authHeaders = useMemo(() => {
     const token = (session as any)?.session?.access_token || (session as any)?.access_token;
     return token ? { Authorization: `Bearer ${token}` } : {};
@@ -146,7 +152,8 @@ export function RecruiterLeads() {
       if (source)   params.set('source', source);
       if (daysOld)  params.set('daysOld', daysOld);
       if (searchQ)  params.set('q', searchQ);
-      params.set('limit', '100');
+      params.set('limit', String(pageSize));
+      params.set('offset', String(leadsPage * pageSize));
       const res = await fetch(`${API_BASE_URL}/jobs/leads?${params.toString()}`, { headers: authHeaders });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
@@ -166,7 +173,8 @@ export function RecruiterLeads() {
     try {
       const params = new URLSearchParams();
       if (country) params.set('country', country);
-      params.set('limit', '100');
+      params.set('limit', String(pageSize));
+      params.set('offset', String(companiesPage * pageSize));
       const res = await fetch(`${API_BASE_URL}/jobs/companies?${params.toString()}`, { headers: authHeaders });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
@@ -179,11 +187,15 @@ export function RecruiterLeads() {
     }
   };
 
+  // Reset page back to 0 whenever filters or page-size change — otherwise you can
+  // end up looking at "page 5 of 2" with nothing to show.
+  useEffect(() => { setLeadsPage(0); setCompaniesPage(0); }, [country, position, source, daysOld, searchQ, pageSize]);
+
   useEffect(() => {
     if (tab === 'leads') void loadLeads();
     else void loadCompanies();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, country, position, source, daysOld, authHeaders]);
+  }, [tab, country, position, source, daysOld, pageSize, leadsPage, companiesPage, authHeaders]);
 
   const runSweep = async () => {
     if (!authHeaders.Authorization) return;
@@ -366,12 +378,120 @@ export function RecruiterLeads() {
 
       {/* Content */}
       {tab === 'leads' ? (
-        <LeadsTable leads={leads} loading={leadsLoading} />
+        <>
+          <LeadsTable leads={leads} loading={leadsLoading} />
+          <Pagination
+            page={leadsPage}
+            pageSize={pageSize}
+            total={leadsTotal}
+            currentCount={leads.length}
+            loading={leadsLoading}
+            onPageChange={setLeadsPage}
+            onPageSizeChange={setPageSize}
+            pageSizeOptions={PAGE_SIZE_OPTIONS}
+          />
+        </>
       ) : (
-        <CompaniesTable companies={companies} loading={companiesLoading} onContact={markContacted} />
+        <>
+          <CompaniesTable companies={companies} loading={companiesLoading} onContact={markContacted} />
+          <Pagination
+            page={companiesPage}
+            pageSize={pageSize}
+            total={companiesTotal}
+            currentCount={companies.length}
+            loading={companiesLoading}
+            onPageChange={setCompaniesPage}
+            onPageSizeChange={setPageSize}
+            pageSizeOptions={PAGE_SIZE_OPTIONS}
+          />
+        </>
       )}
     </div>
   );
+}
+
+function Pagination({
+  page, pageSize, total, currentCount, loading,
+  onPageChange, onPageSizeChange, pageSizeOptions,
+}: {
+  page: number;
+  pageSize: number;
+  total: number;
+  currentCount: number;
+  loading: boolean;
+  onPageChange: (p: number) => void;
+  onPageSizeChange: (size: number) => void;
+  pageSizeOptions: ReadonlyArray<number>;
+}) {
+  if (loading && total === 0) return null; // hide on first load to avoid flash
+  if (total === 0) return null;             // empty state already shown by table
+
+  const offset = page * pageSize;
+  const first = offset + 1;
+  const last = Math.min(offset + currentCount, total);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const atFirst = page === 0;
+  const atLast = offset + currentCount >= total;
+
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap',
+      gap: 12, marginTop: 12, padding: '10px 14px',
+      background: '#fff', borderRadius: 10, border: '1px solid #e5e7eb',
+      fontSize: 13, color: '#374151',
+    }}>
+      <div>
+        Showing <strong>{first.toLocaleString()}–{last.toLocaleString()}</strong> of <strong>{total.toLocaleString()}</strong>
+      </div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <label style={{ fontSize: 12, color: '#6b7280' }}>
+          Per page:
+          <select
+            value={pageSize}
+            onChange={(e) => onPageSizeChange(Number(e.target.value))}
+            style={{ marginLeft: 6, padding: '4px 8px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 13 }}
+          >
+            {pageSizeOptions.map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </label>
+        <button
+          onClick={() => onPageChange(0)}
+          disabled={atFirst}
+          style={pagerBtnStyle(atFirst)}
+          title="First page"
+        >« First</button>
+        <button
+          onClick={() => onPageChange(Math.max(0, page - 1))}
+          disabled={atFirst}
+          style={pagerBtnStyle(atFirst)}
+        >‹ Prev</button>
+        <span style={{ fontWeight: 600, color: '#374151', minWidth: 80, textAlign: 'center' }}>
+          Page {page + 1} / {totalPages}
+        </span>
+        <button
+          onClick={() => onPageChange(page + 1)}
+          disabled={atLast}
+          style={pagerBtnStyle(atLast)}
+        >Next ›</button>
+        <button
+          onClick={() => onPageChange(totalPages - 1)}
+          disabled={atLast}
+          style={pagerBtnStyle(atLast)}
+          title="Last page"
+        >Last »</button>
+      </div>
+    </div>
+  );
+}
+
+function pagerBtnStyle(disabled: boolean): CSSProperties {
+  return {
+    padding: '6px 12px', borderRadius: 6, fontSize: 13, fontWeight: 600,
+    border: '1px solid ' + (disabled ? '#e5e7eb' : '#d1d5db'),
+    background: disabled ? '#f9fafb' : '#fff',
+    color: disabled ? '#9ca3af' : '#374151',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+  };
 }
 
 function LeadsTable({ leads, loading }: { leads: Lead[]; loading: boolean }) {
