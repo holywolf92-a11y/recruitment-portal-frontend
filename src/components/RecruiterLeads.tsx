@@ -3,7 +3,7 @@
 // markets. Data is swept from Adzuna (Europe) and JSearch (Gulf + global)
 // nightly and on-demand from the "Run sweep" button.
 
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Briefcase, Building2, ExternalLink, RefreshCw, Search } from 'lucide-react';
 import { useAuth } from '../lib/authContext';
 import { API_BASE_URL } from '../lib/apiClient';
@@ -114,8 +114,25 @@ export function RecruiterLeads() {
   const [country, setCountry] = useState('');
   const [position, setPosition] = useState('');
   const [source, setSource] = useState('');
-  const [daysOld, setDaysOld] = useState('');
+  const [datePosted, setDatePosted] = useState('');   // today | 3days | week | month | ''
+  const [publisher, setPublisher] = useState('');     // 'LinkedIn', 'Indeed', etc.
   const [searchQ, setSearchQ] = useState('');
+  // Debounced mirror of searchQ — only this value flows into the data effects.
+  // Lets the search box stay snappy without triggering a fetch on every keystroke
+  // AND avoids the dual-effect double-fetch the previous design had.
+  const [debouncedSearchQ, setDebouncedSearchQ] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearchQ(searchQ), 350);
+    return () => clearTimeout(t);
+  }, [searchQ]);
+  const searchPending = searchQ !== debouncedSearchQ;
+  const [publishers, setPublishers] = useState<string[]>([]);
+
+  // Sweep-modal state — replaces the native confirm() dialog
+  const [showSweepModal, setShowSweepModal] = useState(false);
+  const [sweepLinkedinBias, setSweepLinkedinBias] = useState(true);
+  const [sweepDatePosted, setSweepDatePosted] = useState<'today' | '3days' | 'week' | 'month' | 'all'>('week');
+  const [sweepPageLoops, setSweepPageLoops] = useState<number>(2);
 
   // Pagination (separate page indices per tab so switching tabs preserves position)
   const PAGE_SIZE_OPTIONS = [25, 50, 100, 200] as const;
@@ -128,7 +145,7 @@ export function RecruiterLeads() {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, [session]);
 
-  // Load filter config once
+  // Load filter config + publishers once
   useEffect(() => {
     if (!authHeaders.Authorization) return;
     fetch(`${API_BASE_URL}/jobs/config`, { headers: authHeaders })
@@ -139,30 +156,57 @@ export function RecruiterLeads() {
         setCountries(merged);
       })
       .catch(() => { /* non-fatal */ });
+    // Publishers are computed from job_leads at request time — keep this
+    // separate so its failure (e.g. before the table has data) doesn't break
+    // the positions/countries dropdowns.
+    fetch(`${API_BASE_URL}/jobs/publishers`, { headers: authHeaders })
+      .then((r) => r.json())
+      .then((d: { publishers: string[] }) => setPublishers(d.publishers ?? []))
+      .catch(() => { /* non-fatal */ });
   }, [authHeaders]);
 
+  // Build the shared filter query-string used by both /leads and /leads/export.
+  // Centralised so CSV export stays in lock-step with the in-page filter set.
+  // Uses debouncedSearchQ — the value actually being fetched right now.
+  const buildLeadsQuery = (extra?: Record<string, string>): URLSearchParams => {
+    const params = new URLSearchParams();
+    if (country)            params.set('country', country);
+    if (position)           params.set('position', position);
+    if (source)             params.set('source', source);
+    if (datePosted)         params.set('datePosted', datePosted);
+    if (publisher)          params.set('publisher', publisher);
+    if (debouncedSearchQ)   params.set('q', debouncedSearchQ);
+    if (extra) for (const [k, v] of Object.entries(extra)) params.set(k, v);
+    return params;
+  };
+
+  // AbortController per in-flight loadLeads — cancels stale requests so a slow
+  // earlier response can't clobber the latest filter's results.
+  const loadLeadsAbortRef = useRef<AbortController | null>(null);
   const loadLeads = async () => {
     if (!authHeaders.Authorization) return;
+    loadLeadsAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    loadLeadsAbortRef.current = ctrl;
     setLeadsLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams();
-      if (country)  params.set('country', country);
-      if (position) params.set('position', position);
-      if (source)   params.set('source', source);
-      if (daysOld)  params.set('daysOld', daysOld);
-      if (searchQ)  params.set('q', searchQ);
-      params.set('limit', String(pageSize));
-      params.set('offset', String(leadsPage * pageSize));
-      const res = await fetch(`${API_BASE_URL}/jobs/leads?${params.toString()}`, { headers: authHeaders });
+      const params = buildLeadsQuery({ limit: String(pageSize), offset: String(leadsPage * pageSize) });
+      const res = await fetch(`${API_BASE_URL}/jobs/leads?${params.toString()}`,
+        { headers: authHeaders, signal: ctrl.signal });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
+      if (ctrl.signal.aborted) return;
       setLeads(data.leads ?? []);
       setLeadsTotal(data.total ?? 0);
     } catch (e) {
+      if ((e as { name?: string })?.name === 'AbortError') return;
       setError(e instanceof Error ? e.message : String(e));
     } finally {
-      setLeadsLoading(false);
+      if (loadLeadsAbortRef.current === ctrl) {
+        loadLeadsAbortRef.current = null;
+        setLeadsLoading(false);
+      }
     }
   };
 
@@ -187,19 +231,23 @@ export function RecruiterLeads() {
     }
   };
 
-  // Reset page back to 0 whenever filters or page-size change — otherwise you can
-  // end up looking at "page 5 of 2" with nothing to show.
-  useEffect(() => { setLeadsPage(0); setCompaniesPage(0); }, [country, position, source, daysOld, searchQ, pageSize]);
+  // Reset page → 0 when filters change. Split per-tab so typing in the search
+  // field doesn't kick the Companies tab back to page 0 unrelated to its data.
+  // Note: uses `debouncedSearchQ`, not raw `searchQ`, so reset fires once per
+  // search commit rather than on every keystroke.
+  useEffect(() => { setLeadsPage(0); }, [country, position, source, datePosted, publisher, debouncedSearchQ, pageSize]);
+  useEffect(() => { setCompaniesPage(0); }, [country, pageSize]);
 
+  // Main data load — one effect owns the fetch, no debounce-effect duplication.
   useEffect(() => {
     if (tab === 'leads') void loadLeads();
     else void loadCompanies();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, country, position, source, daysOld, pageSize, leadsPage, companiesPage, authHeaders]);
+  }, [tab, country, position, source, datePosted, publisher, debouncedSearchQ, pageSize, leadsPage, companiesPage, authHeaders]);
 
   const runSweep = async () => {
     if (!authHeaders.Authorization) return;
-    if (!confirm('Run a fresh sweep across all configured positions × countries?\nThis takes 1–3 minutes and consumes API quota.')) return;
+    setShowSweepModal(false);
     setSweepRunning(true);
     setSweepSummary(null);
     setError(null);
@@ -207,19 +255,46 @@ export function RecruiterLeads() {
       const res = await fetch(`${API_BASE_URL}/jobs/sweep`, {
         method: 'POST',
         headers: { ...authHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          datePosted: sweepDatePosted,
+          linkedinBias: sweepLinkedinBias,
+          pageLoops: sweepPageLoops,
+        }),
       });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        // Server may reject with a typed error: 409 sweep_already_running, 400 sweep_budget_exceeded
+        let detail = '';
+        try { const j = await res.json(); detail = j?.message || j?.error || ''; } catch { /* ignore */ }
+        throw new Error(detail || (await res.text()));
+      }
       const data = await res.json();
       setSweepSummary(data.summary);
-      await loadLeads();
-      await loadCompanies();
+      // Only refresh the visible tab — fewer wasted requests, no flash.
+      // The Companies aggregate is rebuilt as part of the sweep too, so we
+      // refresh it too if the user is currently looking at that tab.
+      await Promise.all([
+        tab === 'leads'     ? loadLeads()     : Promise.resolve(),
+        tab === 'companies' ? loadCompanies() : Promise.resolve(),
+      ]);
+      // Refresh the publishers list — a fresh sweep often surfaces new ones.
+      // Use fresh=1 to bypass the 60s cache so the user sees them immediately.
+      fetch(`${API_BASE_URL}/jobs/publishers?fresh=1`, { headers: authHeaders })
+        .then((r) => r.json())
+        .then((d: { publishers: string[] }) => setPublishers(d.publishers ?? []))
+        .catch(() => { /* non-fatal */ });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setSweepRunning(false);
     }
   };
+
+  const clearFilters = () => {
+    setCountry(''); setPosition(''); setSource('');
+    setDatePosted(''); setPublisher(''); setSearchQ('');
+    setLeadsPage(0);
+  };
+  const hasActiveFilters = !!(country || position || source || datePosted || publisher || searchQ);
 
   const markContacted = async (company: Company, contacted: boolean) => {
     if (!authHeaders.Authorization) return;
@@ -235,26 +310,39 @@ export function RecruiterLeads() {
     }
   };
 
-  const exportLeadsCsv = () => {
-    if (!leads.length) return;
-    const cols = ['title','employer_name','country_code','city','position_category','publisher','salary_min','salary_max','salary_currency','source','source_url','posted_at','found_at'];
-    const header = cols.join(',');
-    const rows = leads.map((l) =>
-      cols.map((c) => {
-        const v = (l as any)[c];
-        if (v == null) return '';
-        const s = String(v).replace(/"/g, '""');
-        return /[",\n]/.test(s) ? `"${s}"` : s;
-      }).join(','),
-    );
-    const csv = [header, ...rows].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `recruiter-leads-${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const [exporting, setExporting] = useState(false);
+  const EXPORT_CAP = 10_000;
+  // Export ALL filtered rows via the backend — not just the visible page.
+  // Uses fetch+blob (rather than window.location) so the Authorization header
+  // travels with the request. Server caps at 10k rows; warn first if exceeded.
+  const exportLeadsCsv = async () => {
+    if (!authHeaders.Authorization) return;
+    if (leadsTotal > EXPORT_CAP) {
+      const ok = window.confirm(
+        `Your filter matches ${leadsTotal.toLocaleString()} rows, but CSV export is capped at ${EXPORT_CAP.toLocaleString()}. Download the first ${EXPORT_CAP.toLocaleString()}?`,
+      );
+      if (!ok) return;
+    }
+    setExporting(true);
+    setError(null);
+    try {
+      const params = buildLeadsQuery();
+      const res = await fetch(`${API_BASE_URL}/jobs/leads/export?${params.toString()}`, { headers: authHeaders });
+      if (!res.ok) throw new Error(await res.text());
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      // Append an HH-MM-SS suffix so back-to-back exports don't collide.
+      const stamp = new Date().toISOString().replace('T', '_').replace(/:/g, '-').slice(0, 19);
+      a.download = `recruiter-leads-${stamp}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -279,7 +367,7 @@ export function RecruiterLeads() {
           </div>
         </div>
         <button
-          onClick={runSweep}
+          onClick={() => setShowSweepModal(true)}
           disabled={sweepRunning}
           style={{
             display: 'flex', alignItems: 'center', gap: 8,
@@ -348,31 +436,48 @@ export function RecruiterLeads() {
               <option value="">All positions</option>
               {positions.map((p) => <option key={p.slug} value={p.slug}>{p.query}</option>)}
             </select>
+            <select value={publisher} onChange={(e) => setPublisher(e.target.value)} style={selectStyle}
+                    title="Filter by job board / publisher (LinkedIn, Indeed, etc.)">
+              <option value="">All publishers</option>
+              {publishers.length === 0 && <option value="" disabled>— run a sweep to populate —</option>}
+              {publishers.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
             <select value={source} onChange={(e) => setSource(e.target.value)} style={selectStyle}>
               <option value="">All sources</option>
               <option value="adzuna">Adzuna (EU)</option>
               <option value="jsearch">JSearch (Gulf+)</option>
             </select>
-            <select value={daysOld} onChange={(e) => setDaysOld(e.target.value)} style={selectStyle}>
+            <select value={datePosted} onChange={(e) => setDatePosted(e.target.value)} style={selectStyle}
+                    title="Filter by how recently the job was posted">
               <option value="">Any time</option>
-              <option value="1">Last 24h</option>
-              <option value="3">Last 3 days</option>
-              <option value="7">Last week</option>
-              <option value="30">Last 30 days</option>
+              <option value="today">Today</option>
+              <option value="3days">Last 3 days</option>
+              <option value="week">Last week</option>
+              <option value="month">Last month</option>
             </select>
             <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 200 }}>
-              <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+              {searchPending ? (
+                <RefreshCw size={14} className="animate-spin" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#2563eb' }} />
+              ) : (
+                <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+              )}
               <input
                 value={searchQ}
                 onChange={(e) => setSearchQ(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && loadLeads()}
                 placeholder="Search employer or title…"
                 style={{ ...selectStyle, paddingLeft: 30, width: '100%' }}
               />
             </div>
-            <button onClick={loadLeads} style={primaryBtnStyle}>Apply</button>
-            <button onClick={exportLeadsCsv} disabled={!leads.length} style={secondaryBtnStyle}>Export CSV</button>
+            <button onClick={exportLeadsCsv} disabled={exporting || !leadsTotal} style={secondaryBtnStyle}
+                    title={`Export all ${leadsTotal.toLocaleString()} filtered rows as CSV`}>
+              {exporting ? 'Exporting…' : `Export CSV${leadsTotal ? ` (${leadsTotal.toLocaleString()})` : ''}`}
+            </button>
           </>
+        )}
+        {hasActiveFilters && (
+          <button onClick={clearFilters} style={ghostBtnStyle} title="Reset all filters">
+            Clear filters
+          </button>
         )}
       </div>
 
@@ -406,6 +511,151 @@ export function RecruiterLeads() {
           />
         </>
       )}
+
+      {showSweepModal && (
+        <SweepConfirmModal
+          datePosted={sweepDatePosted} onDatePostedChange={setSweepDatePosted}
+          linkedinBias={sweepLinkedinBias} onLinkedinBiasChange={setSweepLinkedinBias}
+          pageLoops={sweepPageLoops} onPageLoopsChange={setSweepPageLoops}
+          onConfirm={runSweep}
+          onCancel={() => setShowSweepModal(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function SweepConfirmModal(props: {
+  datePosted: 'today' | '3days' | 'week' | 'month' | 'all';
+  onDatePostedChange: (v: 'today' | '3days' | 'week' | 'month' | 'all') => void;
+  linkedinBias: boolean;
+  onLinkedinBiasChange: (v: boolean) => void;
+  pageLoops: number;
+  onPageLoopsChange: (v: number) => void;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  // Local submitting state so a double-click on Run sweep can't fire twice
+  // before the parent setShowSweepModal(false) unmounts us.
+  const [submitting, setSubmitting] = useState(false);
+  const cancelBtnRef = useRef<HTMLButtonElement>(null);
+
+  // Esc → cancel + lock page scroll + autofocus a safe action.
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !submitting) props.onCancel();
+    };
+    window.addEventListener('keydown', onKey);
+    cancelBtnRef.current?.focus();
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [submitting, props]);
+
+  const handleConfirm = () => {
+    if (submitting) return;
+    setSubmitting(true);
+    props.onConfirm();
+  };
+  const handleCancel = () => {
+    if (submitting) return;
+    props.onCancel();
+  };
+
+  return (
+    <div
+      onClick={handleCancel}
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 16, zIndex: 9999, animation: 'fadeIn 120ms ease-out',
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sweep-modal-title"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: '#fff', borderRadius: 14, width: 'min(520px, 100%)',
+          boxShadow: '0 20px 80px rgba(0,0,0,0.25), 0 0 0 1px rgba(15,23,42,0.05)',
+          overflow: 'hidden',
+        }}
+      >
+        <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid #f1f5f9' }}>
+          <div id="sweep-modal-title" style={{ fontSize: 17, fontWeight: 700, color: '#0f172a' }}>Run a fresh sweep</div>
+          <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>
+            Sweeps every configured position × country. Takes 1–3 min and consumes API quota.
+          </div>
+        </div>
+
+        <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <span style={{ fontSize: 13, color: '#0f172a', fontWeight: 600 }}>Recency</span>
+            <select
+              value={props.datePosted}
+              disabled={submitting}
+              onChange={(e) => props.onDatePostedChange(e.target.value as typeof props.datePosted)}
+              style={{ ...selectStyle, minWidth: 180 }}
+            >
+              <option value="today">Posted today</option>
+              <option value="3days">Last 3 days</option>
+              <option value="week">Last week (recommended)</option>
+              <option value="month">Last month</option>
+              <option value="all">Any time</option>
+            </select>
+          </label>
+
+          <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <span style={{ fontSize: 13, color: '#0f172a', fontWeight: 600 }}>JSearch pages per query</span>
+            <select
+              value={props.pageLoops}
+              disabled={submitting}
+              onChange={(e) => props.onPageLoopsChange(Number(e.target.value))}
+              style={{ ...selectStyle, minWidth: 180 }}
+              title="More pages = more results but more API calls (each page = one billed JSearch call)"
+            >
+              <option value={1}>1 page (cheapest)</option>
+              <option value={2}>2 pages</option>
+              <option value={3}>3 pages</option>
+              <option value={5}>5 pages (max — burns quota fast)</option>
+            </select>
+          </label>
+
+          <label style={{
+            display: 'flex', alignItems: 'flex-start', gap: 10, padding: 12,
+            background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10,
+            opacity: submitting ? 0.6 : 1,
+          }}>
+            <input
+              type="checkbox"
+              checked={props.linkedinBias}
+              disabled={submitting}
+              onChange={(e) => props.onLinkedinBiasChange(e.target.checked)}
+              style={{ marginTop: 2 }}
+            />
+            <span style={{ fontSize: 12.5, color: '#1e3a8a', lineHeight: 1.45 }}>
+              <strong>Bias toward LinkedIn results</strong> · appends "via linkedin" to each query so JSearch
+              re-ranks LinkedIn-published jobs higher. Use the <em>Publisher</em> filter after the sweep
+              to isolate LinkedIn-only rows.
+            </span>
+          </label>
+        </div>
+
+        <div style={{
+          padding: '14px 22px', borderTop: '1px solid #f1f5f9', background: '#f8fafc',
+          display: 'flex', gap: 8, justifyContent: 'flex-end',
+        }}>
+          <button ref={cancelBtnRef} onClick={handleCancel} disabled={submitting} style={secondaryBtnStyle}>Cancel</button>
+          <button onClick={handleConfirm} disabled={submitting}
+                  style={{ ...primaryBtnStyle, opacity: submitting ? 0.7 : 1, cursor: submitting ? 'not-allowed' : 'pointer' }}>
+            {submitting ? 'Starting…' : 'Run sweep'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -599,6 +849,7 @@ const tdStyle: CSSProperties = { padding: '10px 12px', verticalAlign: 'top' };
 const selectStyle: CSSProperties = { padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, background: '#fff', minWidth: 130 };
 const primaryBtnStyle: CSSProperties = { padding: '8px 16px', borderRadius: 8, border: '1px solid #2563eb', background: '#2563eb', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
 const secondaryBtnStyle: CSSProperties = { padding: '8px 12px', borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', color: '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer' };
+const ghostBtnStyle: CSSProperties = { padding: '8px 12px', borderRadius: 8, border: 'none', background: 'transparent', color: '#6b7280', fontSize: 12, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' };
 
 function tabBtnStyle(active: boolean): CSSProperties {
   return {
