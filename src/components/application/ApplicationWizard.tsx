@@ -23,6 +23,7 @@ import {
   APPLICATION_PHONE_CODE_OPTIONS,
 } from '@/constants/applicationOptions';
 import { apiClient } from '@/lib/apiClient';
+import { CallSupport } from './CallSupport';
 import type { PublicCandidatePortalResponse } from '@/lib/apiClient';
 import type { ApplicationFormData, ApplicationStep, ExperienceLevel } from '@/types/application';
 
@@ -321,6 +322,8 @@ export default function ApplicationWizard() {
             </div>
           )}
         </header>
+
+        <CallSupport variant="jobseeker" />
 
         <div className="application-body">
           {currentStep === 1 && (

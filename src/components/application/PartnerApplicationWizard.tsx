@@ -21,6 +21,7 @@ import {
   APPLICATION_PHONE_CODE_OPTIONS,
 } from '@/constants/applicationOptions';
 import { apiClient } from '@/lib/apiClient';
+import { CallSupport } from './CallSupport';
 import { useAuth } from '@/lib/authContext';
 import type { PublicPartnerPortalResponse } from '@/lib/apiClient';
 import type { ApplicationStep } from '@/types/application';
@@ -211,6 +212,8 @@ export default function PartnerApplicationWizard() {
               <div className="application-progress-track"><div className="application-progress-fill" style={{ width: `${progressPercent}%` }} /></div></div>
           )}
         </header>
+
+        <CallSupport variant="partner" />
 
         <div className="application-body">
           {currentStep === 1 && (
