@@ -42,7 +42,8 @@ export function BrowserExtensionCard() {
   async function downloadConfiguredExtension(token: string, label: string) {
     setZipping(true);
     try {
-      const res = await fetch('/falisha-extension.zip', { cache: 'no-store' });
+      // Cache-bust so users testing repeated downloads always hit the latest zip.
+      const res = await fetch(`/falisha-extension.zip?v=${Date.now()}`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`Extension bundle missing (HTTP ${res.status})`);
       const blob = await res.blob();
       const zip = await JSZip.loadAsync(blob);
@@ -54,13 +55,21 @@ export function BrowserExtensionCard() {
       }, null, 2));
       const outBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
       const url = URL.createObjectURL(outBlob);
+
+      // Some browsers ignore .click() on a detached anchor — append, click, remove.
       const a = document.createElement('a');
       a.href = url;
       a.download = 'falisha-extension.zip';
+      a.rel = 'noopener';
+      a.style.display = 'none';
+      document.body.appendChild(a);
       a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setTimeout(() => {
+        a.remove();
+        URL.revokeObjectURL(url);
+      }, 1500);
     } catch (e) {
-      setError(`Token created, but auto-download failed: ${e instanceof Error ? e.message : String(e)}. You can still copy the token manually.`);
+      setError(`Token created, but auto-download failed: ${e instanceof Error ? e.message : String(e)}. Use the "Download again" button below, or copy the token manually.`);
     } finally {
       setZipping(false);
     }
