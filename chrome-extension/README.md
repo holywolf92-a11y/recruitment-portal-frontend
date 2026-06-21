@@ -4,29 +4,25 @@ One-click CV import from **rozeegpt.ai** into your Falisha portal.
 
 A teal "Send to Falisha" pill appears next to every Download CV button on rozeegpt. Click it — the extension fetches the PDF using your existing rozeegpt session and posts it straight into the Falisha CV inbox. The PDF never touches your local disk.
 
-## Install (5 minutes)
+## Install (90 seconds)
 
-### Step 1 — Generate an API token
+### Step 1 — Generate token + auto-download configured extension
 
 1. Open the Falisha portal → **Settings** tab → **Browser Extension** card
 2. Click **Generate token**, name it (e.g. *"Chrome — work laptop"*)
-3. Click **Copy** when the token appears (`fal_ext_…`). It's only shown once.
+3. `falisha-extension.zip` downloads automatically — your token is already baked into the bundle (no copy-paste).
 
 ### Step 2 — Load the extension
 
-1. Download or clone the `chrome-extension/` folder from the [recruitment-portal-frontend repo](https://github.com/holywolf92-a11y/recruitment-portal-frontend)
+1. Extract `falisha-extension.zip` to a folder you'll keep around
 2. Open Chrome → `chrome://extensions`
 3. Toggle **Developer mode** ON (top-right)
-4. Click **Load unpacked** and select the `chrome-extension/` folder
-5. Pin the **Falisha — Send to Falisha** extension via the puzzle-piece icon in the toolbar
+4. Click **Load unpacked** and select the extracted folder
+5. Pin the **Falisha — Send to Falisha** extension via the puzzle-piece icon
 
-### Step 3 — Connect
+The green dot in the popup confirms the connection — token is already configured.
 
-1. Click the Falisha extension icon
-2. Paste your token from Step 1 into **API token**
-3. Click **Save** — the green dot confirms the connection
-
-### Step 4 — Use it
+### Step 3 — Use it
 
 1. Open `https://rozeegpt.ai/employer` and log in as usual
 2. On any candidate list, shortlist, or CV-search page, a **teal "Send to Falisha" pill** appears next to each Download CV button

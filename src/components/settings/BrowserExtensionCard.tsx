@@ -3,7 +3,8 @@
 // only stores SHA-256); after that only the prefix is visible for identification.
 
 import { useEffect, useState } from 'react';
-import { Chrome, Plus, Copy, Trash2, Check, AlertCircle, ExternalLink, Loader2 } from 'lucide-react';
+import { Chrome, Plus, Copy, Trash2, Check, AlertCircle, ExternalLink, Loader2, Download } from 'lucide-react';
+import JSZip from 'jszip';
 import { useAuth } from '../../lib/authContext';
 import { API_BASE_URL } from '../../lib/apiClient';
 
@@ -32,6 +33,38 @@ export function BrowserExtensionCard() {
   // One-time plaintext reveal — cleared after the user copies/dismisses
   const [revealed, setRevealed] = useState<{ token: string; label: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [zipping, setZipping] = useState(false);
+
+  // Fetch the prebuilt extension ZIP, inject a config.json carrying the just-
+  // minted token, re-zip in the browser, and trigger a download. The extension's
+  // background.js reads config.json on install and pre-populates chrome.storage.local
+  // so the user skips the paste step entirely.
+  async function downloadConfiguredExtension(token: string, label: string) {
+    setZipping(true);
+    try {
+      const res = await fetch('/falisha-extension.zip', { cache: 'no-store' });
+      if (!res.ok) throw new Error(`Extension bundle missing (HTTP ${res.status})`);
+      const blob = await res.blob();
+      const zip = await JSZip.loadAsync(blob);
+      zip.file('config.json', JSON.stringify({
+        apiBase:  API_BASE_URL,
+        apiToken: token,
+        issuedAt: new Date().toISOString(),
+        label,
+      }, null, 2));
+      const outBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+      const url = URL.createObjectURL(outBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'falisha-extension.zip';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      setError(`Token created, but auto-download failed: ${e instanceof Error ? e.message : String(e)}. You can still copy the token manually.`);
+    } finally {
+      setZipping(false);
+    }
+  }
 
   const headers: Record<string, string> = accessToken
     ? { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' }
@@ -55,19 +88,23 @@ export function BrowserExtensionCard() {
   useEffect(() => { void loadTokens(); }, [accessToken]);
 
   async function createToken() {
-    if (!newLabel.trim()) return;
+    const label = newLabel.trim();
+    if (!label) return;
     setCreating(true);
     setError(null);
     try {
       const r = await fetch(`${API_BASE_URL}/auth/tokens`, {
-        method: 'POST', headers, body: JSON.stringify({ name: newLabel.trim() }),
+        method: 'POST', headers, body: JSON.stringify({ name: label }),
       });
       if (!r.ok) throw new Error(await r.text());
       const d = await r.json();
-      setRevealed({ token: d.token, label: newLabel.trim() });
+      setRevealed({ token: d.token, label });
       setNewLabel('');
       setShowCreate(false);
       await loadTokens();
+      // Auto-download the configured extension ZIP. The token is baked into
+      // config.json so the user just loads the unpacked folder — no paste.
+      void downloadConfiguredExtension(d.token, label);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create token');
     } finally {
@@ -148,29 +185,55 @@ export function BrowserExtensionCard() {
 
       {/* One-time reveal */}
       {revealed && (
-        <div className="mb-4 p-4 rounded-lg bg-gradient-to-br from-teal-50 to-cyan-50 border border-teal-200">
-          <div className="flex items-start gap-2 mb-2">
-            <AlertCircle className="w-4 h-4 text-teal-700 mt-0.5 flex-shrink-0" />
+        <div className="mb-4 p-4 rounded-lg bg-gradient-to-br from-teal-50 to-cyan-50 border border-teal-200 space-y-3">
+          <div className="flex items-start gap-2">
+            {zipping ? (
+              <Loader2 className="w-4 h-4 text-teal-700 mt-0.5 flex-shrink-0 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4 text-teal-700 mt-0.5 flex-shrink-0" />
+            )}
             <div className="text-sm text-teal-900">
-              <strong>Copy this token now.</strong> It's shown only this once — we don't store the plaintext anywhere.
-              Paste it into the extension popup's <em>API token</em> field on the device named <strong>"{revealed.label}"</strong>.
+              {zipping ? (
+                <><strong>Preparing your extension…</strong> bundling the token into <code>config.json</code> so you can skip the paste step.</>
+              ) : (
+                <>
+                  <strong>Your extension is downloading.</strong> Save and extract <code>falisha-extension.zip</code>, then open
+                  <code className="mx-1 px-1.5 py-0.5 rounded bg-white border border-teal-300 text-xs">chrome://extensions</code>
+                  → toggle <em>Developer mode</em> ON → <em>Load unpacked</em> → select the extracted folder. Your token is already configured.
+                </>
+              )}
             </div>
           </div>
+
+          <details className="text-xs text-teal-900">
+            <summary className="cursor-pointer text-teal-700 hover:text-teal-900 font-semibold">Token raw value (for password manager / second device)</summary>
+            <div className="flex items-center gap-2 mt-2">
+              <code className="flex-1 px-3 py-2 rounded-md bg-white border border-teal-300 font-mono text-xs break-all select-all">
+                {revealed.token}
+              </code>
+              <button
+                onClick={copyRevealed}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold flex-shrink-0"
+              >
+                {copied ? <><Check className="w-4 h-4" /> Copied</> : <><Copy className="w-4 h-4" /> Copy</>}
+              </button>
+            </div>
+            <p className="mt-1.5 text-[11px] text-teal-700">Shown only once — we store only a hash. Save it to a password manager if you need it later.</p>
+          </details>
+
           <div className="flex items-center gap-2">
-            <code className="flex-1 px-3 py-2 rounded-md bg-white border border-teal-300 font-mono text-xs break-all select-all">
-              {revealed.token}
-            </code>
             <button
-              onClick={copyRevealed}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold flex-shrink-0"
+              onClick={() => downloadConfiguredExtension(revealed.token, revealed.label)}
+              disabled={zipping}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-teal-600 hover:bg-teal-700 disabled:bg-gray-300 text-white text-sm font-semibold"
             >
-              {copied ? <><Check className="w-4 h-4" /> Copied</> : <><Copy className="w-4 h-4" /> Copy</>}
+              <Download className="w-4 h-4" /> Download again
             </button>
             <button
               onClick={() => setRevealed(null)}
               className="px-3 py-2 rounded-md border border-gray-300 text-sm text-gray-700 hover:bg-gray-100"
             >
-              I've copied it
+              Done
             </button>
           </div>
         </div>

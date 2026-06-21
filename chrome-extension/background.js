@@ -12,6 +12,28 @@ const DEFAULT_API_BASE = 'https://glorious-flexibility-production.up.railway.app
 // Per-tab session counter for the badge text
 const sessionCounts = new Map(); // tabId -> { sent: number, failed: number }
 
+// On install (or update), if a `config.json` is bundled with the extension
+// (the auto-download flow injects this), bootstrap chrome.storage.local so
+// the user doesn't have to copy/paste a token. We only overwrite when the
+// stored value is empty — so an existing user's token isn't clobbered on
+// extension update.
+chrome.runtime.onInstalled.addListener(async () => {
+  try {
+    const url = chrome.runtime.getURL('config.json');
+    const res = await fetch(url);
+    if (!res.ok) return;
+    const cfg = await res.json();
+    const existing = await chrome.storage.local.get(['apiBase', 'apiToken']);
+    const patch = {};
+    if (cfg.apiBase  && !existing.apiBase)  patch.apiBase  = cfg.apiBase;
+    if (cfg.apiToken && !existing.apiToken) patch.apiToken = cfg.apiToken;
+    if (Object.keys(patch).length) await chrome.storage.local.set(patch);
+  } catch (e) {
+    // No config.json bundled — that's fine, user will paste their token manually.
+    console.debug('[Falisha] no bundled config.json — manual token entry expected');
+  }
+});
+
 async function readSettings() {
   const { apiBase, apiToken } = await chrome.storage.local.get(['apiBase', 'apiToken']);
   return {
