@@ -1,4 +1,5 @@
 import { Bell, Mail, MessageSquare, Database, Shield, Users, Globe, Zap } from 'lucide-react';
+import { BrowserExtensionCard } from './settings/BrowserExtensionCard';
 
 export function Settings() {
   return (
@@ -8,6 +9,9 @@ export function Settings() {
         <h2>Settings</h2>
         <p className="text-gray-600">Configure your recruitment portal preferences</p>
       </div>
+
+      {/* Browser Extension — issue tokens for the Send-to-Falisha Chrome extension */}
+      <BrowserExtensionCard />
 
       {/* WhatsApp Integration */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">

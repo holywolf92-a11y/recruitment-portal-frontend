@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Falisha — Send to Falisha</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="brand">
+      <div class="brand-mark">F</div>
+      <div class="brand-text">
+        <div class="brand-title">Send to Falisha</div>
+        <div class="brand-subtitle">One-click CV import</div>
+      </div>
+    </div>
+    <span id="statusDot" class="status-dot status-dot--unknown" title="Connection status"></span>
+  </header>
+
+  <section class="section">
+    <div class="section-title">Settings</div>
+    <label class="field">
+      <span class="field-label">Falisha API base URL</span>
+      <input id="apiBase" type="url" placeholder="https://glorious-flexibility-production.up.railway.app/api" />
+    </label>
+    <label class="field">
+      <span class="field-label">API token</span>
+      <div class="field-row">
+        <input id="apiToken" type="password" placeholder="fal_ext_…" autocomplete="off" />
+        <button id="toggleTokenVisibility" type="button" class="ghost-btn" title="Show / hide token">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </label>
+    <div class="row">
+      <button id="saveBtn" class="primary-btn">Save</button>
+      <button id="testBtn" class="secondary-btn">Test connection</button>
+    </div>
+    <div id="testResult" class="test-result"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-title">Recent sends</div>
+    <div id="recentList" class="recent-list">
+      <div class="empty">Nothing sent yet. Visit <a href="https://rozeegpt.ai/employer" target="_blank" rel="noopener noreferrer">rozeegpt.ai</a> and look for the teal pill.</div>
+    </div>
+    <div class="footer-row">
+      <button id="clearRecentBtn" class="ghost-btn">Clear list</button>
+      <a id="openFalisha" href="https://falishajobs.up.railway.app/cv-inbox" target="_blank" rel="noopener noreferrer" class="footer-link">Open Falisha inbox →</a>
+    </div>
+  </section>
+
+  <script src="popup.js"></script>
+</body>
+</html>
