@@ -214,9 +214,9 @@ export function BrowserExtensionCard() {
             </div>
           </div>
 
-          <details className="text-xs text-teal-900">
-            <summary className="cursor-pointer text-teal-700 hover:text-teal-900 font-semibold">Token raw value (for password manager / second device)</summary>
-            <div className="flex items-center gap-2 mt-2">
+          <div className="text-xs text-teal-900">
+            <div className="font-semibold text-teal-800 mb-1.5">Raw token <span className="font-normal text-teal-700">— save to a password manager (shown only once)</span></div>
+            <div className="flex items-center gap-2">
               <code className="flex-1 px-3 py-2 rounded-md bg-white border border-teal-300 font-mono text-xs break-all select-all">
                 {revealed.token}
               </code>
@@ -227,8 +227,8 @@ export function BrowserExtensionCard() {
                 {copied ? <><Check className="w-4 h-4" /> Copied</> : <><Copy className="w-4 h-4" /> Copy</>}
               </button>
             </div>
-            <p className="mt-1.5 text-[11px] text-teal-700">Shown only once — we store only a hash. Save it to a password manager if you need it later.</p>
-          </details>
+            <p className="mt-1.5 text-[11px] text-teal-700">The downloaded ZIP already has this token baked in — you only need to copy if you're installing on a second device or using a password manager.</p>
+          </div>
 
           <div className="flex items-center gap-2">
             <button
