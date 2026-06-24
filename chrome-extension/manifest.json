@@ -3,7 +3,7 @@
   "name": "Falisha — Send to Falisha",
   "version": "1.0.0",
   "description": "One-click CV import from rozeegpt.ai into your Falisha portal.",
-  "permissions": ["storage", "scripting", "notifications"],
+  "permissions": ["storage", "scripting", "notifications", "webRequest", "downloads"],
   "host_permissions": [
     "https://*.rozeegpt.ai/*",
     "https://api.rozeegpt.ai/*",

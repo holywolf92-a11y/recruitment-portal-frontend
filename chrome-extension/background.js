@@ -12,6 +12,65 @@ const DEFAULT_API_BASE = 'https://glorious-flexibility-production.up.railway.app
 // Per-tab session counter for the badge text
 const sessionCounts = new Map(); // tabId -> { sent: number, failed: number }
 
+// ─── CV URL capture (read-only network observer) ───────────────────────────
+// chrome.webRequest.onBeforeRequest OBSERVES network requests — it does NOT
+// monkey-patch window.fetch like the old page-interceptor.js did, so it
+// cannot break the page. Per-tab rolling buffer of the most-recent CV URLs.
+const recentCvUrls = new Map(); // tabId -> { url, ts }[]
+const CV_URL_TTL_MS = 60_000;
+const CV_URL_MATCHER = /\.pdf(?:[?#]|$)|downloadUserCv|downloadCv|cv\/download|resume\/download/i;
+
+try {
+  chrome.webRequest.onBeforeRequest.addListener(
+    (details) => {
+      try {
+        if (details.tabId < 0) return;
+        if (!CV_URL_MATCHER.test(details.url)) return;
+        const list = recentCvUrls.get(details.tabId) || [];
+        list.push({ url: details.url, ts: Date.now() });
+        // Cap buffer + age out
+        const fresh = list.filter((e) => Date.now() - e.ts < CV_URL_TTL_MS).slice(-10);
+        recentCvUrls.set(details.tabId, fresh);
+      } catch (e) {
+        console.debug('[Falisha] webRequest hook error', e);
+      }
+    },
+    { urls: ['*://*.rozeegpt.ai/*', '*://api.rozeegpt.ai/*'] },
+  );
+} catch (e) {
+  console.warn('[Falisha] webRequest not available', e);
+}
+
+// Auto-cancel the disk download that rozeegpt triggers when the user clicks
+// its native Download button. The user wanted it in Falisha, not on their
+// disk — we capture the URL via webRequest above, fetch + post separately.
+try {
+  chrome.downloads.onCreated.addListener((item) => {
+    try {
+      if (!item || !item.url) return;
+      if (!/rozeegpt\.ai/i.test(item.url)) return;
+      if (!CV_URL_MATCHER.test(item.url)) return;
+      chrome.downloads.cancel(item.id, () => {
+        chrome.downloads.erase({ id: item.id }, () => { /* swallow */ });
+      });
+    } catch (e) {
+      console.debug('[Falisha] downloads.onCreated cancel error', e);
+    }
+  });
+} catch (e) {
+  console.warn('[Falisha] downloads API not available', e);
+}
+
+function getMostRecentCvUrlForTab(tabId) {
+  const list = recentCvUrls.get(tabId);
+  if (!list || !list.length) return null;
+  // Drop stale entries lazily
+  const fresh = list.filter((e) => Date.now() - e.ts < CV_URL_TTL_MS);
+  if (!fresh.length) { recentCvUrls.delete(tabId); return null; }
+  recentCvUrls.set(tabId, fresh);
+  return fresh[fresh.length - 1].url;
+}
+
 // On install (or update), if a `config.json` is bundled with the extension
 // (the auto-download flow injects this), bootstrap chrome.storage.local so
 // the user doesn't have to copy/paste a token. We only overwrite when the
@@ -103,6 +162,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.kind === 'testConnection') {
     testConnection().then(sendResponse).catch((err) => sendResponse({ ok: false, error: err.message }));
     return true;
+  }
+
+  // Used by the content-script pill — checks if the webRequest observer saw a
+  // recent CV URL on this tab (e.g. because the user just clicked rozeegpt's
+  // own Download button, or we did so programmatically).
+  if (message.kind === 'getRecentCvUrl') {
+    const tabId = sender.tab?.id;
+    sendResponse({ cvUrl: tabId != null ? getMostRecentCvUrlForTab(tabId) : null });
+    return false;
   }
 });
 

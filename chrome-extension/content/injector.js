@@ -130,19 +130,12 @@
     } catch {}
   }
 
-  function sendCvFromPill(btn, target) {
-    const ctx = extractContext(target);
-    setPillState(btn, 'loading');
-    if (!ctx.cvUrl) {
-      setPillState(btn, 'error');
-      showToast('Could not find a CV URL on this row. Open the candidate detail page and try from there.', 'error');
-      return;
-    }
+  function dispatchIngest(btn, ctx, cvUrl) {
     try {
       chrome.runtime.sendMessage(
         {
           kind: 'ingestCv',
-          cvUrl: ctx.cvUrl,
+          cvUrl,
           rozeeCvId: ctx.rozeeCvId || 'unknown',
           rozeeUserId: ctx.rozeeUserId,
           candidateName: ctx.candidateName,
@@ -171,10 +164,52 @@
           } catch {}
         },
       );
-    } catch (e) {
+    } catch {
       setPillState(btn, 'error');
       showToast('Extension messaging failed — reload the page and try again.', 'error');
     }
+  }
+
+  function askBackgroundForCapturedUrl() {
+    return new Promise((resolve) => {
+      try {
+        chrome.runtime.sendMessage({ kind: 'getRecentCvUrl' }, (resp) => {
+          try { resolve(resp && resp.cvUrl ? resp.cvUrl : null); }
+          catch { resolve(null); }
+        });
+      } catch { resolve(null); }
+    });
+  }
+
+  async function sendCvFromPill(btn, target) {
+    const ctx = extractContext(target);
+    setPillState(btn, 'loading');
+
+    // Path 1 — URL is already in the DOM (anchor href / data attribute)
+    if (ctx.cvUrl) { dispatchIngest(btn, ctx, ctx.cvUrl); return; }
+
+    // Path 2 — try clicking the original rozeegpt button so it fires its
+    // network request. The background's webRequest observer captures the URL.
+    // Auto-cancels the disk download so the user only gets the Falisha copy.
+    try { target.click(); } catch { /* may throw on synthetic-event-only handlers */ }
+
+    // Poll up to ~5s for the background to see a CV URL on this tab.
+    for (let i = 0; i < 25; i += 1) {
+      await new Promise((r) => setTimeout(r, 200));
+      const captured = await askBackgroundForCapturedUrl();
+      if (captured) { dispatchIngest(btn, ctx, captured); return; }
+    }
+
+    // Path 3 — give the user a clear next step. Most rozeegpt UIs require
+    // a real click to fire the download request; if our programmatic click
+    // didn't trigger it (React synthetic-event handler), the user can click
+    // rozeegpt's Download button themselves then click our pill again — the
+    // observer keeps URLs for 60s.
+    setPillState(btn, 'error');
+    showToast(
+      'No CV download URL detected. Click rozeegpt\'s "Download CV" button once, then click Send to Falisha again.',
+      'error',
+    );
   }
 
   function injectPillNextTo(target) {
