@@ -3,7 +3,7 @@
   "name": "Falisha — Send to Falisha",
   "version": "1.0.0",
   "description": "One-click CV import from rozeegpt.ai into your Falisha portal.",
-  "permissions": ["storage", "scripting", "notifications", "webRequest", "downloads"],
+  "permissions": ["storage", "scripting", "notifications"],
   "host_permissions": [
     "https://*.rozeegpt.ai/*",
     "https://api.rozeegpt.ai/*",
@@ -34,6 +34,12 @@
       "js": ["content/injector.js"],
       "css": ["content/styles.css"],
       "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["content/page-interceptor.js"],
+      "matches": ["https://*.rozeegpt.ai/*"]
     }
   ]
 }
