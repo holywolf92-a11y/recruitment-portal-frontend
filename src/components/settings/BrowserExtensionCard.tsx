@@ -34,15 +34,19 @@ export function BrowserExtensionCard() {
   const [revealed, setRevealed] = useState<{ token: string; label: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const [zipping, setZipping] = useState(false);
+  const [downloadHref, setDownloadHref] = useState<string | null>(null); // blob: URL for the configured extension
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
-  // Fetch the prebuilt extension ZIP, inject a config.json carrying the just-
-  // minted token, re-zip in the browser, and trigger a download. The extension's
-  // background.js reads config.json on install and pre-populates chrome.storage.local
-  // so the user skips the paste step entirely.
-  async function downloadConfiguredExtension(token: string, label: string) {
+  // Build the configured ZIP and surface a real <a href={blob:}> link the user
+  // clicks themselves — guarantees the browser treats it as a user-initiated
+  // download (never blocked by Chrome's auto-download heuristics).
+  async function prepareConfiguredExtension(token: string, label: string) {
     setZipping(true);
+    setDownloadError(null);
+    // Free any previously-prepared blob URL
+    if (downloadHref) URL.revokeObjectURL(downloadHref);
+    setDownloadHref(null);
     try {
-      // Cache-bust so users testing repeated downloads always hit the latest zip.
       const res = await fetch(`/falisha-extension.zip?v=${Date.now()}`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`Extension bundle missing (HTTP ${res.status})`);
       const blob = await res.blob();
@@ -54,22 +58,15 @@ export function BrowserExtensionCard() {
         label,
       }, null, 2));
       const outBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
-      const url = URL.createObjectURL(outBlob);
-
-      // Some browsers ignore .click() on a detached anchor — append, click, remove.
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'falisha-extension.zip';
-      a.rel = 'noopener';
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        a.remove();
-        URL.revokeObjectURL(url);
-      }, 1500);
+      setDownloadHref(URL.createObjectURL(outBlob));
     } catch (e) {
-      setError(`Token created, but auto-download failed: ${e instanceof Error ? e.message : String(e)}. Use the "Download again" button below, or copy the token manually.`);
+      // Fallback: at least let them download the unconfigured ZIP and paste
+      // their token manually into the popup.
+      setDownloadError(
+        `Couldn't bake your token into the bundle (${e instanceof Error ? e.message : 'unknown'}). ` +
+        `Use the plain download below and paste the token into the extension popup.`,
+      );
+      setDownloadHref('/falisha-extension.zip');
     } finally {
       setZipping(false);
     }
@@ -111,9 +108,10 @@ export function BrowserExtensionCard() {
       setNewLabel('');
       setShowCreate(false);
       await loadTokens();
-      // Auto-download the configured extension ZIP. The token is baked into
-      // config.json so the user just loads the unpacked folder — no paste.
-      void downloadConfiguredExtension(d.token, label);
+      // Prepare the configured ZIP. We don't auto-click — the user clicks
+      // the big Download button in the reveal panel themselves so Chrome
+      // never blocks it as an unsolicited download.
+      void prepareConfiguredExtension(d.token, label);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create token');
     } finally {
@@ -195,24 +193,33 @@ export function BrowserExtensionCard() {
       {/* One-time reveal */}
       {revealed && (
         <div className="mb-4 p-4 rounded-lg bg-gradient-to-br from-teal-50 to-cyan-50 border border-teal-200 space-y-3">
-          <div className="flex items-start gap-2">
-            {zipping ? (
-              <Loader2 className="w-4 h-4 text-teal-700 mt-0.5 flex-shrink-0 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4 text-teal-700 mt-0.5 flex-shrink-0" />
-            )}
-            <div className="text-sm text-teal-900">
-              {zipping ? (
-                <><strong>Preparing your extension…</strong> bundling the token into <code>config.json</code> so you can skip the paste step.</>
-              ) : (
-                <>
-                  <strong>Your extension is downloading.</strong> Save and extract <code>falisha-extension.zip</code>, then open
-                  <code className="mx-1 px-1.5 py-0.5 rounded bg-white border border-teal-300 text-xs">chrome://extensions</code>
-                  → toggle <em>Developer mode</em> ON → <em>Load unpacked</em> → select the extracted folder. Your token is already configured.
-                </>
-              )}
+          <div className="text-sm text-teal-900 flex items-start gap-2">
+            <Check className="w-4 h-4 text-teal-700 mt-0.5 flex-shrink-0" />
+            <div>
+              <strong>Token created for "{revealed.label}".</strong> Click the big download button below, extract the ZIP, then
+              open <code className="mx-1 px-1.5 py-0.5 rounded bg-white border border-teal-300 text-xs">chrome://extensions</code>
+              → toggle <em>Developer mode</em> ON → <em>Load unpacked</em> → select the extracted folder. Your token is already configured inside the bundle.
             </div>
           </div>
+
+          {/* Big primary CTA — real anchor, user click guarantees no browser block */}
+          {zipping ? (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-teal-100 border border-teal-200 text-sm text-teal-800">
+              <Loader2 className="w-4 h-4 animate-spin" /> Bundling your token into the extension…
+            </div>
+          ) : downloadHref ? (
+            <a
+              href={downloadHref}
+              download="falisha-extension.zip"
+              className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-lg bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-700 hover:to-teal-600 text-white text-base font-bold shadow-md transition-all"
+            >
+              <Download className="w-5 h-5" /> Download configured extension (~19 KB)
+            </a>
+          ) : null}
+
+          {downloadError && (
+            <div className="px-3 py-2 rounded-md bg-amber-50 border border-amber-200 text-xs text-amber-800">{downloadError}</div>
+          )}
 
           <div className="text-xs text-teal-900">
             <div className="font-semibold text-teal-800 mb-1.5">Raw token <span className="font-normal text-teal-700">— save to a password manager (shown only once)</span></div>
@@ -230,16 +237,14 @@ export function BrowserExtensionCard() {
             <p className="mt-1.5 text-[11px] text-teal-700">The downloaded ZIP already has this token baked in — you only need to copy if you're installing on a second device or using a password manager.</p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-end gap-2 pt-1">
             <button
-              onClick={() => downloadConfiguredExtension(revealed.token, revealed.label)}
-              disabled={zipping}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-teal-600 hover:bg-teal-700 disabled:bg-gray-300 text-white text-sm font-semibold"
-            >
-              <Download className="w-4 h-4" /> Download again
-            </button>
-            <button
-              onClick={() => setRevealed(null)}
+              onClick={() => {
+                if (downloadHref && downloadHref.startsWith('blob:')) URL.revokeObjectURL(downloadHref);
+                setDownloadHref(null);
+                setDownloadError(null);
+                setRevealed(null);
+              }}
               className="px-3 py-2 rounded-md border border-gray-300 text-sm text-gray-700 hover:bg-gray-100"
             >
               Done
