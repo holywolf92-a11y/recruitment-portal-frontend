@@ -26,6 +26,8 @@ type Lead = {
   salary_currency: string | null;
   posted_at: string | null;
   found_at: string;
+  fb_post_id: string | null;
+  fb_posted_at: string | null;
 };
 
 type Company = {
@@ -108,6 +110,10 @@ export function RecruiterLeads() {
   const [sweepRunning, setSweepRunning] = useState(false);
   const [sweepSummary, setSweepSummary] = useState<SweepSummary | null>(null);
 
+  const [fbConfigured, setFbConfigured] = useState(false);
+  // Track per-lead posting state in the UI (leadId → 'posting' | 'done' | 'error')
+  const [fbPostState, setFbPostState] = useState<Record<string, 'posting' | 'done' | 'error'>>({});
+
   const [error, setError] = useState<string | null>(null);
 
   // Filters
@@ -163,6 +169,11 @@ export function RecruiterLeads() {
       .then((r) => r.json())
       .then((d: { publishers: string[] }) => setPublishers(d.publishers ?? []))
       .catch(() => { /* non-fatal */ });
+
+    fetch(`${API_BASE_URL}/facebook/config`, { headers: authHeaders })
+      .then((r) => r.json())
+      .then((d: { configured: boolean }) => setFbConfigured(!!d.configured))
+      .catch(() => { /* non-fatal — FB button stays hidden */ });
   }, [authHeaders]);
 
   // Build the shared filter query-string used by both /leads and /leads/export.
@@ -345,6 +356,26 @@ export function RecruiterLeads() {
     }
   };
 
+  const postLeadToFacebook = async (leadId: string) => {
+    if (!authHeaders.Authorization) return;
+    setFbPostState((prev) => ({ ...prev, [leadId]: 'posting' }));
+    try {
+      const res = await fetch(`${API_BASE_URL}/facebook/post-lead`, {
+        method: 'POST',
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error((data as any)?.error || `HTTP ${res.status}`);
+      setFbPostState((prev) => ({ ...prev, [leadId]: 'done' }));
+      // Reflect the posted state in the leads array so the button stays green
+      setLeads((prev) => prev.map((l) => l.id === leadId ? { ...l, fb_post_id: (data as any).postId } : l));
+    } catch (e) {
+      setFbPostState((prev) => ({ ...prev, [leadId]: 'error' }));
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
   return (
     <div style={{ padding: 20, background: '#f8fafc', minHeight: '100vh' }}>
       {/* Header */}
@@ -484,7 +515,7 @@ export function RecruiterLeads() {
       {/* Content */}
       {tab === 'leads' ? (
         <>
-          <LeadsTable leads={leads} loading={leadsLoading} />
+          <LeadsTable leads={leads} loading={leadsLoading} fbConfigured={fbConfigured} fbPostState={fbPostState} onFbPost={postLeadToFacebook} />
           <Pagination
             page={leadsPage}
             pageSize={pageSize}
@@ -744,7 +775,13 @@ function pagerBtnStyle(disabled: boolean): CSSProperties {
   };
 }
 
-function LeadsTable({ leads, loading }: { leads: Lead[]; loading: boolean }) {
+function LeadsTable({ leads, loading, fbConfigured, fbPostState, onFbPost }: {
+  leads: Lead[];
+  loading: boolean;
+  fbConfigured: boolean;
+  fbPostState: Record<string, 'posting' | 'done' | 'error'>;
+  onFbPost: (leadId: string) => void;
+}) {
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading…</div>;
   if (!leads.length) return (
     <div style={{ padding: 40, textAlign: 'center', color: '#6b7280', background: '#fff', borderRadius: 10, border: '1px dashed #d1d5db' }}>
@@ -765,6 +802,7 @@ function LeadsTable({ leads, loading }: { leads: Lead[]; loading: boolean }) {
               <th style={thStyle}>Via</th>
               <th style={thStyle}>Posted</th>
               <th style={thStyle}>Link</th>
+              {fbConfigured && <th style={thStyle}>FB</th>}
             </tr>
           </thead>
           <tbody>
@@ -783,6 +821,34 @@ function LeadsTable({ leads, loading }: { leads: Lead[]; loading: boolean }) {
                     Open <ExternalLink size={12} />
                   </a>
                 </td>
+                {fbConfigured && (
+                  <td style={tdStyle}>
+                    {(() => {
+                      const state = fbPostState[l.id];
+                      const alreadyPosted = !!(l.fb_post_id || state === 'done');
+                      if (alreadyPosted) {
+                        return <span style={{ fontSize: 11, color: '#1877f2', fontWeight: 600 }}>✓ Posted</span>;
+                      }
+                      return (
+                        <button
+                          onClick={() => onFbPost(l.id)}
+                          disabled={state === 'posting'}
+                          title="Post this job to your Facebook Page"
+                          style={{
+                            padding: '4px 9px', borderRadius: 6, fontSize: 11, fontWeight: 700,
+                            border: state === 'error' ? '1px solid #ef4444' : '1px solid #1877f2',
+                            background: state === 'error' ? '#fef2f2' : '#1877f2',
+                            color: state === 'error' ? '#dc2626' : '#fff',
+                            cursor: state === 'posting' ? 'wait' : 'pointer',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {state === 'posting' ? '…' : state === 'error' ? 'Retry' : 'Post'}
+                        </button>
+                      );
+                    })()}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
