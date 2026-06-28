@@ -10,8 +10,6 @@ import { API_BASE_URL } from '../lib/apiClient';
 
 type Position = { slug: string; query: string };
 
-const POSTING_SERVICE_URL = (import.meta as any).env?.VITE_POSTING_SERVICE_URL?.replace(/\/$/, '') || '';
-const FALISHA_POSTING_KEY = (import.meta as any).env?.VITE_FALISHA_POSTING_API_KEY || '';
 
 type Lead = {
   id: string;
@@ -172,14 +170,10 @@ export function RecruiterLeads() {
       .then((d: { publishers: string[] }) => setPublishers(d.publishers ?? []))
       .catch(() => { /* non-fatal */ });
 
-    if (POSTING_SERVICE_URL && FALISHA_POSTING_KEY) {
-      fetch(`${POSTING_SERVICE_URL}/falisha/config`, {
-        headers: { 'X-Falisha-Key': FALISHA_POSTING_KEY },
-      })
-        .then((r) => r.json())
-        .then((d: { configured: boolean }) => setFbConfigured(!!d.configured))
-        .catch(() => { /* non-fatal — FB button stays hidden */ });
-    }
+    fetch(`${API_BASE_URL}/facebook/config`, { headers: authHeaders })
+      .then((r) => r.json())
+      .then((d: { configured: boolean }) => setFbConfigured(!!d.configured))
+      .catch(() => { /* non-fatal — FB button stays hidden */ });
   }, [authHeaders]);
 
   // Build the shared filter query-string used by both /leads and /leads/export.
@@ -363,18 +357,18 @@ export function RecruiterLeads() {
   };
 
   const postLeadToFacebook = async (leadId: string) => {
-    if (!POSTING_SERVICE_URL || !FALISHA_POSTING_KEY) return;
+    if (!authHeaders.Authorization) return;
     setFbPostState((prev) => ({ ...prev, [leadId]: 'posting' }));
     try {
-      const res = await fetch(`${POSTING_SERVICE_URL}/falisha/post-lead`, {
+      const res = await fetch(`${API_BASE_URL}/facebook/post-lead`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Falisha-Key': FALISHA_POSTING_KEY },
-        body: JSON.stringify({ lead_id: leadId }),
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error((data as any)?.detail || `HTTP ${res.status}`);
+      if (!res.ok) throw new Error((data as any)?.error || `HTTP ${res.status}`);
       setFbPostState((prev) => ({ ...prev, [leadId]: 'done' }));
-      setLeads((prev) => prev.map((l) => l.id === leadId ? { ...l, fb_post_id: (data as any).post_id } : l));
+      setLeads((prev) => prev.map((l) => l.id === leadId ? { ...l, fb_post_id: (data as any).postId } : l));
     } catch (e) {
       setFbPostState((prev) => ({ ...prev, [leadId]: 'error' }));
       setError(e instanceof Error ? e.message : String(e));
