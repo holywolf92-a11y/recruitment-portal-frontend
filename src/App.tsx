@@ -25,6 +25,8 @@ import { JoinLanding } from './components/JoinLanding';
 import { ReviewPage } from './components/ReviewPage';
 import { ReviewsDashboard } from './components/ReviewsDashboard';
 import { RecruiterLeads } from './components/RecruiterLeads';
+import { FindRecruiters } from './components/FindRecruiters';
+import { LeadPasswordGate } from './components/LeadPasswordGate';
 import { CandidateOnboardingPage } from './components/CandidateOnboardingPage';
 import { CandidatePortalDashboard } from './components/CandidatePortalDashboard';
 import { EmployerPortalDashboard } from './components/EmployerPortalDashboard';
@@ -37,7 +39,7 @@ import { getRoleLabel, hasRolePermission, normalizeUserRole, type Permission, ty
 import { apiClient, type PortalProfileResponse } from './lib/apiClient';
 import { APP_CONFIG } from './lib/constants';
 import { Toaster } from './components/ui/sonner';
-import { ArrowLeft, Briefcase, Building2, ChevronDown, ClipboardList, Database, FileText, FolderTree, Inbox, LayoutDashboard, Link2, LogOut, Mail, Menu, MessageSquare, Phone, Settings as SettingsIcon, Shield, Users, X, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, Briefcase, Building2, ChevronDown, ClipboardList, Database, FileText, FolderTree, Globe, Inbox, LayoutDashboard, Link2, LogOut, Mail, Menu, MessageSquare, Phone, Settings as SettingsIcon, Shield, Users, X, type LucideIcon } from 'lucide-react';
 
 type AdminNavigationOptions = {
   profession?: string;
@@ -83,6 +85,14 @@ const NAV_SECTIONS: NavSectionConfig[] = [
     ],
   },
   {
+    id: 'lead',
+    label: 'Lead',
+    items: [
+      { tab: 'find-jobs', label: 'Find Jobs', icon: Briefcase },
+      { tab: 'find-recruiters', label: 'Find Recruiters', icon: Globe },
+    ],
+  },
+  {
     id: 'talent',
     label: 'Talent Operations',
     items: [
@@ -120,7 +130,6 @@ const NAV_SECTIONS: NavSectionConfig[] = [
       { tab: 'employees', label: 'Employees', icon: ClipboardList },
       { tab: 'reports', label: 'Reports', icon: FileText },
       { tab: 'reviews', label: 'Reviews', icon: MessageSquare },
-      { tab: 'recruiter-leads', label: 'Recruiter Leads', icon: Briefcase },
     ],
   },
   {
@@ -147,6 +156,7 @@ const NAV_SECTIONS: NavSectionConfig[] = [
 
 const DEFAULT_OPEN_SECTIONS: Record<string, boolean> = {
   overview: true,
+  lead: true,
   talent: true,
   'excel-browser': false,
   partners: false,
@@ -269,6 +279,9 @@ const AppContent = () => {
     'admin-panel': `${portalBasePath}/admin`,
     users: `${portalBasePath}/users`,
     reviews: `${portalBasePath}/reviews`,
+    'find-jobs': `${portalBasePath}/find-jobs`,
+    'find-recruiters': `${portalBasePath}/find-recruiters`,
+    'recruiter-leads': `${portalBasePath}/recruiter-leads`,
   };
 
   const buildPortalUrl = (tab: string, opts?: AdminNavigationOptions) => {
@@ -673,8 +686,19 @@ const AppContent = () => {
         return <UserManagement />;
       case 'reviews':
         return <ReviewsDashboard />;
-      case 'recruiter-leads':
-        return <RecruiterLeads />;
+      case 'find-jobs':
+      case 'recruiter-leads': // legacy alias — jobs posted by employers
+        return (
+          <LeadPasswordGate>
+            <RecruiterLeads />
+          </LeadPasswordGate>
+        );
+      case 'find-recruiters':
+        return (
+          <LeadPasswordGate>
+            <FindRecruiters />
+          </LeadPasswordGate>
+        );
       default:
         return <Dashboard />;
     }
