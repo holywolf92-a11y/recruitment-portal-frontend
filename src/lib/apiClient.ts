@@ -2,6 +2,8 @@
 // In production, VITE_API_BASE_URL should be set to the full backend URL (e.g., https://backend.railway.app/api)
 // In development, it defaults to '/api' which will use the Vite proxy
 
+import { supabase } from './authContext';
+
 // Production backend URL (fallback if VITE_API_BASE_URL is not set at build time)
 const PRODUCTION_BACKEND_URL = 'https://glorious-flexibility-production.up.railway.app/api';
 
@@ -31,13 +33,28 @@ console.log('[API Client] API_BASE_URL:', API_BASE_URL);
 console.log('[API Client] Environment:', import.meta.env.MODE);
 console.log('[API Client] Hostname:', typeof window !== 'undefined' ? window.location.hostname : 'server');
 
+// Authorization header for the signed-in portal user (Supabase JWT), or {}
+// when signed out. getSession() reads the locally stored session and refreshes
+// it if it has expired, so this is cheap to call for every request.
+// Backend routes such as /cv-inbox reject requests without it (401).
+export async function getAuthHeaders(): Promise<Record<string, string>> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
   const res = await fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...(options.headers || {}),
+      ...(await getAuthHeaders()),
+      ...((options.headers as Record<string, string> | undefined) || {}),
     },
   });
   if (!res.ok) {
@@ -194,7 +211,7 @@ export const api = {
   async getParsingJobByAttachment(attachmentId: string) {
     const url = `${API_BASE_URL}/parsing-jobs/by-attachment/${attachmentId}`;
     const res = await fetch(url, {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
     });
     if (res.status === 404) return null;
     if (!res.ok) {

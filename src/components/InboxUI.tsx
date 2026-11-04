@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Download, Eye, CheckCircle, AlertCircle, Clock, Filter, Trash2 } from 'lucide-react';
+import { getAuthHeaders } from '../lib/apiClient';
 
 interface InboxMessage {
   id: string;
@@ -91,7 +92,10 @@ export const InboxUI: React.FC<InboxUIProps> = ({ apiBaseUrl = 'http://localhost
       params.append('limit', limit.toString());
       params.append('offset', offset.toString());
 
-      const response = await fetch(`${apiBaseUrl}/cv-inbox?${params.toString()}`);
+      const response = await fetch(`${apiBaseUrl}/cv-inbox?${params.toString()}`, {
+        headers: await getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error(`${response.status}: ${await response.text().catch(() => '')}`);
       const data = await response.json();
       setMessages(data.messages || []);
       setTotal(data.total || 0);
@@ -105,7 +109,10 @@ export const InboxUI: React.FC<InboxUIProps> = ({ apiBaseUrl = 'http://localhost
   // Fetch attachments for a message
   const fetchAttachments = async (messageId: string) => {
     try {
-      const response = await fetch(`${apiBaseUrl}/cv-inbox/${messageId}/attachments`);
+      const response = await fetch(`${apiBaseUrl}/cv-inbox/${messageId}/attachments`, {
+        headers: await getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error(`${response.status}: ${await response.text().catch(() => '')}`);
       const data = await response.json();
       setAttachments((prev) => ({ ...prev, [messageId]: data }));
     } catch (err) {
@@ -121,7 +128,7 @@ export const InboxUI: React.FC<InboxUIProps> = ({ apiBaseUrl = 'http://localhost
     try {
       const response = await fetch(`${apiBaseUrl}/cv-inbox/${messageId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify({ status: newStatus }),
       });
 
@@ -144,6 +151,7 @@ export const InboxUI: React.FC<InboxUIProps> = ({ apiBaseUrl = 'http://localhost
     try {
       const response = await fetch(`${apiBaseUrl}/cv-inbox/${messageId}`, {
         method: 'DELETE',
+        headers: await getAuthHeaders(),
       });
 
       if (response.ok) {
@@ -161,13 +169,25 @@ export const InboxUI: React.FC<InboxUIProps> = ({ apiBaseUrl = 'http://localhost
     }
   };
 
-  const handleDownloadAttachment = (messageId: string, attachmentId: string, fileName: string) => {
-    // Trigger download via API
-    const downloadUrl = `${apiBaseUrl}/cv-inbox/${messageId}/attachments/${attachmentId}/download`;
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = fileName;
-    link.click();
+  const handleDownloadAttachment = async (messageId: string, attachmentId: string, fileName: string) => {
+    // The download route needs an Authorization header, which a plain <a href>
+    // navigation can't send. Ask for the short-lived signed Supabase URL as JSON,
+    // then hand that to the browser, so the file still comes straight from storage.
+    try {
+      const response = await fetch(
+        `${apiBaseUrl}/cv-inbox/${messageId}/attachments/${attachmentId}/download?format=json`,
+        { headers: await getAuthHeaders() }
+      );
+      if (!response.ok) throw new Error(`${response.status}: ${await response.text().catch(() => '')}`);
+      const { url } = (await response.json()) as { url: string };
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.click();
+    } catch (err) {
+      console.error('Failed to download attachment:', err);
+      alert('Could not download this attachment. Please try again.');
+    }
   };
 
   const getStatusIcon = (status: string) => {
