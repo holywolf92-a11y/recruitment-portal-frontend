@@ -109,6 +109,7 @@ export function RecruiterLeads() {
   const [companiesLoading, setCompaniesLoading] = useState(false);
 
   const [sweepRunning, setSweepRunning] = useState(false);
+  const [sweepProgress, setSweepProgress] = useState<{ done: number; total: number } | null>(null);
   const [sweepSummary, setSweepSummary] = useState<SweepSummary | null>(null);
 
   const [fbConfigured, setFbConfigured] = useState(false);
@@ -256,11 +257,53 @@ export function RecruiterLeads() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, country, position, source, datePosted, publisher, debouncedSearchQ, pageSize, leadsPage, companiesPage, authHeaders]);
 
+  // After a background sweep finishes, refresh everything the user can see.
+  const refreshAfterSweep = async () => {
+    await Promise.all([
+      tab === 'leads'     ? loadLeads()     : Promise.resolve(),
+      tab === 'companies' ? loadCompanies() : Promise.resolve(),
+    ]);
+    fetch(`${API_BASE_URL}/jobs/publishers?fresh=1`, { headers: authHeaders })
+      .then((r) => r.json())
+      .then((d: { publishers: string[] }) => setPublishers(d.publishers ?? []))
+      .catch(() => { /* non-fatal */ });
+  };
+
+  // Poll /jobs/sweep/status until the background sweep is no longer running,
+  // then surface its summary and refresh the list. The full matrix takes
+  // several minutes, so we never hold the trigger request open for it.
+  const pollSweepStatus = async () => {
+    for (;;) {
+      await new Promise((r) => setTimeout(r, 4000));
+      let st: {
+        running: boolean;
+        progress?: { done: number; total: number };
+        lastSummary?: SweepSummary | null;
+        lastError?: string | null;
+      };
+      try {
+        const r = await fetch(`${API_BASE_URL}/jobs/sweep/status`, { headers: authHeaders });
+        if (!r.ok) continue; // transient — keep polling
+        st = await r.json();
+      } catch {
+        continue; // network blip — keep polling
+      }
+      if (st.progress && st.progress.total > 0) setSweepProgress(st.progress);
+      if (!st.running) {
+        if (st.lastError) setError(st.lastError);
+        if (st.lastSummary) setSweepSummary(st.lastSummary);
+        await refreshAfterSweep();
+        return;
+      }
+    }
+  };
+
   const runSweep = async () => {
     if (!authHeaders.Authorization) return;
     setShowSweepModal(false);
     setSweepRunning(true);
     setSweepSummary(null);
+    setSweepProgress(null);
     setError(null);
     try {
       const res = await fetch(`${API_BASE_URL}/jobs/sweep`, {
@@ -272,31 +315,19 @@ export function RecruiterLeads() {
           pageLoops: sweepPageLoops,
         }),
       });
-      if (!res.ok) {
-        // Server may reject with a typed error: 409 sweep_already_running, 400 sweep_budget_exceeded
+      // 202 = started; 409 = one already running (we just attach and poll it).
+      if (!res.ok && res.status !== 409) {
         let detail = '';
         try { const j = await res.json(); detail = j?.message || j?.error || ''; } catch { /* ignore */ }
         throw new Error(detail || (await res.text()));
       }
-      const data = await res.json();
-      setSweepSummary(data.summary);
-      // Only refresh the visible tab — fewer wasted requests, no flash.
-      // The Companies aggregate is rebuilt as part of the sweep too, so we
-      // refresh it too if the user is currently looking at that tab.
-      await Promise.all([
-        tab === 'leads'     ? loadLeads()     : Promise.resolve(),
-        tab === 'companies' ? loadCompanies() : Promise.resolve(),
-      ]);
-      // Refresh the publishers list — a fresh sweep often surfaces new ones.
-      // Use fresh=1 to bypass the 60s cache so the user sees them immediately.
-      fetch(`${API_BASE_URL}/jobs/publishers?fresh=1`, { headers: authHeaders })
-        .then((r) => r.json())
-        .then((d: { publishers: string[] }) => setPublishers(d.publishers ?? []))
-        .catch(() => { /* non-fatal */ });
+      // Sweep now runs in the background — poll until it's done.
+      await pollSweepStatus();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setSweepRunning(false);
+      setSweepProgress(null);
     }
   };
 
@@ -408,7 +439,11 @@ export function RecruiterLeads() {
           }}
         >
           <RefreshCw size={15} className={sweepRunning ? 'animate-spin' : ''} />
-          {sweepRunning ? 'Running sweep…' : 'Run sweep now'}
+          {sweepRunning
+            ? (sweepProgress && sweepProgress.total > 0
+                ? `Sweeping… ${sweepProgress.done}/${sweepProgress.total}`
+                : 'Running sweep…')
+            : 'Run sweep now'}
         </button>
       </div>
 
