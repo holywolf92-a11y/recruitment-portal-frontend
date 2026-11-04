@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Building2, Mail, Phone, MapPin, Briefcase, RefreshCw, AlertCircle, Users, Clock, ExternalLink } from 'lucide-react';
+import { Search, Plus, Building2, Mail, Phone, MapPin, Briefcase, RefreshCw, AlertCircle, Users, Clock, ExternalLink, Trash2 } from 'lucide-react';
 import { apiClient, EmployerLeadProfile } from '../lib/apiClient';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -20,6 +20,22 @@ export function EmployerManagement({ onViewJobs }: { onViewJobs?: (company: stri
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = async (lead: EmployerLeadProfile) => {
+    const label = lead.company_name || lead.email || 'this lead';
+    if (!window.confirm(`Delete "${label}"? This permanently removes the lead and cannot be undone.`)) return;
+    setDeletingId(lead.id);
+    try {
+      await apiClient.deleteEmployerLead(lead.id);
+      setLeads((prev) => prev.filter((l) => l.id !== lead.id));
+      setTotal((t) => Math.max(0, t - 1));
+    } catch (err: any) {
+      alert(err?.message || 'Failed to delete this lead');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchTerm), 400);
@@ -217,16 +233,27 @@ export function EmployerManagement({ onViewJobs }: { onViewJobs?: (company: stri
                       <> &bull; {(lead as any).requirements_count} requirements</>
                     )}
                   </p>
-                  {lead.company_name && onViewJobs && (
+                  <div className="flex items-center gap-2">
+                    {lead.company_name && onViewJobs && (
+                      <button
+                        onClick={() => onViewJobs(lead.company_name!)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                        title={`View job orders for ${lead.company_name}`}
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        View Jobs
+                      </button>
+                    )}
                     <button
-                      onClick={() => onViewJobs(lead.company_name!)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
-                      title={`View job orders for ${lead.company_name}`}
+                      onClick={() => handleDelete(lead)}
+                      disabled={deletingId === lead.id}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50"
+                      title="Delete this lead"
                     >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      View Jobs
+                      <Trash2 className="w-3.5 h-3.5" />
+                      {deletingId === lead.id ? 'Deleting…' : 'Delete'}
                     </button>
-                  )}
+                  </div>
                 </div>
               </div>
             );

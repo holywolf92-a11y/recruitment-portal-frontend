@@ -1988,6 +1988,12 @@ class ApiClient {
     return this.request<{ leads: EmployerLeadProfile[]; total: number }>(`/employer-leads${query ? `?${query}` : ''}`);
   }
 
+  async deleteEmployerLead(id: string): Promise<{ success: boolean; deletedId: string }> {
+    return this.request<{ success: boolean; deletedId: string }>(`/employer-leads/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   async createAdminEmployerLead(data: {
     company_name: string;
     contact_name?: string;

@@ -67,6 +67,22 @@ export function JobOrderManagement({ initialCompany = '' }: { initialCompany?: s
   const [pushSuccess, setPushSuccess] = useState<string | null>(null);
   const [viewingCvId, setViewingCvId] = useState<string | null>(null);
   const [openContactId, setOpenContactId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = async (order: EmployerLeadProfile) => {
+    const label = order.professions || order.company_name || 'this job order';
+    if (!window.confirm(`Delete "${label}"? This permanently removes the job order and cannot be undone.`)) return;
+    setDeletingId(order.id);
+    try {
+      await apiClient.deleteEmployerLead(order.id);
+      setOrders((prev) => prev.filter((o) => o.id !== order.id));
+      setTotal((t) => Math.max(0, t - 1));
+    } catch (err: any) {
+      alert(err?.message || 'Failed to delete this job order');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const handleViewCV = async (e: React.MouseEvent, candidateId: string) => {
     e.stopPropagation();
@@ -471,13 +487,24 @@ export function JobOrderManagement({ initialCompany = '' }: { initialCompany?: s
                   Posted {new Date(order.created_at || '').toLocaleDateString()}
                   {order.duty_hours && <> &bull; {order.duty_hours} hrs/day</>}
                 </span>
-                <button
-                  onClick={() => openFindPanel(order)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
-                >
-                  <UserCheck className="w-3.5 h-3.5" />
-                  Find Candidates
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => openFindPanel(order)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
+                  >
+                    <UserCheck className="w-3.5 h-3.5" />
+                    Find Candidates
+                  </button>
+                  <button
+                    onClick={() => handleDelete(order)}
+                    disabled={deletingId === order.id}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors text-xs font-medium disabled:opacity-50"
+                    title="Delete this job order"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    {deletingId === order.id ? 'Deleting…' : 'Delete'}
+                  </button>
+                </div>
               </div>
             </div>
           ))}
