@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { ArrowLeft, Building2, Calendar, Mail, Phone, Search, Users } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { ArrowLeft, Building2, Calendar, Clock, Mail, Phone, RefreshCw, Search, Users } from 'lucide-react';
 import { apiClient, type AppUserProfile } from '../lib/apiClient';
 import { useAuth } from '../lib/authContext';
 import { CandidateProvider } from '../lib/candidateContext';
@@ -99,45 +99,50 @@ export function PartnerManagement() {
   const accessToken = session?.access_token;
   const [partners, setPartners] = useState<PartnerWithStats[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<'newest' | 'candidates'>('newest');
   const [selectedPartner, setSelectedPartner] = useState<PartnerWithStats | null>(null);
 
   // ── Fetch partners with candidate counts (single round-trip) ────────────
+  // Sorting is applied in the render (derived), so the toggle/refresh never refetch.
+
+  const loadPartners = useCallback(async () => {
+    if (!accessToken) return;
+    setError(null);
+    try {
+      const { partners: data } = await apiClient.getPartners(accessToken);
+      setPartners((data || []).map((p) => ({ ...p, candidateCount: p.candidateCount ?? 0 })));
+    } catch (e: any) {
+      setError(e?.message || 'Failed to load partners');
+    }
+  }, [accessToken]);
 
   useEffect(() => {
-    if (!accessToken) {
-      // Still waiting for session to load — keep loading state
-      return;
-    }
+    if (!accessToken) return; // still waiting for session to load — keep loading state
     let cancelled = false;
-
-    async function load() {
-      setLoading(true);
-      setError(null);
-      try {
-        const { partners: data } = await apiClient.getPartners(accessToken!);
-        if (!cancelled) {
-          setPartners(
-            (data || [])
-              .map((p) => ({ ...p, candidateCount: p.candidateCount ?? 0 }))
-              .sort((a, b) => (b.candidateCount ?? 0) - (a.candidateCount ?? 0))
-          );
-        }
-      } catch (e: any) {
-        if (!cancelled) setError(e?.message || 'Failed to load partners');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    load();
+    setLoading(true);
+    loadPartners().finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [accessToken]);
+  }, [accessToken, loadPartners]);
+
+  const handleRefresh = async () => {
+    if (refreshing || loading) return;
+    setRefreshing(true);
+    await loadPartners();
+    setRefreshing(false);
+  };
 
   // ── Filtered list ────────────────────────────────────────────────────────
 
-  const filtered = partners.filter((p) => {
+  const sorted = [...partners].sort((a, b) => {
+    if (sortBy === 'candidates') return (b.candidateCount ?? 0) - (a.candidateCount ?? 0);
+    // 'newest' — most recently joined first
+    return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+  });
+
+  const filtered = sorted.filter((p) => {
     const q = search.toLowerCase();
     if (!q) return true;
     return (
@@ -201,16 +206,48 @@ export function PartnerManagement() {
           </p>
         </div>
 
-        {/* Search */}
-        <div className="sm:ml-auto relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, company…"
-            className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-          />
+        {/* Controls: sort toggle · refresh · search */}
+        <div className="sm:ml-auto flex items-center gap-2 w-full sm:w-auto">
+          {/* Sort toggle */}
+          <div className="flex items-center rounded-lg border border-gray-300 overflow-hidden text-sm flex-shrink-0">
+            <button
+              onClick={() => setSortBy('newest')}
+              className={`flex items-center gap-1 px-3 py-2 ${sortBy === 'newest' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+              title="Newest partners first"
+            >
+              <Clock className="w-3.5 h-3.5" /> Newest
+            </button>
+            <button
+              onClick={() => setSortBy('candidates')}
+              className={`flex items-center gap-1 px-3 py-2 border-l border-gray-300 ${sortBy === 'candidates' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+              title="Most candidates first"
+            >
+              <Users className="w-3.5 h-3.5" /> Most
+            </button>
+          </div>
+
+          {/* Refresh */}
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing || loading}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 flex-shrink-0"
+            title="Refresh partners"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
+
+          {/* Search */}
+          <div className="relative flex-1 sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, company…"
+              className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+            />
+          </div>
         </div>
       </div>
 
